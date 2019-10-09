@@ -1,0 +1,7 @@
+[report]
+omit =
+    setup.py
+    car/__main__.py
+    car/_version.py
+    versioneer.py
+    tests/*
