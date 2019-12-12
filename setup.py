@@ -3,6 +3,7 @@ import versioneer
 
 requirements = [
     # package requirements go here
+    # securesystemslib is optional: pip install conda-authentication-resources[gpgsigning]
 ]
 
 setup(
@@ -21,6 +22,11 @@ setup(
         ]
     },
     install_requires=requirements,
+    # Until the ed25519-gpg-support is merged into the main branch of
+    # securesystemslib, we'll use this git branch.  Note that this is an
+    # optional dependency, required only to produce gpg-based signatures
+    # (instead of plain ed25519 sigs via pyca/cryptography).
+    extras_require = {'gpgsigning': ['securesystemslib @ git+https://github.com/lukpueh/securesystemslib@add-pgp-ed25519#egg=securesystemslib-0.12.2']},
     keywords='conda-authentication-resources',
     classifiers=[
         'Programming Language :: Python :: 2.7',
