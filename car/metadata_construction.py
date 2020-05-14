@@ -19,7 +19,11 @@ Metadata Construction:
 # Python2 Compatibility
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# std libs
 import datetime
+
+# dependencies
+from six import string_types
 
 # Default expiration distance for repodata_verify.json.
 REPODATA_VERIF_MD_EXPIRY_DISTANCE = datetime.timedelta(days=31)
@@ -27,8 +31,10 @@ ROOT_MD_EXPIRY_DISTANCE = datetime.timedelta(days=365)
 
 # car modules
 from .common import (
-        checkformat_natural_int, checkformat_list_of_hex_string_keys,
-        checkformat_utc_isoformat,
+        PrivateKey, PublicKey,
+        checkformat_natural_int, checkformat_list_of_hex_keys,
+        checkformat_string, checkformat_utc_isoformat, is_hex_hash,
+        checkformat_delegation, checkformat_delegations, is_delegations,
         iso8601_time_plus_delta, SECURITY_METADATA_SPEC_VERSION)
 
 
@@ -40,9 +46,14 @@ def build_repodata_verification_metadata(
     """
     # TODO: ✅ Full docstring.
 
+    # TODO: ✅ Contemplate the addition of "version" to this metadata.  As yet,
+    #          the timestamp serves our purposes....
+
     Note that if expiry or timestamp are not provided or left as None, now is
     used for the timestamp, and expiry is produced using a default expiration
     distance, via iso8601_time_plus_delta().  (It does not mean no expiration!)
+
+    Channel may be optionally specified, and is only included if specified.
 
     Sample input (repodata_hashmap):
     {
@@ -60,14 +71,28 @@ def build_repodata_verification_metadata(
         "Repodata Verification Metadata".
     """
 
-    # TODO: ✅ Argument validation
-
-
     if expiry is None:
         expiry = iso8601_time_plus_delta(REPODATA_VERIF_MD_EXPIRY_DISTANCE)
 
     if timestamp is None:
         timestamp = iso8601_time_plus_delta(datetime.timedelta(0))
+
+    # TODO: ✅ More argument validation: channel, 
+    checkformat_utc_isoformat(expiry)
+    checkformat_utc_isoformat(timestamp)
+    if not ( # dict with string keys and 32-byte-hash-as-hex-string values
+            isinstance(repodata_hashmap, dict)
+            and all([isinstance(x, string_types) for x in repodata_hashmap])
+            and all([is_hex_hash(repodata_hashmap[x]) for x in repodata_hashmap])):
+        raise ValueError(
+                'Argument repodata_hashmap must be a dictionary with strings '
+                'as keys (filenames of repodata.json files), and values that '
+                'are 64-character hex strings representing 32-byte hashes (of '
+                'those repodata.json files)')
+
+    # TODO: ✅ Really have to make TypeError and ValueError usages consistent
+    #       with norms throughout this codebase.
+
 
     rd_v_md = {
             'type': 'repodata_verify',
@@ -85,9 +110,61 @@ def build_repodata_verification_metadata(
 
 
 
+
+# An attempt at generalizing build_root_metadata()
+def build_delegating_metadata(
+        metadata_type,
+        delegations=None, version=1, timestamp=None, expiration=None):
+    """
+    # ✅ TODO: Docstring
+
+    Builds delegating metadata,
+    e.g. root.json, channeler.json, channel_authority.json
+    and specifically not repodata_verify.json.
+    """
+
+    # Handle optional args
+    if delegations is None:
+        delegations = {}
+    if timestamp is None:
+        timestamp = iso8601_time_plus_delta(datetime.timedelta(0))
+    if expiration is None:
+        expiration = iso8601_time_plus_delta(ROOT_MD_EXPIRY_DISTANCE)
+
+    # Argument validation.  Note that this (checkformat_delegations) also
+    # checks for duplicates in lists of keys, which is important to reduce the
+    # odds of a developer introducing certain bugs that cause security issues
+    # (multiple signatures from same key being treated as two unique sigs,
+    # etc.)
+    checkformat_string(metadata_type)
+    # TODO: ✅⚠️ Consider a set of acceptable metadata types (root, channeler,
+    #             channel_authority).  Have to be careful about backward
+    #             compatibility, though....
+    checkformat_utc_isoformat(timestamp)
+    checkformat_utc_isoformat(expiration)
+    checkformat_natural_int(version)
+    checkformat_delegations(delegations)
+
+    md = {
+        'type': metadata_type,
+        'version': version,
+        'metadata_spec_version': SECURITY_METADATA_SPEC_VERSION,
+        'timestamp': timestamp,
+        'expiration': expiration,
+        "delegations": delegations
+    }
+
+    # TODO: ✅ Add checkformat call for delegating metadata result?
+    #           It would be pretty redundant.
+    return md
+
+
+
 def build_root_metadata(
-        root_pubkeys, root_threshold, root_version, root_expiration=None,
-        channeler_pubkeys=None, channeler_threshold=1):
+        root_version,
+        root_pubkeys, root_threshold,
+        channeler_pubkeys, channeler_threshold,
+        root_timestamp=None, root_expiration=None):
     """
     # ✅ TODO: Docstring
 
@@ -95,39 +172,33 @@ def build_root_metadata(
     #          directly-root-delegated roles (i.e. in addition to channeler).
     """
 
-    # Optional args requiring separate processing
+    # Note that argument validation is performed in the
+    # build_delegation_metadata call below.  So is some of the optional
+    # argument default setting (timestamp).  We set expiration explicitly here
+    # in case the defaults for generic delegating metadata and root metadata
+    # diverge later.
+    # Note that it is probably best to provide less revealing timestamps for
+    # root metadata generation (00:00:00 of a past day), since it is a manual
+    # process and patterns in that information might be useful to a
+    # sophisticated attacker for social engineering.
     if root_expiration is None:
         root_expiration = iso8601_time_plus_delta(ROOT_MD_EXPIRY_DISTANCE)
-    if channeler_pubkeys is None:
-        channeler_pubkeys = []
+    # if channeler_pubkeys is None:
+    #     channeler_pubkeys = []
+    # if channeler_threshold = None:
+    #     channeler_threshold = max(1, len(channeler_pubkeys))
 
-    # Argument validation
-    checkformat_utc_isoformat(root_expiration)
-    checkformat_natural_int(root_version)
-    checkformat_natural_int(root_threshold)
-    checkformat_natural_int(channeler_threshold)
-    checkformat_list_of_hex_string_keys(root_pubkeys)
-    checkformat_list_of_hex_string_keys(channeler_pubkeys)
-
-    root_md = {
-      "signed": {
-        "type": "root",
-        "delegations": {
-          "root.json": {
-            "threshold": root_threshold,
-            "pubkeys": root_pubkeys
-          },
-          "channeler.json": {
-            "threshold": channeler_threshold,
-            "pubkeys": channeler_pubkeys
-          }
-        },
-        "version": root_version,
-        "metadata_spec_version": SECURITY_METADATA_SPEC_VERSION,
-        "expiration": root_expiration
-      },
-      "signatures": {}
+    delegations = {
+        'root.json':
+            {'pubkeys': root_pubkeys, 'threshold': root_threshold},
+        'channeler.json':
+            {'pubkeys': channeler_pubkeys, 'threshold': channeler_threshold}
     }
+
+    root_md = build_delegating_metadata(
+            metadata_type='root', delegations=delegations,
+            version=root_version, timestamp=root_timestamp,
+            expiration=root_expiration)
 
 
     # TESTING STUB.
@@ -175,15 +246,13 @@ def gen_and_write_keys(fname):
     # implementation, we'll want to use an HSM equipped with an ed25519 key.
     private, public = gen_keys()
 
-    # Get the actual bytes of the key values.... Note that we're just grabbing
-    # the not-encrypted private key value.
-    private_bytes = key_to_bytes(private)
-    public_bytes = key_to_bytes(public)
-
+    # Write the actual bytes of the key values to disk as requested.
+    # Note that where the private key is concerned, we're just grabbing the
+    # not-encrypted private key value.
     with open(fname + '.pri', 'wb') as fobj:
-            fobj.write(private_bytes)
+            fobj.write(private.to_bytes())
     with open(fname + '.pub', 'wb') as fobj:
-            fobj.write(public_bytes)
+            fobj.write(public.to_bytes())
 
     return private, public
 
@@ -193,13 +262,16 @@ def gen_keys():
     """
     Generate an ed25519 key pair and return it (private key, public key).
 
-    Returns Ed25519PrivateKey and Ed25519PublicKey objects (classes from
-    cryptography.hazmat.primitives.asymmetric.ed25519).
+    Returns two objects:
+      - a car.common.PrivateKey, a subclass of
+        cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
+      - a car.common.PublicKey, a subclass of
+        cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
     """
     # Create an ed25519 key pair, employing OS random generation.
     # Note that this just has the private key sitting around.  In the real
     # implementation, we'll want to use an HSM equipped with an ed25519 key.
-    private = ed25519.Ed25519PrivateKey.generate()
+    private = PrivateKey.generate()
     public = private.public_key()
 
     return private, public

@@ -14,6 +14,11 @@ Function Manifest for this Module:
     sign_root_metadata_via_gpg    # requires securesystemslib
     fetch_keyval_from_gpg         # requires securesystemslib
 
+These two functions are provided only for testing purpose and are not part of
+the API for this module:
+    _gpg_pubkey_in_ssl_format
+    _verify_gpg_sig_using_ssl     # requires securesystemslib
+
 Note that there is a function in car.authentication that verifies these
 signatures without requiring securesystemslib.
 """
@@ -21,10 +26,12 @@ signatures without requiring securesystemslib.
 # Python2 Compatibility
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# std libs
 import json
-import binascii  # for binascii.unhexlify / hexlify
+#import binascii  # for binascii.unhexlify / hexlify
 #import struct    # for struct.pack
 
+# dependencies
 from six import string_types   # for Python2/3-compatible string type checks
 
 # For ed25519 signing operations and hashing
@@ -43,14 +50,15 @@ try:
 except ImportError:
     SSLIB_AVAILABLE = False
 
+# this codebase
 from .common import (
         canonserialize, is_a_signable, checkformat_gpg_fingerprint,
-        checkformat_hex_string_key, checkformat_gpg_signature,
-        public_key_from_bytes)
+        checkformat_hex_key, checkformat_gpg_signature, checkformat_byteslike,
+        PrivateKey, PublicKey, checkformat_key)
 
 
 
-def sign_via_gpg(data_to_sign, gpg_key_fingerprint):
+def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     """
     <Purpose>
 
@@ -93,14 +101,18 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint):
             client knows of.
 
             Note that an OpenPGP public key is a larger object identified by a
-            fingerprint.  GPG keys include two things, from our perspective:
+            fingerprint.  GPG public keys include two things, from our
+            perspective:
 
              - the raw bytes of the actual cryptographic key
-               (in our case the 32-byte value "q" for an ed25519 public key)
+               (in our case the 32-byte value referred to as "q" for an ed25519
+               public key)
 
              - lots of data that is totally extraneous to us, including a
                timestamp, some representations of relationships with other keys
-               (subkeys, signed-by lists, etc.), potential revocations, etc...)
+               (subkeys, signed-by lists, etc.), Superman's real name
+               (see also https://bit.ly/38GcaGj), potential key revocations,
+               etc.
                We do not care about this extra data because we are using the
                OpenPGP standard not for its key-to-key semantics or any element
                of its Public Key Infrastructure features (revocation, vouching
@@ -110,13 +122,19 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint):
 
 
     <Returns>
-        Returns two values:
-          - a dictionary representing a GPG signature, conforming to
-            securesystemslib.formats.GPG_SIGNATURE_SCHEMA, and
-          - a gpg public key object, a dictionary conforming to
-            securesystemslib.formats.GPG_ED25519_PUBKEY_SCHEMA.
+        Returns a dictionary representing a GPG signature.  This is similar to
+        but not *quite* the same as
+        securesystemslib.formats.GPG_SIGNATURE_SCHEMA (which uses 'keyid'
+        as the key for the fingerprint, instead of 'gpg_key_fingerprint').
 
-        This is unlike sign(), which returns 64 bytes of raw ed25519 signature.
+        Specifically, this looks like:
+            {'gpg_key_fingerprint': <gpg key fingerprint>,
+            'other_headers':       <extra data mandated in OpenPGP signatures>,
+            'signature':        <ed25519 signature, 64 bytes as 128 hex chars>}
+
+
+        This is unlike car.signing.sign(), which simply returns 64 bytes of raw
+        ed25519 signature.
 
 
     <Security Note>
@@ -161,33 +179,56 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint):
                 'sign_via_gpg requires the securesystemslib library, which '
                 'appears to be unavailable.')
 
+    # Argument validation
+    checkformat_gpg_fingerprint(gpg_key_fingerprint)
+    checkformat_byteslike(data_to_sign)
+
+
+    # try:
+    #     full_gpg_pubkey = gpg_funcs.export_pubkey(gpg_key_fingerprint)
+    # except securesystemslib.gpg.exceptions.KeyNotFoundError as e:
+    #     raise Exception( # TODO✅: Consider an appropriate error class.
+    #             'The GPG application reported that it is not aware of a key '
+    #             'with the fingerprint provided ("' + str(gpg_key_fingerprint) +
+    #             '").  You may need to import the given key.')
+
     sig = gpg_funcs.create_signature(data_to_sign, gpg_key_fingerprint)
-    full_gpg_pubkey = gpg_funcs.export_pubkey(gpg_key_fingerprint)
 
-    # 💣💥 Debug only.
-    # 💣💥 Debug only.
-    assert gpg_funcs.verify_signature(sig, full_gpg_pubkey, data_to_sign)
+    # # 💣💥 Debug only.
+    # # 💣💥 Debug only.
+    # assert gpg_funcs.verify_signature(sig, full_gpg_pubkey, data_to_sign)
 
-    return sig, full_gpg_pubkey
+    # securesystemslib.gpg makes use of the GPG key fingerprint.  We don't
+    # care about that as much -- we want to use the raw ed25519 public key
+    # value to refer to the key in a manner consistent with the way we refer to
+    # non-GPG (non-OpenPGP) keys.
+    keyval = fetch_keyval_from_gpg(gpg_key_fingerprint)
 
+    # ssl gpg sigs look like this:
+    #
+    #   {'keyid': <gpg key fingerprint>,
+    #    'other_headers': <extra data mandated in OpenPGP signatures>,
+    #    'signature': <actual ed25519 signature, 64 bytes as 128 hex chars>}
+    #
+    # We want to store the real public key instead of just the gpg key
+    # fingerprint, so we add that, and we'll rename keyid to
+    # gpg_key_fingerprint.  That gives us:
+    #
+    #   {'gpg_key_fingerprint': <gpg key fingerprint>,
+    #    'other_headers': <extra data mandated in OpenPGP signatures>,
+    #    'signature': <actual ed25519 signature, 64 bytes as 128 hex chars>}
+    #
+    # sig['key'] = keyval  # q, the 32-byte raw ed25519 public key value, expressed as 64 hex characters
 
+    # The OpenPGP Fingerprint of the OpenPGP key used to sign.  This is not
+    # required for verification, but it's useful for debugging and for
+    # root keyholder convenience.  So it's optional.
+    if include_fingerprint:
+        sig['see_also'] = sig['keyid'] # strictly not needed, useful for debugging; 20-byte sha1 gpg key identifier per OpenPGP spec, expressed as 40 hex characters
 
-def test_sign_via_gpg():
+    del sig['keyid']
 
-    # 💣💥 Debug only -- this test needs a GPG key added first.
-
-    sign_via_gpg(
-            'gpg_interface.py',
-            '9b1cc7d27a14fa117893794a13beae5ebecaf8d4')
-
-    # data_to_sign = b'1234'
-    # pubkey_fingerprint = '9b1cc7d27a14fa117893794a13beae5ebecaf8d4'
-
-    # sig = gpg_funcs.create_signature(data_to_sign, pubkey_fingerprint)
-
-    # pubkey = gpg_funcs.export_pubkey(pubkey_fingerprint)
-
-    # sig_status = gpg_funcs.verify_signature(sig, pubkey, data_to_sign)
+    return sig
 
 
 
@@ -215,7 +256,8 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     # sign over.
     data_to_sign = canonserialize(root_signable['signed'])
 
-    sig_dict, pgp_pubkey = sign_via_gpg(data_to_sign, gpg_key_fingerprint)
+    # sig_dict, pgp_pubkey = sign_via_gpg(data_to_sign, gpg_key_fingerprint)
+    sig_dict = sign_via_gpg(data_to_sign, gpg_key_fingerprint)
 
     # sig_dict looks like this:
     #     {'keyid': 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589',
@@ -230,7 +272,13 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
         # 'method': 'pgp+eddsa-ed25519',
         # 'type': 'eddsa'}
 
-    raw_pubkey = pgp_pubkey['keyval']['public']['q']
+    # securesystemslib.gpg makes use of the GPG key fingerprint.  We don't
+    # care about that as much -- we want to use the raw ed25519 public key
+    # value to refer to the key in a manner consistent with the way we refer to
+    # non-GPG (non-OpenPGP) keys.
+    # raw_pubkey = pgp_pubkey['keyval']['public']['q']
+    raw_pubkey = fetch_keyval_from_gpg(gpg_key_fingerprint)
+
 
     # non-GPG
     # signature = serialize_and_sign(private_key, signable['signed'])
@@ -251,6 +299,10 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
 
     root_bytes = canonserialize(root_signable)
 
+
+    # <~> DEBUG TODO: ✅ 💣❌⚠️  FILENAME CHANGE IS FOR TEST PURPOSES ONLY!
+    # The signed file should be overwritten, or some consistent output name
+    # should be used.
     with open(root_md_fname + '.TEST_SIGNED', 'wb') as fobj:
         fobj.write(root_bytes)
 
@@ -280,26 +332,24 @@ def fetch_keyval_from_gpg(fingerprint):
 
 
 
-# THIS FUNCTION IS PROVIDED FOR TESTING PURPOSES.
-def verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
+def _verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
     """
-    # TODO ✅: full docstring
-    # TODO 💣💥: It is critical to verify that the fingerprint and value match
-    #             if we are going to use the fingerprint.
+    THIS IS PROVIDED ONLY FOR TESTING PURPOSES.
+    We will verify signatures using our own code in car.authentication, not
+    by using the securesystemslib.gpg.functions.verify_signature call that
+    sits here.
 
-    Returns True if the given gpg signature is verified as being by the given
-    gpg key and over the given data.
-
-    Wraps securesystemslib.gpg.functions.verify_siganture to format the
+    Wraps securesystemslib.gpg.functions.verify_signature.  to format the
     arguments in a manner ssl will like (i.e. conforming to
     securesystemslib.formats.GPG_SIGNATURE_SCHEMA).
-
     """
     if not SSLIB_AVAILABLE:
         # TODO✅: Consider a missing-optional-dependency exception class.
         raise Exception(
-                'sign_root_metadata_via_gpg requires the securesystemslib library, which '
-                'appears to be unavailable.')
+                'verifygpg_sig_using_ssl requires the securesystemslib '
+                'library, which appears to be unavailable.')
+
+    checkformat_key(key_value)
 
     # This function validates these two args in the process of formatting them.
     ssl_format_key = gpg_pubkey_in_ssl_format(gpg_key_fingerprint, key_value)
@@ -320,88 +370,19 @@ def verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
 
 
 
-
-
-
-
     validity = gpg_funcs.verify_signature(signature, ssl_format_key, data)
 
     return validity
 
 
 
-# Moved to car.authentication
-# def verify_gpg_sig(signature, key_value, data):
-#     """
-#     Verifies a raw ed25519 signature that happens to have been produced by an
-#     OpenPGP signing process (RFC4880).
-
-#     NOTE that this code DISREGARDS most OpenPGP semantics: is interested solely
-#     in the verification of a signature over the given data, with the raw
-#     q-value of the ed25519 public key given.  This code does not care about the
-#     GPG public key infrastructure, including key self-revocation, expiry, or
-#     the relationship of any key with any other key through OpenPGP (subkeys,
-#     key-to-key signoff, etc.).
-
-#     This codebase uses OpenPGP signatures solely as a means of facilitating a
-#     TUF-style public key infrastructure, where the public key values are
-#     trusted with specific privileges directly.
-
-#     ABSOLUTELY DO NOT use this for general purpose verification of GPG
-#     signatures!!
-#     """
-
-#     checkformat_gpg_signature(signature)
-#     checkformat_hex_string_key(key_value)
-#     if not isinstance(data, bytes):   # not a very good check
-#         raise TypeError()
-
-#     public_key = public_key_from_bytes(binascii.unhexlify(key_value))
-
-#     # -------
-#     # This next part takes advantage of code pulled from:
-#     #       securesystemslib.gpg.eddsa.verify_signature(),
-#     #       securesystemslib.gpg.eddsa.create_pubkey(),
-#     #       and securesystemslib.gpg.util.hash_object().
-#     #
-#     #  It has been unrolled, had formatting adjustments, variable
-#     #  renaming, unneeded code removal, etc.
-#     # -------
-
-#     # See RFC4880-bis8 14.8. EdDSA and 5.2.4 "Computing Signatures"
-#     # digest = securesystemslib.gpg.util.hash_object(
-#     #     binascii.unhexlify(signature["other_headers"]),
-#     #     hasher(), data)
-
-#     # Additional headers in the OpenPGP signature (bleh).
-#     additional_header_data = binascii.unhexlify(signature['other_headers'])
-
-#     # As per RFC4880 Section 5.2.4., we need to hash the content,
-#     # signature headers and add a very opinionated trailing header
-#     hasher = cryptography.hazmat.primitives.hashes.Hash(
-#             cryptography.hazmat.primitives.hashes.SHA256(),
-#             cryptography.hazmat.backends.default_backend())
-#     hasher.update(data)
-#     hasher.update(additional_header_data)
-#     hasher.update(b'\x04\xff')
-#     hasher.update(struct.pack('>I', len(additional_header_data)))
-
-#     digest = hasher.finalize()
-
-#     print('Digest as produced by unrolled_ssl_verify_gpg_sig: ' + str(digest))
-
-#     try:
-#         public_key.verify(
-#                 binascii.unhexlify(signature['signature']), digest)
-#         return True
-
-#     except cryptography.exceptions.InvalidSignature:
-#         return False
-
-
-
-def gpg_pubkey_in_ssl_format(fingerprint, q):
+def _gpg_pubkey_in_ssl_format(fingerprint, q):
     """
+    THIS IS PROVIDED ONLY FOR TESTING PURPOSES.
+    We do not need to convert pubkeys to securesystemslib's format, except to
+    try out securesystemslib's gpg signature verification (which we use only
+    for comparison during testing).
+
     Given a GPG key fingerprint (40 hex characters) and a q value (64 hex
     characters representing a 32-byte ed25519 public key raw value), produces a
     key object in a format that securesystemslib expects, so that we can use
@@ -426,7 +407,7 @@ def gpg_pubkey_in_ssl_format(fingerprint, q):
     }
     """
     checkformat_gpg_fingerprint(fingerprint)
-    checkformat_hex_string_key(q)
+    checkformat_hex_key(q)
 
     ssl_format_key = {
         'type': 'eddsa',
@@ -437,3 +418,24 @@ def gpg_pubkey_in_ssl_format(fingerprint, q):
     }
 
     return ssl_format_key
+
+
+# def _gpgsig_to_sslgpgsig(gpg_sig):
+#
+#     car.common.checkformat_gpg_signature(gpg_sig)
+#
+#     return {
+#             'keyid': copy.deepcopy(gpg_sig['key_fingerprint']),
+#             'other_headers': copy.deepcopy(gpg_sig[other_headers]),
+#             'signature': copy.deepcopy(gpg_sig['signature'])}
+
+
+# def _sslgpgsig_to_gpgsig(ssl_gpg_sig):
+#
+#     securesystemslib.formats.GPG_SIGNATURE_SCHEMA.check_match(ssl_gpg_sig)
+#
+#     return {
+#             'key_fingerprint': copy.deepcopy(ssl_gpg_sig['keyid']),
+#             'other_headers': copy.deepcopy(ssl_gpg_sig[other_headers]),
+#             'signature': copy.depcopy(ssl_gpg_sig['signature'])
+#     }

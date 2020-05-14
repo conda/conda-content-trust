@@ -33,15 +33,21 @@ import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
 from .common import (
         #SUPPORTED_SERIALIZABLE_TYPES,
         canonserialize,
+        PublicKey,
         is_a_signable,
-        #is_hex_string, is_hex_signature,
-        is_hex_string_key,
+        # is_hex_string,
+        is_hex_signature,
+        is_hex_key,
+        is_gpg_signature,
+        is_a_signature,
         checkformat_gpg_signature,
-        checkformat_hex_string_key,
-        public_key_from_bytes
-#        checkformat_natural_int, checkformat_expiration_distance,
-#        checkformat_list_of_hex_string_keys,
-#        checkformat_utc_isoformat
+        checkformat_hex_key,
+        checkformat_byteslike,
+        # checkformat_natural_int, checkformat_expiration_distance,
+        # checkformat_list_of_hex_keys,
+        # checkformat_utc_isoformat,
+        SignatureError
+        # MetadataVerificationError   # TODO: ✅ Use this.
 )
 
 
@@ -54,9 +60,57 @@ def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
     This requires a root chaining process as specified in The Update Framework
     specification.  (Version N must be used in order to verify version N+1.
     Versions cannot be skipped.)
+
+    # TODO✅: Proper docstring.
     """
-    # TODO✅: Pull code here from elsewhere.
-    raise NotImplementedError()
+    # TODO✅: Argument validation (think it's in the test code atm).
+    # TODO✅💣❌⚠️: Vet against root chaining algorithm we updated in TUF,
+    #                and add the attack tests to tests/test_authentication.py.
+
+    # Extract rules for root from old, trusted version of root.
+    root_expectations = (
+        trusted_current_root_metadata['signed']['delegations']['root.json'])
+    expected_threshold = root_expectations['threshold']
+    authorized_pub_keys = root_expectations['pubkeys']
+
+    # Also extract new rules for root per new untrusted version of root.
+    # NOTE THAT it is important that a new root version be verified BOTH
+    # based on the prior, trusted version of root, and also based on ITSELF
+    # (the latter in order to reduce the odds of accidentally breaking the root
+    # trust chain).
+    new_root_expectations = (
+            untrusted_new_root_metadata['signed']['delegations']['root.json'])
+    new_expected_threshold = new_root_expectations['threshold']
+    new_authorized_pub_keys = new_root_expectations['pubkeys']
+
+
+    trusted_root_version = trusted_current_root_metadata['signed']['version']
+    untrusted_root_version = untrusted_new_root_metadata['signed']['version']
+
+    if not trusted_root_version + 1 == untrusted_root_version:
+        # TODO ✅: Create a suitable error class for this.
+        raise SignatureError(
+                'Root chaining failure: we currently trust a version of root '
+                'that marks itself as version ' + str(trusted_root_version) +
+                ', and the provided new root metadata to verify marks itself '
+                'as version ' + str(untrusted_root_version) + '; the new '
+                'version must be 1 more than the old version: root updates '
+                'MUST be processed one at a time for security reasons: no '
+                'root version may be skipped.')
+
+    # Verify based on prior, trusted root version (most important)
+    verify_signable(
+            untrusted_new_root_metadata,
+            authorized_pub_keys,
+            expected_threshold,
+            gpg=True)
+
+    # Verify based on itself as well, to avoid breaking the chain.
+    verify_signable(
+            untrusted_new_root_metadata,
+            new_authorized_pub_keys,
+            new_expected_threshold,
+            gpg=True)
 
 
 
@@ -67,7 +121,7 @@ def verify_delegation(
     delegated to by it.  For example, use root metadata to verify channeler
     metadata.
     """
-    # TODO✅: Pull code here from elsewhere.
+    # TODO✅: Pull code here from its place in debugging scripts.
     raise NotImplementedError()
 
 
@@ -82,9 +136,13 @@ def verify_signature(signature, public_key, data):
 
     Otherwise, returns (nothing), indicating the signature was verified.
 
+    Note that this does not use the generalized signature format (which would
+    be compatible with OpenPGP/GPG signatures as well as pyca/cryptography's
+    simple ed25519 sigs).
+
     Args:
         - public_key must be an ed25519.Ed25519PublicKeyObject
-        - signature must be bytes, length 64
+        - signature must be bytes, length 64 (a raw ed25519 signature)
         - data must be bytes
     """
     if not isinstance(public_key, ed25519.Ed25519PublicKey):
@@ -111,7 +169,7 @@ def verify_signature(signature, public_key, data):
 
 
 
-def verify_signable(signable, authorized_pub_keys, threshold):
+def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
     """
     Raises a ❌SignatureError if signable does not include at least threshold
     good signatures from (unique) keys with public keys listed in
@@ -137,6 +195,11 @@ def verify_signable(signable, authorized_pub_keys, threshold):
         - threshold
             the number of good signatures from unique authorized keys required
             in order to verify the signable.
+
+        - gpg (boolean, default False)
+            If True, expects OpenPGP ed25519 signatures (see RFC 4880 bis-08)
+            instead of raw ed25519 signatures.
+            If False, expects raw ed25519 signatures.
     """
 
     # TODO: ✅ Be sure to check with the analogous code in the tuf reference
@@ -156,7 +219,7 @@ def verify_signable(signable, authorized_pub_keys, threshold):
                 'verify_signable expects a signable dictionary.  '
                 'Given argument failed the test.') # TODO: Tidier / expressive.
     if not (isinstance(authorized_pub_keys, list) and all(
-            [is_hex_string_key(k) for k in authorized_pub_keys])):
+            [is_hex_key(k) for k in authorized_pub_keys])):
         raise TypeError('authorized_pub_keys must be a list of hex strings ')
     # if not (isinstance(authorized_pub_keys, list) and all(
     #         [isinstance(k, ed25519.Ed25519PublicKey) for k in authorized_pub_keys])):
@@ -192,23 +255,62 @@ def verify_signable(signable, authorized_pub_keys, threshold):
 
     for pubkey_hex, signature in signable['signatures'].items():
 
+        # Validate the signature data first (make sure it looks right).
+        if not is_hex_key(pubkey_hex):
+            # TODO: ✅ Make this a warning instead.
+            print(
+                    'Ignoring signature from "key" with public key value that '
+                    'does not look like a key value: ' + str(pubkey_hex))
+            continue
+
+        if not is_hex_signature(signature):
+            # TODO: ✅ Make this a warning instead.
+            print(
+                    'Ignoring "signature" that does not look like a hex '
+                    'signature value: ' + str(signature))
+            continue
+
+
         if pubkey_hex not in authorized_pub_keys:
+            # TODO: ✅ Make this an INFO-level log message.
+            print(
+                    'Ignoring signature from a key ("' + str(pubkey_hex) +
+                    '") that is not authorized to sign this metadata.')
             continue
 
-        public = public_key_from_bytes(binascii.unhexlify(pubkey_hex))
 
-        try:
-            verify_signature(
-                    binascii.unhexlify(signature),
-                    public,
-                    signed_data)
+        if not gpg: # normal ed25519 signatures using pyca/cryptography
 
-        except cryptography.exceptions.InvalidSignature:
-            # TODO: Log.
-            continue
+            public = PublicKey.from_hex(pubkey_hex)
 
-        else:
-            good_sigs_from_trusted_keys[pubkey_hex] = signature
+            try:
+                verify_signature(
+                        binascii.unhexlify(signature),
+                        public,
+                        signed_data)
+
+            except cryptography.exceptions.InvalidSignature:
+                # TODO: ✅ Log at debug or info level.
+                continue
+
+            else:
+                good_sigs_from_trusted_keys[pubkey_hex] = signature
+
+        else: # expecting OpenPGP ed25519 signatures (RFC 4880-bis08)
+            assert gpg   # code paranoia
+
+            try:
+                verify_gpg_signature(
+                        signature,
+                        pubkey_hex,
+                        signed_data)
+
+            except cryptography.exceptions.InvalidSignature:
+                # TODO: ✅ Log at debug or info level.
+                continue
+
+            else:
+                good_sigs_from_trusted_keys[pubkey_hex] = signature
 
 
     # TODO: ✅ Logging or more detailed info (which keys).
@@ -223,6 +325,7 @@ def verify_signable(signable, authorized_pub_keys, threshold):
 
     # Otherwise, return, indicating success.  (Explicit for code editors)
     return
+
 
 
 def verify_gpg_signature(signature, key_value, data):
@@ -241,16 +344,19 @@ def verify_gpg_signature(signature, key_value, data):
     TUF-style public key infrastructure, where the public key values are
     trusted with specific privileges directly.
 
-    ABSOLUTELY DO NOT use this for general purpose verification of GPG
+    💣⚠️ ABSOLUTELY DO NOT use this for general purpose verification of GPG
     signatures!!
+
+    # TODO: ✅ Proper docstring modeled on verify_signature.
     """
 
     checkformat_gpg_signature(signature)
-    checkformat_hex_string_key(key_value)
-    if not isinstance(data, bytes):   # not a very good check
-        raise TypeError()
+    checkformat_hex_key(key_value)
+    checkformat_byteslike(data)
+    # if not isinstance(data, bytes):   # TODO: ✅ use the byteslike checker in car.common.
+    #     raise TypeError()
 
-    public_key = public_key_from_bytes(binascii.unhexlify(key_value))
+    public_key = PublicKey.from_hex(key_value)
 
     # -------
     # This next part takes advantage of code pulled from:
@@ -286,11 +392,9 @@ def verify_gpg_signature(signature, key_value, data):
     # # DEBUG 💣💥
     # print('Digest as produced by verify_gpg_signature: ' + str(digest))
 
-    try:
-        public_key.verify(
-                binascii.unhexlify(signature['signature']), digest)
-        return True
+    # Raises cryptography.exceptions.InvalidSignature if not a valid signature.
+    public_key.verify(
+            binascii.unhexlify(signature['signature']), digest)
 
-    except cryptography.exceptions.InvalidSignature:
-        return False
-
+    # Return if we succeeded.
+    return # explicit for clarity

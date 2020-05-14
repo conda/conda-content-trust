@@ -16,6 +16,8 @@ Function Manifest for this Module:
 # Python2 Compatibility
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+# std libs
+import binascii
 import copy # for deepcopy
 
 # Dependency-provided libraries
@@ -30,31 +32,34 @@ import copy # for deepcopy
 # car modules
 from .common import (
         SUPPORTED_SERIALIZABLE_TYPES, canonserialize,
-        is_a_signable,
-        #is_hex_string, is_hex_signature, is_hex_string_key,
+        is_a_signable, PublicKey, PrivateKey,
+        checkformat_key, checkformat_signable
+        #is_hex_string, is_hex_signature, is_hex_key,
         #checkformat_natural_int, checkformat_expiration_distance,
-        #checkformat_hex_string_key, checkformat_list_of_hex_string_keys,
-        #checkformat_utc_isoformat
+        #checkformat_hex_key, checkformat_list_of_hex_keys,
+        #checkformat_utc_isoformat,
         )
 
 
-# TODO: ✅ Invert argument order.
-def sign(private_key, data):
-    """
-    We'll actually be using an HSM to do the signing, so we won't have access
-    to the actual private key.  But for now....
-    Create an ed25519 signature over data using private_key.
-    Return the bytes of the signature.
-    Not doing input validation, but:
-    - private_key should be an Ed25519PrivateKey obj.
-    - data should be bytes
+# # TODO: ✅ Invert argument order.
+# # ❌❌❌ DEPRECATED!
+# def sign(private_key, data):
+#     """
+#     We'll actually be using an HSM to do the signing, so we won't have access
+#     to the actual private key.  But for now....
+#     Create an ed25519 signature over data using private_key.
+#     Return the bytes of the signature.
+#     Not doing input validation, but:
+#     - private_key should be an Ed25519PrivateKey obj.
+#     - data should be bytes
 
-    Note that this process is deterministic and does not depend at any point on
-    the ability to generate random data (unlike the key generation).
+#     Note that this process is deterministic and does not depend at any point on
+#     the ability to generate random data (unlike the key generation).
 
-    The returned value is bytes, length 64, raw ed25519 signature.
-    """
-    return private_key.sign(data)
+#     The returned value is bytes, length 64, raw ed25519 signature.
+#     """
+#     raise Exception('THIS HAS BEEN DEPRECATED in favor of PrivateKey.sign()')
+#     return private_key.sign(data)
 
 
 
@@ -74,7 +79,8 @@ def serialize_and_sign(private_key, obj):
     # Try converting to a JSON string.
     serialized = canonserialize(obj)
 
-    return sign(private_key, serialized)
+    return private_key.sign(serialized)
+
 
 
 def wrap_as_signable(obj):
@@ -129,17 +135,18 @@ def sign_signable(signable, private_key):
     SUPPORTED_SERIALIZABLE_TYPES
     """
     # Argument checking
-    if not is_a_signable(signable):
-        raise TypeError(
-                'Expected a signable dictionary; the given argument of type ' +
-                str(type(signable)) + ' failed the check.')
+    checkformat_key(private_key)
+    checkformat_signable(signable)
+    # if not is_a_signable(signable):
+    #     raise TypeError(
+    #             'Expected a signable dictionary; the given argument of type ' +
+    #             str(type(signable)) + ' failed the check.')
 
     signature = serialize_and_sign(private_key, signable['signed'])
 
     signature_as_hexstr = binascii.hexlify(signature).decode('utf-8')
 
-    public_key_as_hexstr = binascii.hexlify(key_to_bytes(
-            private_key.public_key())).decode('utf-8')
+    public_key_as_hexstr = private_key.public_key().to_hex()
 
 
     # TODO: ✅⚠️ Log a warning in whatever conda's style is (or conda-build):
