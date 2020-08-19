@@ -14,6 +14,7 @@ Encoding:
 Formats and Validation:
      PrivateKey  -- extends cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
      PublicKey   -- extends cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
+     checkformat_string
   x  is_hex_string
   x  is_hex_signature
   r  is_hex_key
@@ -29,10 +30,12 @@ Formats and Validation:
      is_gpg_signature
   x  checkformat_gpg_fingerprint
   x  checkformat_gpg_signature
+     checkformat_any_signature
      is_delegation
      checkformat_delegation
      is_delegations
      checkformat_delegations
+     checkformat_delegating_metadata
   x  iso8601_time_plus_delta
 
 Crypto Utility:
@@ -62,13 +65,16 @@ import cryptography.hazmat.backends.openssl.ed25519 # DANGER
 
 # specification version for the metadata produced by
 # conda-authentication-resources
-SECURITY_METADATA_SPEC_VERSION = '0.0.5'
+SECURITY_METADATA_SPEC_VERSION = '0.1.0'
 
 # The only types we're allowed to wrap as "signables" and sign are
 # the JSON-serializable types.  (There are further constraints to what is
 # JSON-serializable in addition to these type constraints.)
 SUPPORTED_SERIALIZABLE_TYPES = [
         dict, list, tuple, str, int, float, bool, type(None)]
+
+# These are the permissible strings in the "type" field of delegating metadata.
+SUPPORTED_DELEGATING_METADATA_TYPES = ['root', 'intermediate']
 
 # (I think the regular expression checks for datetime strings run faster if we
 #  compile the pattern once and use the same object for all checks.  For a
@@ -77,17 +83,29 @@ SUPPORTED_SERIALIZABLE_TYPES = [
 UTC_ISO8601_REGEX_PATTERN = re.compile(
          '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
 
-class SignatureError(Exception):
+class CAR_Error(Exception):
+    """
+    All errors we raise that are not simple ValueErrors or TypeErrors should
+    be instances of this class or of subclasses of this.
+    """
+
+class SignatureError(CAR_Error):
     """
     Indicates that a signable cannot be verified due to issues with the
     signature(s) inside it.
     """
 
-class MetadataVerificationError(Exception):
+class MetadataVerificationError(CAR_Error):
     """
     Indicates that a chain of authority metadata cannot be verified (e.g.
     a metadata update is found on the repository, but could not be
     authenticated).
+    """
+
+class UnknownRoleError(CAR_Error):
+    """
+    Indicates that a piece of role metadata (like root.json, or key_mgr.json)
+    was expected but not found.
     """
 
 
@@ -117,6 +135,19 @@ def canonserialize(obj):
 
     return json_string.encode('utf-8')
 
+
+
+def load_metadata_from_file(fname):
+
+    # TODO ✅: Argument validation for fname.  Consider adding "pathvalidate"
+    #          as a dependency, and calling its sanitize_filename() here.
+
+    with open(fname, 'rb') as fobj:
+        metadata = json.load(fobj)
+
+    # TODO ✅: Consider validating what is read here, for everywhere.
+
+    return metadata
 
 
 class MixinKey(object):
@@ -266,7 +297,8 @@ class MixinKey(object):
 
 class PrivateKey(
             MixinKey,
-            # TODO: ✅❌⚠️💣 DO NOT LEAVE THIS NEXT LINE HERE!  It's a private class!
+            # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
+            #                 possible.  It's a private class!
             cryptography.hazmat.backends.openssl.ed25519._Ed25519PrivateKey, # DANGER
             cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
         # Note that inheritance class order should use the "true" base class
@@ -322,7 +354,8 @@ class PrivateKey(
 
 class PublicKey(
             MixinKey,
-            # TODO: ✅❌⚠️💣 DO NOT LEAVE THIS NEXT LINE HERE!  It's a private class!
+            # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
+            #                 possible.  It's a private class!
             cryptography.hazmat.backends.openssl.ed25519._Ed25519PublicKey, # DANGER
             cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
         # Note that inheritance class order should use the "true" base class
@@ -339,6 +372,9 @@ class PublicKey(
 
 
 # No....  For now, I'll stick with the raw dictionary representations.
+# If function profusion makes it inconvenient for folks to use this library,
+# it MAY then be time to make signatures into class objects... but it's
+# probably best to avoid that potential complexity and confusion.
 # class Signature():
 #     def __init__(self, ):
 #         self.is_gpg_sig = False
@@ -361,6 +397,11 @@ def is_hex_string(s):
 
 
 def checkformat_hex_string(s):
+    """
+    Throws TypeError if s is not a string (string_types).
+    Throws ValueError if the given string is not a string of hexadecimal
+    characters (upper-case not allowed to prevent redundancy).
+    """
 
     if not isinstance(s, string_types):
         raise TypeError(
@@ -371,8 +412,8 @@ def checkformat_hex_string(s):
                 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
                 'a', 'b', 'c', 'd', 'e', 'f']:
             raise ValueError(
-                    'Expected a hex string; non-hexadecimal character found: '
-                    '"' + str(c) + '".')
+                    'Expected a hex string; non-hexadecimal or upper-case '
+                    'character found: "' + str(c) + '".')
 
 
 
@@ -452,7 +493,7 @@ def checkformat_signable(dictionary):
                 'Expected a signable dictionary, but the given argument '
                 'does not match expectations for a signable dictionary '
                 '(must be a dictionary containing only keys "signatures" and '
-                '"signed", where the value for key "signatures" is a list '
+                '"signed", where the value for key "signatures" is a dict '
                 'and the value for key "signed" is a supported serializable '
                 'type (' + str(SUPPORTED_SERIALIZABLE_TYPES) + ')')
 
@@ -464,10 +505,10 @@ def checkformat_byteslike(obj):
 
 
 
-def checkformat_natural_int(version):
+def checkformat_natural_int(number):
     # Technically a TypeError or ValueError, depending, but meh.
-    if not (isinstance(version, int) and version >= 1):
-        raise TypeError('Versions must be integers >= 1.')
+    if int(number) != number or number < 1:
+        raise ValueError('Expected an integer >= 1.')
 
 
 # This is not yet widely used.
@@ -493,6 +534,14 @@ def checkformat_hex_key(k):
         raise ValueError(
                 'Expected a 64-character hex string representing a key value.')
 
+    # Prevent multiple possible representations of keys.  There are security
+    # implications.  For example, we cannot permit two signatures from the
+    # same key -- with the key represented differently -- to count as two
+    # signatures from distinct keys.
+    if k.lower() != k:
+        raise ValueError(
+                'Hex representations of keys must use only lowercase.')
+
 
 
 def checkformat_hex_hash(h):
@@ -503,10 +552,18 @@ def checkformat_hex_hash(h):
         raise ValueError(
                 'Expected a 64-character hex string representing a hash.')
 
+    # Prevent multiple possible representations.  There are security
+    # implications.
+    if h.lower() != h:
+        raise ValueError(
+                'Hex representations of hashes must use only lowercase.')
+
 
 
 def checkformat_list_of_hex_keys(l):
-
+    """
+    Note that this rejects any list of keys that includes any exact duplicates.
+    """
     if not isinstance(l, list):
         raise TypeError(
                 'Expected a list of 64-character hex strings representing keys.')
@@ -559,6 +616,17 @@ def checkformat_gpg_fingerprint(fingerprint):
         raise ValueError(
                 'The given value, "' + str(fingerprint) + '", is not a full '
                 'GPG fingerprint (40 hex characters).')
+
+    # ⚠️ Yes, the following is a redundant test.  Please leave it here in case
+    #    code changes elsewhere.
+    # Prevent multiple possible representations of keys.  There are security
+    # implications.  For example, we cannot permit two signatures from the
+    # same key -- with the key represented differently -- to count as two
+    # signatures from distinct keys.
+    if fingerprint.lower() != fingerprint:
+        raise ValueError(
+                'Hex representations of GPG key fingerprints should use only '
+                'lowercase.')
 
 
 
@@ -724,6 +792,19 @@ def checkformat_signature(signature_obj):
                 'ed25519 sig).')
 
 
+def is_signature(s):
+    """
+    True if the given value is a dictionary containing a 'signature' entry
+    with value set to a hex string of length 128 (representing an ed25519
+    signature).
+    """
+    try:
+        checkformat_signature(s)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
 
 def checkformat_delegation(delegation):
     """
@@ -731,6 +812,13 @@ def checkformat_delegation(delegation):
     e.g.
         {   'pubkeys': ['ff'*32, '1e'*32],
             'threshold': 1}
+    threshold must be an integer >= 1. pubkeys must be a list of hexadecimal
+    representations of ed25519 public keys.
+
+    Note that because drafts are allowed, we do not demand here that the list
+    of pubkeys include enough keys to meet threshold.  Not listing pubkeys yet
+    is okay during writing, but when verifying metadata, one should not accept
+    delegations with impossible-to-meet requirements (len(pubkeys) < threshold)
     """
     if not isinstance(delegation, dict):
         raise TypeError(
@@ -738,8 +826,11 @@ def checkformat_delegation(delegation):
                 '"pubkeys" and "threshold" elements.')
     elif not (
             len(delegation) == 2
+            and 'threshold' in delegation
+            and delegation['threshold'] >= 1
             and 'pubkeys' in delegation
-            and 'threshold' in delegation):
+            and isinstance(delegation['pubkeys'], list)
+            and all([is_hex_key(k) for k in delegation['pubkeys']])):
         raise ValueError(
                 'Delegation information must be a dictionary specifying '
                 'exactly two elements: "pubkeys" (assigned a list of '
@@ -767,7 +858,8 @@ def checkformat_delegations(delegations):
     Index: rolename.  Value: delegation (see checkformat_delegation).
     e.g.
         {   'root.json':
-                {'pubkeys': ['01'*32, '02'*32, '03'*32], 'threshold': 2},
+                {'pubkeys': ['01'*32, '02'*32, '03'*32], # each is a lower-case hex string w/ length 64
+                 'threshold': 2},                        # integer >= 1
             'channeler.json':
                 {'pubkeys': ['04'*32], 'threshold': 1}}
     """
@@ -793,30 +885,162 @@ def is_delegations(delegations):
 
 
 
-def sha512256(data):
+def checkformat_delegating_metadata(metadata):
     """
-    Since hashlib still does not provide a "SHA-512/256" option (SHA-512 with,
-    basically, truncation to 256 bits at each stage of the hashing, defined by
-    the FIPS Secure Hash Standard), we provide it here.  SHA-512/256 is as
-    secure as SHA-256, but substantially faster on 64-bit architectures.
-    Uses pyca/cryptography.
+    Validates argument "metadata" as delegating metadata.  Passes if it is,
+    raises a TypeError or ValueError if it is not.
 
-    Given bytes, returns the hex digest of the hash of the given bytes, using
-    SHA-512/256.
+    The required format is a dictionary containing all contents of a delegating
+    metadata file, like root.json or key_mgr.json.  (This includes both the
+    signatures portion and the signed contents portion, in the usual envelope
+    -- see also checkformat_signable.)
+
+    The required structure:
+        {
+          'signatures': {}, # for each entry in the 'signatures' dict:
+                            #  - the key must pass checkformat_hex_key
+                            #  - the value must pass checkformat_signature()
+                            #    or checkformat_gpg_signature()
+          'signed': {
+            'type': <type>: # must match a string in SUPPORTED_DELEGATING_METADATA_TYPES (e.g. 'root')
+            'metadata_spec_version': <SemVer string>,
+            'delegations': {}, # value must pass checkformat_delegations()
+            'expiration': <date>, # date must pass checkformat_utc_isoformat()
+
+            # The 'signed' dict must always include either a 'timestamp' entry,
+            # a 'version' entry, or both.  Further, in root metadata the
+            # 'signed' dict must always include a 'version' entry (to support
+            # root chaining).
+
+            'timestamp': <date>, # if included, must pass checkformat_utc_isoformat()
+            'version': <integer> # if included, must pass checkformat_natural_int(), i.e. be an integer >= 1
+          }
+        }
+
+    e.g.
+        {
+          "signatures": {       # 0 or more signatures over the signed contents
+            <public key>: {
+              "other_headers": "04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025f0bf546",
+              "signature": "ab3e03385f757da74e08b46f1bf82709fbc2ce21823c28e2f0e3452415e2a9f1e2c82e418cc44e2908618cf0c7375f32fe0a5a75494909a59a82875ebc703c02",
+            },
+            ...
+          },
+          "signed": {           # signed contents
+            "delegations": {
+              "key_mgr.json": {
+                "pubkeys": [
+                  "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+                ],
+                "threshold": 1
+              },
+              "root.json": {
+                "pubkeys": [
+                  "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"
+                ],
+                "threshold": 1
+              }
+            },
+            "expiration": "2021-07-13T05:46:45Z",
+            "metadata_spec_version": "0.1.0",
+            "timestamp": "2020-07-13T05:46:45Z",
+            "type": "root",
+            "version": 1
+          }
+        }
     """
-    if not isinstance(data, bytes):
-        # Note that string literals in Python2 also pass this test by default.
-        # unicode_literals fixes that for string literals created in modules
-        # importing unicode_literals.
-        raise TypeError('Expected bytes; received ' + str(type(data)))
+    # Signing envelope required
+    checkformat_signable(metadata)
 
-    # pyca/cryptography's interface is a little clunky about this.
-    hasher = cryptography.hazmat.primitives.hashes.Hash(
-            algorithm=cryptography.hazmat.primitives.hashes.SHA512_256(),
-            backend=cryptography.hazmat.backends.default_backend())
-    hasher.update(data)
+    for k in metadata['signatures']:
+        checkformat_any_signature(metadata['signatures'][k])
 
-    return hasher.finalize().hex()
+    contents = metadata['signed']
+
+    for entry in [   # required fields
+            'type', 'metadata_spec_version', 'delegations', 'expiration']:
+        if entry not in contents:
+            raise ValueError(
+                    'Expected a "' + str(entry) + '" entry in the given '
+                    'delegating metadata.')
+
+    checkformat_string(contents['type'])
+    if contents['type'] not in SUPPORTED_DELEGATING_METADATA_TYPES:
+        raise ValueError(
+                'Given type entry ("' + contents['type'] + ' is not '
+                'one of the supported types of delegating metadata.')
+
+    checkformat_string(contents['metadata_spec_version'])
+    # TODO ✅⚠️: For metadata_spec_version, add semantic versioning checks:
+    #                 - check format
+    #                 - check for compatibility with common.SECURITY_METADATA_SPEC_VERSION
+
+    checkformat_delegations(contents['delegations'])
+
+    checkformat_utc_isoformat(contents['expiration'])
+
+    # Timestamp and/or Version:
+    if 'timestamp' not in contents and 'version' not in contents:
+        raise ValueError(
+                'All metadata must include a "version" entry, or a '
+                '"timestamp" entry, or both.')
+
+    if contents['type'] == 'root' and 'version' not in contents:
+        raise ValueError('Root metadata must specify its version number.')
+    # Catch a possible future coding error at the PR stage, here where the
+    # assumption is being made.
+    assert 'root' in SUPPORTED_DELEGATING_METADATA_TYPES
+
+    if 'timestamp' in contents:
+        checkformat_utc_isoformat(contents['timestamp'])
+    if 'version' in contents: # optional field for non-root metadata
+        checkformat_natural_int(contents['version'])
+    # TODO ✅: Ensure that expiration > timestamp, to help people not shoot
+    #          themselves in the foot.
+
+
+
+
+
+def checkformat_any_signature(sig):
+    if not is_a_signature(sig) and not is_gpg_signature(sig):
+        raise ValueError(
+                'Expected either a hex string representing a raw ed25519 '
+                'signature (see checkformat_signature) or a dictionary '
+                'representing an OpenPGP/GPG signature '
+                '(see checkformat_gpg_signature).')
+
+
+
+
+
+# def sha512256(data):
+#     """
+#     # TODO ✅: Deprecate me in favor of simple SHA-256 hashing via
+#     #          pyca/cryptography.
+
+#     Since hashlib still does not provide a "SHA-512/256" option (SHA-512 with,
+#     basically, truncation to 256 bits at each stage of the hashing, defined by
+#     the FIPS Secure Hash Standard), we provide it here.  SHA-512/256 is as
+#     secure as SHA-256, but substantially faster on 64-bit architectures.
+#     Uses pyca/cryptography.
+
+#     Given bytes, returns the hex digest of the hash of the given bytes, using
+#     SHA-512/256.
+#     """
+#     if not isinstance(data, bytes):
+#         # Note that string literals in Python2 also pass this test by default.
+#         # unicode_literals fixes that for string literals created in modules
+#         # importing unicode_literals.
+#         raise TypeError('Expected bytes; received ' + str(type(data)))
+
+#     # pyca/cryptography's interface is a little clunky about this.
+#     hasher = cryptography.hazmat.primitives.hashes.Hash(
+#             algorithm=cryptography.hazmat.primitives.hashes.SHA512_256(),
+#             backend=cryptography.hazmat.backends.default_backend())
+#     hasher.update(data)
+
+#     return hasher.finalize().hex()
 
 
 
@@ -857,7 +1081,8 @@ def keyfiles_to_keys(name):
     return private, public
 
 
-
+# This function has been replaced by method to_bytes() in classes PublicKey
+# and PrivateKey (see class MixinKey).
 # def key_to_bytes(key):
 #     """
 #     Pops out the nice, tidy bytes of a given cryptography...ed25519 key obj,
@@ -880,6 +1105,8 @@ def keyfiles_to_keys(name):
 
 
 
+# This function has been replaced by method from_bytes() in classes PublicKey
+# and PrivateKey (see class MixinKey).
 # def public_key_from_bytes(public_bytes):
 #     # from_public_bytes() checks length (32), but does not produce helpful
 #     # errors if the argument provided it is not the right type.
@@ -889,7 +1116,8 @@ def keyfiles_to_keys(name):
 #     return ed25519.Ed25519PublicKey.from_public_bytes(public_bytes)
 
 
-# Not currently used
+# This function has been replaced by method from_hex() in classes PublicKey and
+# PrivateKey (see class MixinKey).
 # def public_key_from_hex_string(public_hex_string):
 
 #     checkformat_hex_key(public_hex_string)
@@ -908,11 +1136,11 @@ def checkformat_key(key):
         raise TypeError(
                 'Expected an Ed25519PublicKey or Ed25519PrivateKey object '
                 'from the "cryptography" library.  Received object of type ' +
-                type(key) + ' instead.')
+                str(type(key)) + ' instead.')
 
 
-# # Not used yet
-# # TODO: Use this everywhere instead of using binascii directly.
+# This function has been replaced by method to_hex() in classes PublicKey and
+# PrivateKey (see class MixinKey).
 # def key_to_hex_string(key):
 #     """
 #     Converts ed25519 keys from the "cryptography" library into hex string
@@ -947,6 +1175,8 @@ def checkformat_key(key):
 
 
 
+# This function is replaced by method is_equivalent_to() in classes PublicKey
+# and PrivateKey (see class MixinKey).
 # def keys_are_equivalent(k1, k2):
 #     """
 #     Given Ed25519PrivateKey or Ed25519PublicKey objects, determines if the
@@ -976,20 +1206,26 @@ def iso8601_time_plus_delta(delta):
 
 
 
+# This function should not be necessary, since we'll only be dealing with
+# signatures we generate, and we'll adapt them to our requirements when they're
+# made (just a few adjustments).
 # def _gpgsig_to_sslgpgsig(gpg_sig):
-
+#
 #     car.common.checkformat_gpg_signature(gpg_sig)
-
+#
 #     return {
 #             'keyid': copy.deepcopy(gpg_sig['key_fingerprint']),
 #             'other_headers': copy.deepcopy(gpg_sig[other_headers]),
 #             'signature': copy.deepcopy(gpg_sig['signature'])}
 
 
+# This function should not be necessary, since we'll only be dealing with
+# signatures we generate, and we'll adapt them to our requirements when they're
+# made (just a few adjustments).
 # def _sslgpgsig_to_gpgsig(ssl_gpg_sig):
-
+#
 #     securesystemslib.formats.GPG_SIGNATURE_SCHEMA.check_match(ssl_gpg_sig)
-
+#
 #     return {
 #             'key_fingerprint': copy.deepcopy(ssl_gpg_sig['keyid']),
 #             'other_headers': copy.deepcopy(ssl_gpg_sig[other_headers]),

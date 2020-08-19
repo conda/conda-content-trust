@@ -23,6 +23,7 @@ import binascii # for Python2/3-compatible hex string <- -> bytes conversion
 import struct # for struct.pack
 
 # Dependency-provided libraries
+from six import string_types   # for Python2/3-compatible string type checks
 import cryptography.exceptions
 import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
 #import cryptography.hazmat.primitives.serialization as serialization
@@ -35,9 +36,11 @@ from .common import (
         canonserialize,
         PublicKey,
         is_a_signable,
+        checkformat_signable,
         # is_hex_string,
         is_hex_signature,
         is_hex_key,
+        is_signature,
         is_gpg_signature,
         is_a_signature,
         checkformat_gpg_signature,
@@ -46,8 +49,10 @@ from .common import (
         # checkformat_natural_int, checkformat_expiration_distance,
         # checkformat_list_of_hex_keys,
         # checkformat_utc_isoformat,
-        SignatureError
-        # MetadataVerificationError   # TODO: ✅ Use this.
+        checkformat_delegation,
+        SignatureError,
+        UnknownRoleError,
+        MetadataVerificationError   # TODO: ✅ Use this more.
 )
 
 
@@ -63,7 +68,7 @@ def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
 
     # TODO✅: Proper docstring.
     """
-    # TODO✅: Argument validation (think it's in the test code atm).
+    # TODO✅: Argument validation
     # TODO✅💣❌⚠️: Vet against root chaining algorithm we updated in TUF,
     #                and add the attack tests to tests/test_authentication.py.
 
@@ -87,9 +92,9 @@ def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
     trusted_root_version = trusted_current_root_metadata['signed']['version']
     untrusted_root_version = untrusted_new_root_metadata['signed']['version']
 
-    if not trusted_root_version + 1 == untrusted_root_version:
+    if trusted_root_version + 1 != untrusted_root_version:
         # TODO ✅: Create a suitable error class for this.
-        raise SignatureError(
+        raise MetadataVerificationError(
                 'Root chaining failure: we currently trust a version of root '
                 'that marks itself as version ' + str(trusted_root_version) +
                 ', and the provided new root metadata to verify marks itself '
@@ -98,14 +103,16 @@ def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
                 'MUST be processed one at a time for security reasons: no '
                 'root version may be skipped.')
 
-    # Verify based on prior, trusted root version (most important)
+    # Verify the new root metadata based on the prior, trusted root version.
     verify_signable(
             untrusted_new_root_metadata,
             authorized_pub_keys,
             expected_threshold,
             gpg=True)
 
-    # Verify based on itself as well, to avoid breaking the chain.
+    # Make sure that the signatures on the new root metadata would be
+    # sufficient to verify it using the new root metadata's own rules as well.
+    # Doing this helps avoid breaking the chain of trust.
     verify_signable(
             untrusted_new_root_metadata,
             new_authorized_pub_keys,
@@ -114,18 +121,104 @@ def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
 
 
 
+
+# TODO ✅: Consider verify_untrusted_based_on_trusted(), a function that just
+#          takes the two roles and does the digging to fetch authorized keys
+#          and threshold for you, along with an argument specifying what role
+#          we're trying to verify (redundant, perhaps, but important to make
+#          explicit, to avoid bad patterns of trusting attackers in the calling
+#          code).
+#          The function should:
+#             - return if verification succeeds
+#             - raise UnknownRoleError if there's no matching delegation
+#             - raise a verification failure error if a signature is bad or
+#               signatures don't match expectations (threshold, wrong keys,
+#               etc.)
+#             - of course, raise ValueError if the arguments are invalid
+
 def verify_delegation(
-        trusted_delegating_metadata, untrusted_delegated_metadata):
+        delegation_name,
+        untrusted_delegated_metadata, trusted_delegating_metadata,
+        gpg=False):
     """
-    Given currently trusted metadata that delegates, verify the metadata
-    delegated to by it.  For example, use root metadata to verify channeler
-    metadata.
+    Verify that the given untrusted, delegated-to metadata is trustworthy,
+    based on the given trusted metadata's expectations (expected keys and
+    threshold).  This function returns if verification succeeds.
+
+
+    In other words, check trusted_delegating_metadata's delegation
+    to delegation_name to find the expected signing keys and threshold for
+    delegation_name, and then check untrusted_delegated_metadata to see if it
+    is signed by enough of the right keys to be trustworthy.
+
+    For example, using root metadata to verify key_mgr metadata looks like
+    this:
+        verify_delegation(
+                'key_mgr.json', <full root metadata>, <full key_mgr metadata>)
+
+    Arguments:
+        (string) delegation_name is the name of the role delegated.
+        (dict)   trusted_delegating_metadata is a signable JSON-serializable
+                 object representing the full metadata that delegates to role
+                 delegation_name.
+        (dict)   untrusted_delegated_metadata is a signable JSON-serializable
+                 object
+        (bool)   gpg should be true if the signatures to be verified in the
+                 delegated metadata are expected to be OpenPGP signatures
+                 rather than the usual raw ed25519 signatures.
+
+    Exceptions:
+        - raises UnknownRoleError if there's no matching delegation
+        - raises SignatureError if a signature is bad or signatures
+          don't match expectations (threshold, wrong keys, etc.)
+            # TODO: Consider exception handling to raise MetadataVerificationError instead?
+        - raises TypeError or ValueError if the arguments are invalid
     """
-    # TODO✅: Pull code here from its place in debugging scripts.
-    raise NotImplementedError()
+
+    # Argument validation
+
+    if not isinstance(delegation_name, string_types):
+        raise TypeError(
+                'delegation_name must be a string, not a ' +
+                str(type(delegation_name)))
+
+    checkformat_signable(trusted_delegating_metadata)
+
+    checkformat_signable(untrusted_delegated_metadata)
+
+    # TODO ✅: Consider a further checkformat for delegating metadata.
+
+    if gpg != True and gpg != False:
+        raise TypeError('Argument "gpg" must be a boolean.')
 
 
 
+    # Process the delegation.
+    delegations = trusted_delegating_metadata['signed']['delegations']
+
+
+    if delegation_name not in delegations:
+        raise UnknownRoleError(
+                'Role ' + delegation_name + ' not found in the given '
+                ' delegating metadata.')
+
+    expected_keys = delegations[delegation_name]['pubkeys']
+    threshold = delegations[delegation_name]['threshold']
+
+    verify_signable(
+            untrusted_delegated_metadata,
+            expected_keys,             # drawn from trusted_delegating_metadata
+            threshold,                 # drawn from trusted_delegating_metadata
+            gpg=gpg)                   # from argument to this func
+
+
+
+# TODO ✅: Consider taking a hex public key instead of a key object, so that:
+#            1: the API is simpler (verify_signature is part of the API)
+#            2: we can remove PublicKey from the higher-level code, making it
+#               simpler.
+#            The tradeoff is that we can't later accept key objects that might
+#            be used as interfaces to hardware keys, for example.
 def verify_signature(signature, public_key, data):
     """
     Raises ❌cryptography.exceptions.InvalidSignature if signature is not a
@@ -142,7 +235,8 @@ def verify_signature(signature, public_key, data):
 
     Args:
         - public_key must be an ed25519.Ed25519PublicKeyObject
-        - signature must be bytes, length 64 (a raw ed25519 signature)
+        - signature must be a hex string, length 128, representing a 64-byte
+          raw ed25519 signature
         - data must be bytes
     """
     if not isinstance(public_key, ed25519.Ed25519PublicKey):
@@ -152,17 +246,18 @@ def verify_signature(signature, public_key, data):
                 'object as the "public_key" argument.  Instead, received ' +
                 str(type(public_key)))
 
-    if not isinstance(signature, bytes) or 64 != len(signature):
+    if not is_hex_signature(signature):
         raise TypeError(
-                'verify_signature expects a bytes object as the "signature" '
-                'argument. Instead, received ' + str(type(signature)))
+                'verify_signature expects a hex string representing an '
+                'ed25519 signature as the "signature" argument. Instead, '
+                'received object of type ' + str(type(signature)))
 
     if not isinstance(data, bytes):
         raise TypeError(
                 'verify_signature expects a bytes object as the "signature" '
                 'argument.  Instead, received ' + str(type(data)))
 
-    public_key.verify(signature, data)
+    public_key.verify(binascii.unhexlify(signature), data)
 
     # If no error is raised, return, indicating success (Explicit for editors)
     return
@@ -263,10 +358,17 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
                     'does not look like a key value: ' + str(pubkey_hex))
             continue
 
-        if not is_hex_signature(signature):
+        if not gpg and not is_signature(signature):
             # TODO: ✅ Make this a warning instead.
             print(
                     'Ignoring "signature" that does not look like a hex '
+                    'signature value: ' + str(signature))
+            continue
+
+        if gpg and not is_gpg_signature(signature):
+            # TODO: ✅ Make this a warning instead.
+            print(
+                    'Ignoring "signature" that does not look like a gpg '
                     'signature value: ' + str(signature))
             continue
 
@@ -283,9 +385,16 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
 
             public = PublicKey.from_hex(pubkey_hex)
 
+            if not is_signature(signature):
+                # TODO: ✅ Make this a warning or log statement instead.
+                print(
+                        'Ignoring "signature" that does not look like a raw '
+                        'ed25519 signature value.')
+                continue
+
             try:
                 verify_signature(
-                        binascii.unhexlify(signature),
+                        signature['signature'],
                         public,
                         signed_data)
 
@@ -317,8 +426,8 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
     if len(good_sigs_from_trusted_keys) < threshold:
         raise SignatureError(
                 'Expected good signatures from at least ' + str(threshold) +
-                'unique keys from a set of ' + str(len(authorized_pub_keys)) +
-                'keys.  Saw ' + str(len(signable['signatures'])) +
+                ' unique keys from a set of ' + str(len(authorized_pub_keys)) +
+                ' keys.  Saw ' + str(len(signable['signatures'])) +
                 ' signatures, only ' + str(len(good_sigs_from_trusted_keys)) +
                 ' of which were good signatures over the given data from the '
                 'expected keys.')
@@ -335,17 +444,21 @@ def verify_gpg_signature(signature, key_value, data):
 
     NOTE that this code DISREGARDS most OpenPGP semantics: is interested solely
     in the verification of a signature over the given data, with the raw
-    q-value of the ed25519 public key given.  This code does not care about the
-    GPG public key infrastructure, including key self-revocation, expiry, or
-    the relationship of any key with any other key through OpenPGP (subkeys,
-    key-to-key signoff, etc.).
+    ed25519 public key given (in the form of a hex string).  This code does not
+    care about the GPG public key infrastructure, including key
+    self-revocation, expiry, or the relationship of any key with any other key
+    through OpenPGP (subkeys, key-to-key signoff, etc.).
 
     This codebase uses OpenPGP signatures solely as a means of facilitating a
     TUF-style public key infrastructure, where the public key values are
     trusted with specific privileges directly.
 
-    💣⚠️ ABSOLUTELY DO NOT use this for general purpose verification of GPG
-    signatures!!
+
+    ⚠️💣 ABSOLUTELY DO NOT use this for general purpose verification of GPG
+         signatures!!  It is for our root signatures only, where OpenPGP
+         signing is just a proxy for a simple ed25519 signature through a
+         hardware signing mechanism.
+
 
     # TODO: ✅ Proper docstring modeled on verify_signature.
     """

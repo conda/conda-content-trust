@@ -40,19 +40,19 @@ SAMPLE_GPG_KEY_OBJ = {
 
 SAMPLE_ROOT_MD_CONTENT = {
   'delegations': {
-    'channeler.json': {'pubkeys': [], 'threshold': 1},
+    'key_mgr.json': {'pubkeys': [], 'threshold': 1},
     'root.json': {
       'pubkeys': ['bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'],
       'threshold': 1}
   },
   'expiration': '2020-12-09T17:20:19Z',
-  'metadata_spec_version': '0.0.5',
+  'metadata_spec_version': '0.1.0',
   'type': 'root',
   'version': 1
 }
 
 SAMPLE_GPG_SIG = {
-  'keyid': 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589',
+  'see_also': 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589',
   'other_headers': '04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3',
   'signature': 'd6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201'
 }
@@ -67,19 +67,19 @@ SAMPLE_SIGNED_ROOT_MD = {
 EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD = (b'{\n  '
     b'"signatures": {\n    '
         b'"bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07": {\n      '
-            b'"keyid": "f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589",\n      '
             b'"other_headers": "04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3",\n      '
+            b'"see_also": "f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589",\n      '
             b'"signature": "d6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201"\n    }\n  },\n  '
     b'"signed": {\n    '
         b'"delegations": {\n      '
-            b'"channeler.json": {\n        '
+            b'"key_mgr.json": {\n        '
                 b'"pubkeys": [],\n        '
                 b'"threshold": 1\n      },\n      '
             b'"root.json": {\n        '
                 b'"pubkeys": [\n          "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"\n        ],\n        '
                 b'"threshold": 1\n      }\n    },\n    '
                 b'"expiration": "2020-12-09T17:20:19Z",\n    '
-                b'"metadata_spec_version": "0.0.5",\n    '
+                b'"metadata_spec_version": "0.1.0",\n    '
                 b'"type": "root",\n    '
                 b'"version": 1\n  }\n}')
 
@@ -98,11 +98,11 @@ REG__HASH_HEX = '73aec9a93f4beb41a9bad14b9d1398f60e78ccefd97e4eb7d3cf26ba71dbe0c
 
 
 
-def test_sha512256():
-    # Test the SHA-512-truncate-256 hashing function w/ an expected result.
-    assert sha512256(REG__HASHED_VAL) == REG__HASH_HEX
+# def test_sha512256():
+#     # Test the SHA-512-truncate-256 hashing function w/ an expected result.
+#     assert sha512256(REG__HASHED_VAL) == REG__HASH_HEX
 
-    # TODO: Test more?  Unusual input
+#     # TODO: Test more?  Unusual input
 
 
 
@@ -393,6 +393,13 @@ def test_is_hex_key():
     assert not is_hex_key(public)
     assert is_hex_key(public.to_hex())
 
+def test_checkformat_hex_string():
+    # TODO ✅: Add other tests.
+    with pytest.raises(ValueError):
+        checkformat_hex_string('A') # single case is important
+    checkformat_hex_string('a')
+    checkformat_hex_string(SAMPLE_KEYVAL)
+
 # def test_checkformat_hex_key():
 #     raise NotImplementedError()
 
@@ -416,6 +423,53 @@ def test_is_hex_key():
 
 # def test_checkformat_gpg_signature():
 #     raise NotImplementedError()
+
+
+def test_checkformat_delegation():
+    # TODO ✅: Add other tests.
+    with pytest.raises(TypeError):
+        checkformat_delegation(1)
+    with pytest.raises(ValueError):
+        checkformat_delegation({})
+    with pytest.raises(ValueError):
+        checkformat_delegation({
+            'threshold': 0, 'pubkeys': ['01'*32]})
+    with pytest.raises(ValueError):
+        checkformat_delegation({
+            'threshold': 1.5, 'pubkeys': ['01'*32]})
+    checkformat_delegation({
+        'threshold': 1, 'pubkeys': ['01'*32]})
+
+    with pytest.raises(ValueError):
+        checkformat_delegation({
+            'threshold': 1, 'pubkeys': ['01'*31]})
+
+    with pytest.raises(ValueError):
+        checkformat_delegation({
+            'threshold': 1, 'pubkeys': ['01'*31]})
+
+
+
+def test_checkformat_delegating_metadata():
+
+    checkformat_delegating_metadata(SAMPLE_SIGNED_ROOT_MD)
+    # TODO ✅: Add a few other kinds of valid metadata to this test:
+    #           - key_mgr metadata:
+    #               - one signed using raw ed25519, one signed using OpenPGP
+    #               - one with and one without version provided
+    #           - root metadata:
+    #               - one signed using raw ed25519 instead of OpenPGP
+
+
+    for badval in [
+            SAMPLE_ROOT_MD_CONTENT,
+            # TODO ✅: Add more bad values (bad sig formats, etc.)
+            ]:
+        with pytest.raises( (TypeError, ValueError) ):
+            checkformat_delegating_metadata(badval)
+
+
+
 
 # def test_iso8601_time_plus_delta():
 #     raise NotImplementedError()

@@ -6,7 +6,6 @@ pyca/cryptography library.  Functions that perform OpenPGP-compliant (e.g. GPG)
 signing are provided instead in root_signing.
 
 Function Manifest for this Module:
-    sign
     serialize_and_sign
     wrap_as_signable
     sign_signable
@@ -19,6 +18,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # std libs
 import binascii
 import copy # for deepcopy
+import json # for json.dump
 
 # Dependency-provided libraries
 #import cryptography
@@ -31,9 +31,10 @@ import copy # for deepcopy
 
 # car modules
 from .common import (
-        SUPPORTED_SERIALIZABLE_TYPES, canonserialize,
-        is_a_signable, PublicKey, PrivateKey,
-        checkformat_key, checkformat_signable
+        SUPPORTED_SERIALIZABLE_TYPES, canonserialize, load_metadata_from_file,
+        PublicKey, PrivateKey,
+        checkformat_string, checkformat_key, checkformat_hex_key,
+        checkformat_signable, checkformat_signature,
         #is_hex_string, is_hex_signature, is_hex_key,
         #checkformat_natural_int, checkformat_expiration_distance,
         #checkformat_hex_key, checkformat_list_of_hex_keys,
@@ -41,45 +42,34 @@ from .common import (
         )
 
 
-# # TODO: ✅ Invert argument order.
-# # ❌❌❌ DEPRECATED!
-# def sign(private_key, data):
-#     """
-#     We'll actually be using an HSM to do the signing, so we won't have access
-#     to the actual private key.  But for now....
-#     Create an ed25519 signature over data using private_key.
-#     Return the bytes of the signature.
-#     Not doing input validation, but:
-#     - private_key should be an Ed25519PrivateKey obj.
-#     - data should be bytes
-
-#     Note that this process is deterministic and does not depend at any point on
-#     the ability to generate random data (unlike the key generation).
-
-#     The returned value is bytes, length 64, raw ed25519 signature.
-#     """
-#     raise Exception('THIS HAS BEEN DEPRECATED in favor of PrivateKey.sign()')
-#     return private_key.sign(data)
-
-
-
-# TODO: ✅ Invert argument order.
-def serialize_and_sign(private_key, obj):
+def serialize_and_sign(obj, private_key):
     """
     Given a JSON-compatible object, does the following:
      - serializes the dictionary as utf-8-encoded JSON, lazy-canonicalized
        such that any dictionary keys in any dictionaries inside <dictionary>
        are sorted and indentation is used and set to 2 spaces (using json lib)
      - creates a signature over that serialized result using private_key
-     - returns that signature
+     - returns that signature as a hex string
 
     See comments in common.canonserialize()
+
+    Arguments:
+      obj: a JSON-compatible object -- see common.canonserialize()
+      private_key: a car.common.PrivateKey object
+
+    # TODO ✅: Consider taking the private key data as a hex string instead?
+    #          On the other hand, it's useful to support an object that could
+    #          obscure the key (or provide an interface to a hardware key).
     """
 
     # Try converting to a JSON string.
     serialized = canonserialize(obj)
 
-    return private_key.sign(serialized)
+    signature_as_bytes = private_key.sign(serialized)
+
+    signature_as_hexstr = binascii.hexlify(signature_as_bytes).decode('utf-8')
+
+    return signature_as_hexstr
 
 
 
@@ -128,8 +118,11 @@ def sign_signable(signable, private_key):
     Updates the given signable in place, returning nothing.
     Overwrites if there is already an existing signature by the given key.
 
-    Unlike with lower-level functions, both signatures and public keys are
-    always written as hex strings.
+    # TODO ✅: Take hex string keys for sign_signable and serialize_and_sign
+    #          instead of constructed PrivateKey objects?  Add the comment
+    #          below if so:
+    # # Unlike with lower-level functions, both signatures and public keys are
+    # # always written as hex strings.
 
     Raises ❌TypeError if the given object is not a JSON-serializable type per
     SUPPORTED_SERIALIZABLE_TYPES
@@ -142,12 +135,19 @@ def sign_signable(signable, private_key):
     #             'Expected a signable dictionary; the given argument of type ' +
     #             str(type(signable)) + ' failed the check.')
 
-    signature = serialize_and_sign(private_key, signable['signed'])
+    # private_key = PrivateKey.from_hex(private_key_hex)
 
-    signature_as_hexstr = binascii.hexlify(signature).decode('utf-8')
+    signature_as_hexstr = serialize_and_sign(signable['signed'], private_key)
 
     public_key_as_hexstr = private_key.public_key().to_hex()
 
+    # To fit a general format, we wrap it this way, instead of just using the
+    # hexstring.  This is because OpenPGP signatures that we use for root
+    # signatures look similar and have a few extra fields beyond the signature
+    # value itself.
+    signature_dict = {'signature': signature_as_hexstr}
+
+    checkformat_signature(signature_dict)
 
     # TODO: ✅⚠️ Log a warning in whatever conda's style is (or conda-build):
     #
@@ -156,7 +156,70 @@ def sign_signable(signable, private_key):
     #           'Overwriting existing signature by the same key on given '
     #           'signable.  Public key: ' + public_key + '.')
 
-    # Add signature in-place.
-    signable['signatures'][public_key_as_hexstr] = signature_as_hexstr
+    # Add signature in-place, in the usual signature format.
+    signable['signatures'][public_key_as_hexstr] = signature_dict
 
 
+
+def sign_all_in_repodata(fname, private_key_hex):
+    """
+    Given a repodata.json filename, reads the "packages" entries in that file,
+    and produces a signature over each artifact, with the given key.  The
+    signatures are then placed in a "signatures" entry parallel to the
+    "packages" entry in the json file.  The file is overwritten.
+
+    Arguments:
+        fname: filename of a repodata.json file
+        private_key_hex:
+            a private ed25519 key value represented as a 64-char hex string
+    """
+    checkformat_hex_key(private_key_hex)
+    checkformat_string(fname)
+    # TODO ✅⚠️: Consider filename validation.  What does conda use for that?
+
+    private = PrivateKey.from_hex(private_key_hex)
+    public_hex = private.public_key().to_hex()
+
+    # Loading the whole file at once instead of reading it as we go, because
+    # it's less complex and this only needs to run repository-side.
+    repodata = load_metadata_from_file(fname)
+    # with open(fname, 'rb') as fobj:
+    #     repodata = json.load(fname)
+
+    # TODO ✅: Consider more validation for the gross structure expected of
+    #            repodata.json
+    if not 'packages' in repodata:
+        raise ValueError('Expected a "packages" entry in given repodata file.')
+
+    # Add an empty 'signatures' dict to repodata.
+    # If it's already there for whatever reason, we replace it entirely.  This
+    # avoids leaving existing signatures that might not get replaced -- e.g. if
+    # the artifact is not in the "packages" dict, but is in the "signatures"
+    # dict for some reason.  What comes out of this process will be limited to
+    # what we sign in this function.
+    repodata['signatures'] = {}
+
+    for artifact_name, metadata in repodata['packages'].items():
+        # TODO ✅: Further consider the significance of the artifact name
+        #          itself not being part of the signed metadata.  The info used
+        #          to generate the name (package name + version + build) is
+        #          part of the signed metadata, but the full name is not.
+        #          Keep in mind attacks that swap metadata among artifacts;
+        #          signatures would still read as correct in that circumstance.
+        signature_hex = serialize_and_sign(metadata, private)
+
+        # To fit a general format, we wrap it this way, instead of just using
+        # the hexstring.  This is because OpenPGP signatures that we use for
+        # root signatures look similar and have a few extra fields beyond the
+        # signature value itself.
+        signature_dict = {'signature': signature_hex}
+
+        checkformat_signature(signature_dict)
+
+        repodata['signatures'][artifact_name] = {public_hex: signature_dict}
+
+
+    repodata_canonicalized = canonserialize(repodata) # takes >0.5s on a macbook for large files
+
+    with open(fname, 'wb') as fobj:
+        fobj.write(repodata_canonicalized)

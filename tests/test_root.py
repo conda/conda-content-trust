@@ -7,6 +7,9 @@ generation, signing, and verification of root metadata.  This tests GPG
 integration via securesystemslib if securesystemslib can be successfully
 imported.
 
+IN CONTINUOUS INTEGRATION, this set of tests should be run with and without
+securesystemslib and GPG available on the system.
+
 Run the tests this way:
     pytest tests/test_root.py
 
@@ -61,21 +64,21 @@ SAMPLE_GPG_KEY_OBJ = {
 
 SAMPLE_ROOT_MD_CONTENT = {
   'delegations': {
-    'channeler.json': {'pubkeys': [], 'threshold': 1},
+    'key_mgr.json': {'pubkeys': [], 'threshold': 1},
     'root.json': {
       'pubkeys': ['bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'],
       'threshold': 1}
   },
-  'expiration': '2020-12-09T17:20:19Z',
-  'metadata_spec_version': '0.0.5',
+  'expiration': '2030-12-09T17:20:19Z',
+  'metadata_spec_version': '0.1.0',
   'type': 'root',
   'version': 1
 }
 
 SAMPLE_GPG_SIG = {
   'see_also': 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589',  # optional entry
-  'other_headers': '04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3',
-  'signature': 'd6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201'
+  'other_headers': '04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025f0665cb',
+  'signature': '22cc676101a8435b4354550668e5cf9d0b4ecdbe445c2fabea530838aebf846f6510f6f62126fc304083e1eb3fa3c6a7c98528a78244205c85adcc6f81820d02'
 }
 
 SAMPLE_SIGNED_ROOT_MD = {
@@ -138,12 +141,12 @@ def test_gpg_signing_with_unknown_fingerprint():
 def test_root_gen_sign_verify():
     # Integration test
 
-    # Build a basic root metadata file with empty channeler delegation and one
+    # Build a basic root metadata file with empty key_mgr delegation and one
     # root key, threshold 1, version 1.
     rmd = car.metadata_construction.build_root_metadata(
             root_version=1,
             root_pubkeys=[SAMPLE_KEYVAL], root_threshold=1,
-            channeler_pubkeys=[], channeler_threshold=1)
+            key_mgr_pubkeys=[], key_mgr_threshold=1)
     rmd = car.signing.wrap_as_signable(rmd)
 
     signed_portion = rmd['signed']
@@ -157,8 +160,8 @@ def test_root_gen_sign_verify():
                 'securesystemslib and GPG.')
         return
 
-    gpg_key_obj = securesystemslib.gpg.functions.export_pubkey(
-            SAMPLE_FINGERPRINT)
+    # gpg_key_obj = securesystemslib.gpg.functions.export_pubkey(
+    #         SAMPLE_FINGERPRINT)
 
     gpg_sig = car.root_signing.sign_via_gpg(
             canonical_signed_portion, SAMPLE_FINGERPRINT)
@@ -196,7 +199,7 @@ def test_root_gen_sign_verify():
 
     print(
             '--TEST SUCCESS✅: GPG signing (using GPG and securesystemslib) and '
-            'GPG signature verification (using securesystemslib)')
+            'GPG signature verification (using only cryptography)')
 
 
 
@@ -244,7 +247,10 @@ def test_verify_existing_root_md():
 
     # Third, use internal code only.  (This is what we're actually going to
     # use in conda.)
+
+    # Verify using verify_gpg_signature.
     car.authentication.verify_gpg_signature(
+    # car.authentication.verify_gpg_signature(
             SAMPLE_GPG_SIG,
             SAMPLE_KEYVAL,
             canonical_signed_portion)
@@ -253,8 +259,11 @@ def test_verify_existing_root_md():
             '--TEST SUCCESS✅: GPG signature verification without using GPG or '
             'securesystemslib')
 
+    # Verify using verify_signable.
+    car.authentication.verify_signable(
+            SAMPLE_SIGNED_ROOT_MD, [SAMPLE_KEYVAL], 1, gpg=True)
 
 
-
-
-
+    # TODO ✅: Add a v2 of root to this test, and verify static v2 via v1 as
+    #          well.  Also add failure modes (verifying valid v2 using v0
+    #          expectations.)

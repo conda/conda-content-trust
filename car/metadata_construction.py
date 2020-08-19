@@ -12,8 +12,8 @@ Key Creation:
   gen_and_write_keys
 
 Metadata Construction:
-  build_root_metadata
-  build_repodata_verification_metadata
+  build_delegating_metadata
+  build_root_metadata         (wraps build_delegating_metadata)
 
 """
 # Python2 Compatibility
@@ -38,96 +38,53 @@ from .common import (
         iso8601_time_plus_delta, SECURITY_METADATA_SPEC_VERSION)
 
 
-
-
-
-def build_repodata_verification_metadata(
-        repodata_hashmap, channel=None, expiry=None, timestamp=None):
-    """
-    # TODO: ✅ Full docstring.
-
-    # TODO: ✅ Contemplate the addition of "version" to this metadata.  As yet,
-    #          the timestamp serves our purposes....
-
-    Note that if expiry or timestamp are not provided or left as None, now is
-    used for the timestamp, and expiry is produced using a default expiration
-    distance, via iso8601_time_plus_delta().  (It does not mean no expiration!)
-
-    Channel may be optionally specified, and is only included if specified.
-
-    Sample input (repodata_hashmap):
-    {
-        "noarch/current_repodata.json": "908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe",
-        "noarch/repodata.json": "...",
-        "noarch/repodata_from_packages.json": "...",
-        "osx-64/current_repodata.json": "...",
-        "osx-64/repodata.json": "...",
-        "osx-64/repodata_from_packages.json": "..."
-    }
-
-    Sample output:
-        See metadata specification (version defined by
-        SECURITY_METADATA_SPEC_VERSION) for definition and samples of type
-        "Repodata Verification Metadata".
-    """
-
-    if expiry is None:
-        expiry = iso8601_time_plus_delta(REPODATA_VERIF_MD_EXPIRY_DISTANCE)
-
-    if timestamp is None:
-        timestamp = iso8601_time_plus_delta(datetime.timedelta(0))
-
-    # TODO: ✅ More argument validation: channel, 
-    checkformat_utc_isoformat(expiry)
-    checkformat_utc_isoformat(timestamp)
-    if not ( # dict with string keys and 32-byte-hash-as-hex-string values
-            isinstance(repodata_hashmap, dict)
-            and all([isinstance(x, string_types) for x in repodata_hashmap])
-            and all([is_hex_hash(repodata_hashmap[x]) for x in repodata_hashmap])):
-        raise ValueError(
-                'Argument repodata_hashmap must be a dictionary with strings '
-                'as keys (filenames of repodata.json files), and values that '
-                'are 64-character hex strings representing 32-byte hashes (of '
-                'those repodata.json files)')
-
-    # TODO: ✅ Really have to make TypeError and ValueError usages consistent
-    #       with norms throughout this codebase.
-
-
-    rd_v_md = {
-            'type': 'repodata_verify',
-            # (Take advantage of iso8601_time_plus_delta() to get current time
-            #  in the ISO8601 UTC format we want.)
-            'timestamp': timestamp, # version->timestamp in spec v 0.0.5
-            'metadata_spec_version': SECURITY_METADATA_SPEC_VERSION,
-            'expiration': expiry,
-            'secured_files': repodata_hashmap}
-
-    if channel is not None:
-        rd_v_md['channel'] = channel
-
-    return rd_v_md
-
-
-
-
-# An attempt at generalizing build_root_metadata()
 def build_delegating_metadata(
         metadata_type,
         delegations=None, version=1, timestamp=None, expiration=None):
     """
     # ✅ TODO: Docstring
 
-    Builds delegating metadata,
-    e.g. root.json, channeler.json, channel_authority.json
-    and specifically not repodata_verify.json.
+    Builds delegating metadata, e.g. root.json, key_mgr.json.
+
+    See metadata specification at:
+    anaconda.atlassian.net/wiki/spaces/AD/pages/285147281/Conda+Security+Metadata+Specification
+
+    Arguments:
+        metadata_type:
+            currently permits 'root' and 'intermediate'
+
+        delegations (default {} )
+            a dictionary defining the delegations this metadata makes.
+            Each key is the role delegated to, with the value equal to a
+            dictionary listing the acceptable public keys and threshold
+            (number of signatures from distinct acceptable public keys) for the
+            delegated role.  e.g.
+            {   'root.json':
+                    {'pubkeys': ['01'*32, '02'*32, '03'*32], 'threshold': 2},
+                'key_mgr.json':
+                    {'pubkeys': ['04'*32], 'threshold': 1}}
+
+            If not provided, an empty dictionary (no delegations) will be used.
+
+        version (default 1)
+            the version of the metadata; root metadata must advance one version
+            at a time (root chaining).  For other types of metadata, versions
+            are advisory.
+
+        timestamp (default: current system time)
+            UTC time associated with the production of this metadata, in
+            ISO8601 format (e.g. '2020-10-31T14:45:19Z')
+
+        expiration (default: current system time plus ROOT_MD_EXPIRY_DISTANCE)
+            UTC time beyond which this metadata should be considered expired
+            and not verifiable by any client seeking new metadata
     """
 
     # Handle optional args
     if delegations is None:
         delegations = {}
     if timestamp is None:
-        timestamp = iso8601_time_plus_delta(datetime.timedelta(0))
+        timestamp = iso8601_time_plus_delta(datetime.timedelta(0)) #now plus 0
     if expiration is None:
         expiration = iso8601_time_plus_delta(ROOT_MD_EXPIRY_DISTANCE)
 
@@ -154,8 +111,9 @@ def build_delegating_metadata(
         "delegations": delegations
     }
 
-    # TODO: ✅ Add checkformat call for delegating metadata result?
-    #           It would be pretty redundant.
+    # # This very redundant, but might be useful as defensive code.
+    # checkformat_delegating_metadata(wrap_as_signable(md)
+
     return md
 
 
@@ -163,9 +121,12 @@ def build_delegating_metadata(
 def build_root_metadata(
         root_version,
         root_pubkeys, root_threshold,
-        channeler_pubkeys, channeler_threshold,
+        key_mgr_pubkeys, key_mgr_threshold,
         root_timestamp=None, root_expiration=None):
     """
+    Wrapper for build_delegating_metadata().  Helpfully requires root to list
+    itself and key_mgr in its delegations.
+
     # ✅ TODO: Docstring
 
     # ✅ TODO: Expand build_root_metadata flexibility for
@@ -179,8 +140,8 @@ def build_root_metadata(
     # diverge later.
     # Note that it is probably best to provide less revealing timestamps for
     # root metadata generation (00:00:00 of a past day), since it is a manual
-    # process and patterns in that information might be useful to a
-    # sophisticated attacker for social engineering.
+    # process and patterns in that information might be somewhat useful to a
+    # sophisticated attacker.
     if root_expiration is None:
         root_expiration = iso8601_time_plus_delta(ROOT_MD_EXPIRY_DISTANCE)
     # if channeler_pubkeys is None:
@@ -191,42 +152,14 @@ def build_root_metadata(
     delegations = {
         'root.json':
             {'pubkeys': root_pubkeys, 'threshold': root_threshold},
-        'channeler.json':
-            {'pubkeys': channeler_pubkeys, 'threshold': channeler_threshold}
+        'key_mgr.json':
+            {'pubkeys': key_mgr_pubkeys, 'threshold': key_mgr_threshold}
     }
 
     root_md = build_delegating_metadata(
             metadata_type='root', delegations=delegations,
             version=root_version, timestamp=root_timestamp,
             expiration=root_expiration)
-
-
-    # TESTING STUB.
-    # 💣💥
-    # root_md = {
-    #   "signed": {
-    #     "type": "root",
-    #     "delegations": {
-    #       "root.json": {
-    #         "threshold": 1,
-    #         "pubkeys": [
-    #           '1234567890123456789012345678901212345678901234567890123456789012' #"<ed25519 public key as hex string (32 bytes raw data -> 64 hex chars)>",
-    #           #'1234567890123456789012345678901212345678901234567890123456789012' #"<ed25519 public key as hex string (32 bytes raw data -> 64 hex chars)>",
-    #         ]
-    #       },
-    #       "channeler.json": {
-    #         "threshold": 1,
-    #         "pubkeys": ['1234567890123456789012345678901212345678901234567890123456789012'] #<list of ed25519 public keys, as above>
-    #       }
-    #     },
-    #     "version": version,
-    #     "metadata_spec_version": "0.0.5",
-    #     "expiration": iso8601_time_plus_delta(ROOT_MD_EXPIRY_DISTANCE) #"<iso8601 UTC-specific datetime, e.g. '2020-01-01T00:00:00Z'>"
-    #   },
-    #   "signatures": {
-    #     #"013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7": "c6b74b2efaa62eb14204c56fadf164c50946861c4afe71ec18994a834aa5fa7a08f1dac52b65bae2fe0f68ce08ad2b9876be69797f82fddb94c8657cff6f2008"
-    #   }
-    # }
 
     return root_md
 
@@ -277,3 +210,72 @@ def gen_keys():
     return private, public
 
 
+
+# This function is not in use.  It's here for reference, in case it's useful
+# again in the future.
+# def build_repodata_verification_metadata(
+#         repodata_hashmap, channel=None, expiry=None, timestamp=None):
+#     """
+#     # TODO: ✅ Full docstring.
+
+#     # TODO: ✅ Contemplate the addition of "version" to this metadata.  As yet,
+#     #          the timestamp serves our purposes....
+
+#     Note that if expiry or timestamp are not provided or left as None, now is
+#     used for the timestamp, and expiry is produced using a default expiration
+#     distance, via iso8601_time_plus_delta().  (It does not mean no expiration!)
+
+#     Channel may be optionally specified, and is only included if specified.
+
+#     Sample input (repodata_hashmap):
+#     {
+#         "noarch/current_repodata.json": "908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe",
+#         "noarch/repodata.json": "...",
+#         "noarch/repodata_from_packages.json": "...",
+#         "osx-64/current_repodata.json": "...",
+#         "osx-64/repodata.json": "...",
+#         "osx-64/repodata_from_packages.json": "..."
+#     }
+
+#     Sample output:
+#         See metadata specification (version defined by
+#         SECURITY_METADATA_SPEC_VERSION) for definition and samples of type
+#         "Repodata Verification Metadata".
+#     """
+
+#     if expiry is None:
+#         expiry = iso8601_time_plus_delta(REPODATA_VERIF_MD_EXPIRY_DISTANCE)
+
+#     if timestamp is None:
+#         timestamp = iso8601_time_plus_delta(datetime.timedelta(0))
+
+#     # TODO: ✅ More argument validation: channel, 
+#     checkformat_utc_isoformat(expiry)
+#     checkformat_utc_isoformat(timestamp)
+#     if not ( # dict with string keys and 32-byte-hash-as-hex-string values
+#             isinstance(repodata_hashmap, dict)
+#             and all([isinstance(x, string_types) for x in repodata_hashmap])
+#             and all([is_hex_hash(repodata_hashmap[x]) for x in repodata_hashmap])):
+#         raise ValueError(
+#                 'Argument repodata_hashmap must be a dictionary with strings '
+#                 'as keys (filenames of repodata.json files), and values that '
+#                 'are 64-character hex strings representing 32-byte hashes (of '
+#                 'those repodata.json files)')
+
+#     # TODO: ✅ Really have to make TypeError and ValueError usages consistent
+#     #       with norms throughout this codebase.
+
+
+#     rd_v_md = {
+#             'type': 'repodata_verify',
+#             # (Take advantage of iso8601_time_plus_delta() to get current time
+#             #  in the ISO8601 UTC format we want.)
+#             'timestamp': timestamp, # version->timestamp in spec v 0.0.5
+#             'metadata_spec_version': SECURITY_METADATA_SPEC_VERSION,
+#             'expiration': expiry,
+#             'secured_files': repodata_hashmap}
+
+#     if channel is not None:
+#         rd_v_md['channel'] = channel
+
+#     return rd_v_md

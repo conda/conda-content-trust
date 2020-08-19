@@ -32,8 +32,6 @@ import json
 #import struct    # for struct.pack
 
 # dependencies
-from six import string_types   # for Python2/3-compatible string type checks
-
 # For ed25519 signing operations and hashing
 import cryptography.hazmat.primitives.asymmetric.ed25519# as ed25519
 import cryptography.hazmat.primitives.hashes# as pyca_crypto_hashes
@@ -52,8 +50,9 @@ except ImportError:
 
 # this codebase
 from .common import (
-        canonserialize, is_a_signable, checkformat_gpg_fingerprint,
-        checkformat_hex_key, checkformat_gpg_signature, checkformat_byteslike,
+        canonserialize, load_metadata_from_file, is_a_signable,
+        checkformat_gpg_fingerprint, checkformat_hex_key,
+        checkformat_gpg_signature, checkformat_byteslike,
         PrivateKey, PublicKey, checkformat_key)
 
 
@@ -241,8 +240,7 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
                 'appears to be unavailable.')
 
     # Read in json
-    with open(root_md_fname, 'rb') as fobj:
-        root_signable = json.load(fobj)
+    root_signable = load_metadata_from_file(root_md_fname)
 
 
     # Make sure it's the right format.
@@ -280,9 +278,8 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     raw_pubkey = fetch_keyval_from_gpg(gpg_key_fingerprint)
 
 
-    # non-GPG
-    # signature = serialize_and_sign(private_key, signable['signed'])
-    # signature_as_hexstr = binascii.hexlify(signature).decode('utf-8')
+    # non-GPG signing here would look like this:
+    # signature_as_hexstr = serialize_and_sign(signable['signed'], private_key)
     # public_key_as_hexstr = binascii.hexlify(key_to_bytes(
     #         private_key.public_key())).decode('utf-8')
 
@@ -300,11 +297,14 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     root_bytes = canonserialize(root_signable)
 
 
-    # <~> DEBUG TODO: ✅ 💣❌⚠️  FILENAME CHANGE IS FOR TEST PURPOSES ONLY!
-    # The signed file should be overwritten, or some consistent output name
-    # should be used.
-    with open(root_md_fname + '.TEST_SIGNED', 'wb') as fobj:
+    with open(root_md_fname, 'wb') as fobj:
         fobj.write(root_bytes)
+    # Mooted old debug code:
+    # # <~> DEBUG TODO: ✅ 💣❌⚠️  FILENAME CHANGE IS FOR TEST PURPOSES ONLY!
+    # # The signed file should be overwritten, or some consistent output name
+    # # should be used.
+    # with open(root_md_fname + '.TEST_SIGNED', 'wb') as fobj:
+    #     fobj.write(root_bytes)
 
 
 

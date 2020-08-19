@@ -33,16 +33,17 @@ from car.common import ( # these aren't already imported by metadata_constructio
 from car.signing import wrap_as_signable, sign_signable
 
 # Some REGRESSION test data.
-REG__KEYPAIR_NAME = 'keytest_old'
-REG__PRIVATE_BYTES = b'\xc9\xc2\x06\r~\r\x93al&T\x84\x0bI\x83\xd0\x02!\xd8\xb6\xb6\x9c\x85\x01\x07\xdat\xb4!h\xf97'
-REG__PUBLIC_BYTES = b"\x01=\xddqIb\x86m\x12\xba[\xae'?\x14\xd4\x8c\x89\xcf\x07s\xde\xe2\xdb\xf6\xd4V\x1eR\x1c\x83\xf7"
-REG__PUBLIC_HEX = '013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7'
-# Signature is over b'123456\x067890' using key REG__PRIVATE_BYTES.
-REG__SIGNATURE = b'\xb6\xda\x14\xa1\xedU\x9e\xbf\x01\xb3\xa9\x18\xc9\xb8\xbd\xccFM@\x87\x99\xe8\x98\x84C\xe4}9;\xa4\xe5\xfd\xcf\xdaau\x04\xf5\xcc\xc0\xe7O\x0f\xf0F\x91\xd3\xb8"\x7fD\x1dO)*\x1f?\xd7&\xd6\xd3\x1f\r\x0e'
-REG__HASHED_VAL = b'string to hash\n'
-REG__HASH_HEX = '73aec9a93f4beb41a9bad14b9d1398f60e78ccefd97e4eb7d3cf26ba71dbe0ce'
-#REG__HASH_BYTES = b's\xae\xc9\xa9?K\xebA\xa9\xba\xd1K\x9d\x13\x98\xf6\x0ex\xcc\xef\xd9~N\xb7\xd3\xcf&\xbaq\xdb\xe0\xce'
-REG__REPODATA_HASHMAP = {
+KEYPAIR_NAME = 'keytest_old'
+PRIVATE_BYTES = b'\xc9\xc2\x06\r~\r\x93al&T\x84\x0bI\x83\xd0\x02!\xd8\xb6\xb6\x9c\x85\x01\x07\xdat\xb4!h\xf97'
+PUBLIC_BYTES = b"\x01=\xddqIb\x86m\x12\xba[\xae'?\x14\xd4\x8c\x89\xcf\x07s\xde\xe2\xdb\xf6\xd4V\x1eR\x1c\x83\xf7"
+PUBLIC_HEX = '013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7'
+PKGMGR_PUBLIC_HEX = 'f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569'
+# Signature is over b'123456\x067890' using key PRIVATE_BYTES.
+SIGNATURE = b'\xb6\xda\x14\xa1\xedU\x9e\xbf\x01\xb3\xa9\x18\xc9\xb8\xbd\xccFM@\x87\x99\xe8\x98\x84C\xe4}9;\xa4\xe5\xfd\xcf\xdaau\x04\xf5\xcc\xc0\xe7O\x0f\xf0F\x91\xd3\xb8"\x7fD\x1dO)*\x1f?\xd7&\xd6\xd3\x1f\r\x0e'
+HASHED_VAL = b'string to hash\n'
+HASH_HEX = '73aec9a93f4beb41a9bad14b9d1398f60e78ccefd97e4eb7d3cf26ba71dbe0ce'
+#HASH_BYTES = b's\xae\xc9\xa9?K\xebA\xa9\xba\xd1K\x9d\x13\x98\xf6\x0ex\xcc\xef\xd9~N\xb7\xd3\xcf&\xbaq\xdb\xe0\xce'
+REPODATA_HASHMAP = {
     "noarch/current_repodata.json": "908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe",
     "noarch/repodata.json": "908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe",
     "noarch/repodata_from_packages.json": "908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe",
@@ -50,13 +51,13 @@ REG__REPODATA_HASHMAP = {
     "osx-64/repodata.json": "8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2",
     "osx-64/repodata_from_packages.json": "8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2"
 }
-REG__TEST_TIMESTAMP = '2019-10-01T00:00:00Z'
-REG__TEST_EXPIRY_DATE = '2025-01-01T10:30:00Z'
-REG__EXPECTED_UNSIGNED_REPODATA_VERIFY = {
+TEST_TIMESTAMP = '2019-10-01T00:00:00Z'
+TEST_EXPIRY_DATE = '2025-01-01T10:30:00Z'
+EXPECTED_UNSIGNED_REPODATA_VERIFY = {
     'type': 'repodata_verify',
-    'timestamp': REG__TEST_TIMESTAMP,
-    'metadata_spec_version': '0.0.5',
-    'expiration': REG__TEST_EXPIRY_DATE,
+    'timestamp': TEST_TIMESTAMP,
+    'metadata_spec_version': '0.1.0',
+    'expiration': TEST_EXPIRY_DATE,
     'secured_files': {
         'noarch/current_repodata.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
         'noarch/repodata.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
@@ -65,10 +66,10 @@ REG__EXPECTED_UNSIGNED_REPODATA_VERIFY = {
         'osx-64/repodata.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2',
         'osx-64/repodata_from_packages.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2'}
 }
-# REG__EXPECTED_REGSIGNED_REPODATA_VERIFY = {
+# EXPECTED_REGSIGNED_REPODATA_VERIFY = {
 #     # Re-sign this if its data changes: it's signed!
 #     'type': 'repodata_verify', 'timestamp': '2019-10-01T00:00:00Z',
-#     'metadata_spec_version': '0.0.5', 'expiration': '2025-01-01T10:30:00Z',
+#     'metadata_spec_version': '0.1.0', 'expiration': '2025-01-01T10:30:00Z',
 #     'secured_files': {
 #         'noarch/current_repodata.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
 #         'noarch/repodata.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
@@ -77,15 +78,15 @@ REG__EXPECTED_UNSIGNED_REPODATA_VERIFY = {
 #         'osx-64/repodata.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2',
 #         'osx-64/repodata_from_packages.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2'}
 # }
-REG__ROOT_PUBLIC_HEX = 'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'
-REG__EXPECTED_UNSIGNED_ROOT = {
+ROOT_PUBLIC_HEX = 'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'
+EXPECTED_UNSIGNED_ROOT = {
     'type': 'root',
-    'timestamp': REG__TEST_TIMESTAMP,
+    'timestamp': TEST_TIMESTAMP,
     'version': 1,
-    'metadata_spec_version': '0.0.5',
-    'expiration': REG__TEST_EXPIRY_DATE,
+    'metadata_spec_version': '0.1.0',
+    'expiration': TEST_EXPIRY_DATE,
     'delegations': {
-        'channeler.json': {
+        'key_mgr.json': {
             'pubkeys': ['013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7'],
             'threshold': 1},
         'root.json': {
@@ -96,34 +97,34 @@ REG__EXPECTED_UNSIGNED_ROOT = {
 
 
 
-def test_build_repodata_verification_metadata():
-    # Test only construction of (unsigned) repodata_verify.
+# def test_build_repodata_verification_metadata():
+#     # Test only construction of (unsigned) repodata_verify.
 
-    # Regression
-    rd_v_md = build_repodata_verification_metadata(
-            REG__REPODATA_HASHMAP,
-            expiry=REG__TEST_EXPIRY_DATE,
-            timestamp=REG__TEST_TIMESTAMP)
-    assert rd_v_md == REG__EXPECTED_UNSIGNED_REPODATA_VERIFY
+#     # Regression
+#     rd_v_md = build_repodata_verification_metadata(
+#             REPODATA_HASHMAP,
+#             expiry=TEST_EXPIRY_DATE,
+#             timestamp=TEST_TIMESTAMP)
+#     assert rd_v_md == EXPECTED_UNSIGNED_REPODATA_VERIFY
 
-    # Bad-argument tests, expecting TypeErrors
-    bad_hashmap = copy.deepcopy(REG__REPODATA_HASHMAP)
-    bad_hashmap['some_filename'] = 'this is not a hash'
+#     # Bad-argument tests, expecting TypeErrors
+#     bad_hashmap = copy.deepcopy(REPODATA_HASHMAP)
+#     bad_hashmap['some_filename'] = 'this is not a hash'
 
-    with pytest.raises(ValueError):
-        build_repodata_verification_metadata(bad_hashmap)
-    with pytest.raises(ValueError):
-        build_repodata_verification_metadata(5) # not a hashmap at all
+#     with pytest.raises(ValueError):
+#         build_repodata_verification_metadata(bad_hashmap)
+#     with pytest.raises(ValueError):
+#         build_repodata_verification_metadata(5) # not a hashmap at all
 
 
-    assert not is_a_signable(rd_v_md)
-    signable_rd_v_md = wrap_as_signable(rd_v_md)
-    assert is_a_signable(signable_rd_v_md)
+#     assert not is_a_signable(rd_v_md)
+#     signable_rd_v_md = wrap_as_signable(rd_v_md)
+#     assert is_a_signable(signable_rd_v_md)
 
-    private = PrivateKey.from_bytes(REG__PRIVATE_BYTES)
+#     private = PrivateKey.from_bytes(PRIVATE_BYTES)
 
-    sign_signable(signable_rd_v_md, private)
-    assert is_a_signable(signable_rd_v_md)
+#     sign_signable(signable_rd_v_md, private)
+#     assert is_a_signable(signable_rd_v_md)
 
 
 
@@ -133,78 +134,96 @@ def test_build_root_metadata():
 
     # Regression
     root_md = build_root_metadata(
-            root_pubkeys=[REG__ROOT_PUBLIC_HEX],
+            root_pubkeys=[ROOT_PUBLIC_HEX],
             root_threshold=1,
             root_version=1,
-            root_expiration=REG__TEST_EXPIRY_DATE,
-            channeler_pubkeys=[REG__PUBLIC_HEX],
-            channeler_threshold=1,
-            root_timestamp=REG__TEST_TIMESTAMP)
+            root_expiration=TEST_EXPIRY_DATE,
+            key_mgr_pubkeys=[PUBLIC_HEX],
+            key_mgr_threshold=1,
+            root_timestamp=TEST_TIMESTAMP)
 
-    assert root_md == REG__EXPECTED_UNSIGNED_ROOT
+    assert root_md == EXPECTED_UNSIGNED_ROOT
 
+    # This format check expects a signing envelope.
+    checkformat_delegating_metadata(wrap_as_signable(root_md))
 
 
     # # Bad-argument tests, expecting TypeErrors
-    # bad_hashmap = copy.deepcopy(REG__REPODATA_HASHMAP)
+    # bad_hashmap = copy.deepcopy(REPODATA_HASHMAP)
     # bad_hashmap['some_filename'] = 'this is not a hash'
 
     # Bad-argument tests, expecting TypeErrors or ValueErrors
     with pytest.raises(ValueError):
         root_md = build_root_metadata(
-                root_pubkeys=[REG__ROOT_PUBLIC_HEX[:-1]],  # too short to be a key
+                root_pubkeys=[ROOT_PUBLIC_HEX[:-1]],  # too short to be a key
                 root_threshold=1,
                 root_version=1,
-                root_expiration=REG__TEST_EXPIRY_DATE,
-                channeler_pubkeys=[REG__PUBLIC_HEX],
-                channeler_threshold=1,
-                root_timestamp=REG__TEST_TIMESTAMP)
+                root_expiration=TEST_EXPIRY_DATE,
+                key_mgr_pubkeys=[PUBLIC_HEX],
+                key_mgr_threshold=1,
+                root_timestamp=TEST_TIMESTAMP)
 
     with pytest.raises(TypeError):
         root_md = build_root_metadata(
-                root_pubkeys=[REG__ROOT_PUBLIC_HEX],
+                root_pubkeys=[ROOT_PUBLIC_HEX],
                 root_threshold='this is not an integer', #  <---
                 root_version=1,
-                root_expiration=REG__TEST_EXPIRY_DATE,
-                channeler_pubkeys=[REG__PUBLIC_HEX],
-                channeler_threshold=1,
-                root_timestamp=REG__TEST_TIMESTAMP)
+                root_expiration=TEST_EXPIRY_DATE,
+                key_mgr_pubkeys=[PUBLIC_HEX],
+                key_mgr_threshold=1,
+                root_timestamp=TEST_TIMESTAMP)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         root_md = build_root_metadata(
-                root_pubkeys=REG__ROOT_PUBLIC_HEX,  # not a list of keys
+                root_pubkeys=ROOT_PUBLIC_HEX,  # not a list of keys
                 root_threshold=1,
                 root_version=1,
-                root_expiration=REG__TEST_EXPIRY_DATE,
-                channeler_pubkeys=[REG__PUBLIC_HEX],
-                channeler_threshold=1,
-                root_timestamp=REG__TEST_TIMESTAMP)
+                root_expiration=TEST_EXPIRY_DATE,
+                key_mgr_pubkeys=[PUBLIC_HEX],
+                key_mgr_threshold=1,
+                root_timestamp=TEST_TIMESTAMP)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         root_md = build_root_metadata(
-                root_pubkeys=[REG__ROOT_PUBLIC_HEX],
+                root_pubkeys=[ROOT_PUBLIC_HEX],
                 root_threshold=1,
                 root_version='this is not a version number',
-                root_expiration=REG__TEST_EXPIRY_DATE,
-                channeler_pubkeys=[REG__PUBLIC_HEX],
-                channeler_threshold=1,
-                root_timestamp=REG__TEST_TIMESTAMP)
+                root_expiration=TEST_EXPIRY_DATE,
+                key_mgr_pubkeys=[PUBLIC_HEX],
+                key_mgr_threshold=1,
+                root_timestamp=TEST_TIMESTAMP)
 
     with pytest.raises(TypeError):
         root_md = build_root_metadata(
-                root_pubkeys=[REG__ROOT_PUBLIC_HEX],
+                root_pubkeys=[ROOT_PUBLIC_HEX],
                 root_threshold=1,
                 root_version=1,
                 root_expiration=91,             # <------
-                channeler_pubkeys=[REG__PUBLIC_HEX],
-                channeler_threshold=1,
-                root_timestamp=REG__TEST_TIMESTAMP)
+                key_mgr_pubkeys=[PUBLIC_HEX],
+                key_mgr_threshold=1,
+                root_timestamp=TEST_TIMESTAMP)
 
     assert not is_a_signable(root_md)
     signable_root_md = wrap_as_signable(root_md)
     assert is_a_signable(signable_root_md)
 
 
+def test_build_delegating_metadata():
+    # See also test_build_root_metadata.
+
+    key_mgr = build_delegating_metadata(
+            metadata_type='intermediate', # 'root' or 'intermediate'
+            delegations={'pkg_mgr.json': {
+                'pubkeys': [PKGMGR_PUBLIC_HEX],
+                'threshold': 1}},
+            version=1,
+            #timestamp   default: now
+            #expiration  default: now plus root expiration default duration
+            )
+
+    key_mgr = wrap_as_signable(key_mgr)
+
+    checkformat_delegating_metadata(key_mgr)
 
 
 
