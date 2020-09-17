@@ -1,0 +1,33 @@
+{
+  "signatures": {
+    "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07": {
+      "other_headers": "04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025f3d4345",
+      "signature": "0a479add878f87e31c5da4492b6a38b062da5fe6c32c6ba8f0a8d4b7c944a4c9431ed67536c0e891dd45f426825c782ab3cf9c6938ecb8b824ef6a39eee68709"
+    },
+    "d16d07f038e49de3b3bd8661523ef0948181e3109902a9c739beeb69628940c4": {
+      "other_headers": "04001608001d16210439561c2c63b681a60147c1685dcd89e98d05d0dd05025f3d4345",
+      "signature": "feda5dc660c91facf671e7a8ba4177934f7b1a3b7af4f3db43bbb98e51a1eb75a4c8edfe56015282acdf5cb541e6881460ad9a57909f0f18ef2131ba16497d0b"
+    }
+  },
+  "signed": {
+    "delegations": {
+      "key_mgr.json": {
+        "pubkeys": [
+          "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+        ],
+        "threshold": 1
+      },
+      "root.json": {
+        "pubkeys": [
+          "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"
+        ],
+        "threshold": 1
+      }
+    },
+    "expiration": "2021-08-19T15:20:34Z",
+    "metadata_spec_version": "0.1.0",
+    "timestamp": "2020-08-19T15:20:34Z",
+    "type": "root",
+    "version": 2
+  }
+}
