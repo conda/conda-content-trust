@@ -36,7 +36,7 @@ from car.signing import wrap_as_signable, sign_signable
 REG__KEYPAIR_NAME = 'keytest_old'
 REG__PRIVATE_BYTES = b'\xc9\xc2\x06\r~\r\x93al&T\x84\x0bI\x83\xd0\x02!\xd8\xb6\xb6\x9c\x85\x01\x07\xdat\xb4!h\xf97'
 REG__PUBLIC_BYTES = b"\x01=\xddqIb\x86m\x12\xba[\xae'?\x14\xd4\x8c\x89\xcf\x07s\xde\xe2\xdb\xf6\xd4V\x1eR\x1c\x83\xf7"
-REG__PUBLIC_HEX_ROOT = 'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'
+REG__PUBLIC_HEX_ROOT = 'c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c'
 REG__MESSAGE_THAT_WAS_SIGNED = b'123456\x067890'
 # Signature is over REG__MESSAGE_THAT_WAS_SIGNED using key REG__PRIVATE_BYTES.
 REG__SIGNATURE = b'\xb6\xda\x14\xa1\xedU\x9e\xbf\x01\xb3\xa9\x18\xc9\xb8\xbd\xccFM@\x87\x99\xe8\x98\x84C\xe4}9;\xa4\xe5\xfd\xcf\xdaau\x04\xf5\xcc\xc0\xe7O\x0f\xf0F\x91\xd3\xb8"\x7fD\x1dO)*\x1f?\xd7&\xd6\xd3\x1f\r\x0e'
@@ -80,29 +80,29 @@ REG__TEST_EXPIRY_DATE = '2025-01-01T10:30:00Z'
 
 TEST_ROOT_MD_V1 = {
   "signatures": {
-    "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07": {
-      "other_headers": "04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025f0bf546",
-      "signature": "ab3e03385f757da74e08b46f1bf82709fbc2ce21823c28e2f0e3452415e2a9f1e2c82e418cc44e2908618cf0c7375f32fe0a5a75494909a59a82875ebc703c02"
+    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
+      "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025f96ff1a",
+      "signature": "9327c2c4907c964741924420c4c35eb01805c15ec2fe5cad17bc98c0c3daf03006fcafb332eaa543a1ed212fac05f227662d8617970afc6c919ee4b78bacb004"
     }
   },
   "signed": {
     "delegations": {
-      "key_mgr.json": {
+      "key_mgr": {
         "pubkeys": [
           "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
         ],
         "threshold": 1
       },
-      "root.json": {
+      "root": {
         "pubkeys": [
-          "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"
+          "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c"
         ],
         "threshold": 1
       }
     },
-    "expiration": "2021-07-13T05:46:45Z",
-    "metadata_spec_version": "0.1.0",
-    "timestamp": "2020-07-13T05:46:45Z",
+    "expiration": "2021-10-26T16:53:46Z",
+    "metadata_spec_version": "0.6.0",
+    "timestamp": "2020-10-26T16:53:46Z",
     "type": "root",
     "version": 1
   }
@@ -110,33 +110,33 @@ TEST_ROOT_MD_V1 = {
 
 TEST_ROOT_MD_V2 = {
   "signatures": {
-    "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07": {
-      "other_headers": "04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025f0bf551",
-      "signature": "08e103033de995010cc193e6061ef06a41f678b6c09484bba681fad5fafbb5798319d78c01d4353a18fb4393803567c614d99f0bff073f3a7f22da4ddda7e10e"
+    "a59cea0987ee9046d68d2d011e919eb9278e3f478cca77f5204d65191ff8d7a5": {
+      "other_headers": "04001608001d1621040a14b126c986f276831c7b04134f35b47db4364305025f96ff1b",
+      "signature": "d406839499630a75350ba6f6c009aae173f15dd8c9be069c9b535ff77b6d624d6092487fe18e2c4f5c13b252a3ebe3f89ab15f4c52c66db752f8cbbfc6d96609"
     },
-    "d16d07f038e49de3b3bd8661523ef0948181e3109902a9c739beeb69628940c4": {
-      "other_headers": "04001608001d16210439561c2c63b681a60147c1685dcd89e98d05d0dd05025f0bf551",
-      "signature": "682136db6cb8fd8e2252ab3bab36f9b04c2fa16b140b692d9b8b51b797984ee760cb741d1de441efa1287748a4134c6d23f6bcd0cdac17fc3885891cdc30f705"
+    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
+      "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025f96ff1b",
+      "signature": "f4c13d4456028778026639fcdc63ec7d6005e1e88f2dcfaf87afa3b89ce6a1ec8938af83fdc9d3d7045d0ebd648654c6af027daaf7164e014a8a53f373e9b906"
     }
   },
   "signed": {
     "delegations": {
-      "key_mgr.json": {
+      "key_mgr": {
         "pubkeys": [
           "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
         ],
         "threshold": 1
       },
-      "root.json": {
+      "root": {
         "pubkeys": [
-          "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"
+          "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c"
         ],
         "threshold": 1
       }
     },
-    "expiration": "2021-07-13T05:46:54Z",
-    "metadata_spec_version": "0.1.0",
-    "timestamp": "2020-07-13T05:46:54Z",
+    "expiration": "2021-10-26T16:53:46Z",
+    "metadata_spec_version": "0.6.0",
+    "timestamp": "2020-10-26T16:53:46Z",
     "type": "root",
     "version": 2
   }
@@ -453,11 +453,11 @@ def test_verify_root():
     #     authorized keys (and still provide only 2).
     with pytest.raises(SignatureError):
         root_v1_edited = copy.deepcopy(TEST_ROOT_MD_V1)
-        root_v1_edited['signed']['delegations']['root.json']['threshold'] += 1
+        root_v1_edited['signed']['delegations']['root']['threshold'] += 1
         verify_root(root_v1_edited, TEST_ROOT_MD_V2)
 
     # Reset.
-    root_v1_edited['signed']['delegations']['root.json']['threshold'] -= 1
+    root_v1_edited['signed']['delegations']['root']['threshold'] -= 1
 
 
 

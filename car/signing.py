@@ -31,7 +31,8 @@ import json # for json.dump
 
 # car modules
 from .common import (
-        SUPPORTED_SERIALIZABLE_TYPES, canonserialize, load_metadata_from_file,
+        SUPPORTED_SERIALIZABLE_TYPES, canonserialize,
+        load_metadata_from_file, write_metadata_to_file,
         PublicKey, PrivateKey,
         checkformat_string, checkformat_key, checkformat_hex_key,
         checkformat_signable, checkformat_signature,
@@ -219,7 +220,5 @@ def sign_all_in_repodata(fname, private_key_hex):
         repodata['signatures'][artifact_name] = {public_hex: signature_dict}
 
 
-    repodata_canonicalized = canonserialize(repodata) # takes >0.5s on a macbook for large files
-
-    with open(fname, 'wb') as fobj:
-        fobj.write(repodata_canonicalized)
+    # Note: takes >0.5s on a macbook for large files
+    write_metadata_to_file(repodata, fname)

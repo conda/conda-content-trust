@@ -50,6 +50,7 @@ from .common import (
         # checkformat_list_of_hex_keys,
         # checkformat_utc_isoformat,
         checkformat_delegation,
+        checkformat_delegating_metadata,
         SignatureError,
         UnknownRoleError,
         MetadataVerificationError   # TODO: ✅ Use this more.
@@ -57,6 +58,7 @@ from .common import (
 
 
 
+# TODO✅: Consider reversing this argument order?  What's more intuitive?
 def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
     """
     Given currently trusted root metadata, verify that new root metadata is
@@ -68,13 +70,24 @@ def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
 
     # TODO✅: Proper docstring.
     """
-    # TODO✅: Argument validation
     # TODO✅💣❌⚠️: Vet against root chaining algorithm we updated in TUF,
     #                and add the attack tests to tests/test_authentication.py.
 
+    # TODO✅: More argument validation
+    checkformat_delegating_metadata(trusted_current_root_metadata)
+    checkformat_delegating_metadata(untrusted_new_root_metadata)
+
+    if (trusted_current_root_metadata['signed']['type'] != 'root'
+            or untrusted_new_root_metadata['signed']['type'] != 'root'):
+        raise ValueError(
+                'Expected two instances of root metadata.  Listed metadata '
+                'type in one or both pieces of metadata provided is not '
+                '"root".')
+
+
     # Extract rules for root from old, trusted version of root.
     root_expectations = (
-        trusted_current_root_metadata['signed']['delegations']['root.json'])
+        trusted_current_root_metadata['signed']['delegations']['root'])
     expected_threshold = root_expectations['threshold']
     authorized_pub_keys = root_expectations['pubkeys']
 
@@ -84,7 +97,7 @@ def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
     # (the latter in order to reduce the odds of accidentally breaking the root
     # trust chain).
     new_root_expectations = (
-            untrusted_new_root_metadata['signed']['delegations']['root.json'])
+            untrusted_new_root_metadata['signed']['delegations']['root'])
     new_expected_threshold = new_root_expectations['threshold']
     new_authorized_pub_keys = new_root_expectations['pubkeys']
 
@@ -135,7 +148,21 @@ def verify_root(trusted_current_root_metadata, untrusted_new_root_metadata):
 #               signatures don't match expectations (threshold, wrong keys,
 #               etc.)
 #             - of course, raise ValueError if the arguments are invalid
-
+#
+# TODO ✅: Autodetect signature type rather than expecting an argument,
+#          and allow both OpenPGP-facilitated ed25519 and raw ed25519
+#          signatures for any authority metadata (root, key_mgr, etc.)
+# TODO ✅: Find way to specifically discourage anti-pattern of calling
+#          verify_delegation() directly to verify root metadata (instead of
+#          calling verify_root).  We could add a _helper function and have
+#          both verify_delegation and verify_root call that, and each check
+#          to make sure the metadata type provided is/isn't root as
+#          appropriate, but I'd like to avoid adding another level of
+#          functions if possible.
+# TODO ✅: Remove delegation_name and just take it from
+#          untrusted_delegating_metadata['signed']['type'].  Consider utility
+#          of keeping argument, though... (allow enforcement, if you have
+#          reason to constrain the verifications? unlikely to be a useful arg)
 def verify_delegation(
         delegation_name,
         untrusted_delegated_metadata, trusted_delegating_metadata,
@@ -154,7 +181,7 @@ def verify_delegation(
     For example, using root metadata to verify key_mgr metadata looks like
     this:
         verify_delegation(
-                'key_mgr.json', <full root metadata>, <full key_mgr metadata>)
+                'key_mgr', <full root metadata>, <full key_mgr metadata>)
 
     Arguments:
         (string) delegation_name is the name of the role delegated.
@@ -172,6 +199,7 @@ def verify_delegation(
         - raises SignatureError if a signature is bad or signatures
           don't match expectations (threshold, wrong keys, etc.)
             # TODO: Consider exception handling to raise MetadataVerificationError instead?
+        - raises MetadataVerificationError if the metadata type is unexpected
         - raises TypeError or ValueError if the arguments are invalid
     """
 
@@ -182,15 +210,40 @@ def verify_delegation(
                 'delegation_name must be a string, not a ' +
                 str(type(delegation_name)))
 
-    checkformat_signable(trusted_delegating_metadata)
+    if gpg not in [True, False]:
+        raise TypeError('Argument "gpg" must be a boolean.')  # should probably be ValueError
 
+    checkformat_delegating_metadata(trusted_delegating_metadata)
+
+
+    # Note that we don't really know the structure of the metadata we're
+    # verifying beyond that we expect it to be a signed envelope.
+    # We can't assume, for example, that it is itself delegating metadata also,
+    # (so no checkformat_delegating_metadata on it): while it could be
+    # that we're verifying key_mgr using root, it could also be that we're
+    # verifying some package metadata (which is not delegating metadata) using
+    # key_mgr.
+    # If, however, the untrusted_delegated_metadata *is* delegating metadata,
+    # we want to make sure that its type matches what the caller passed in as
+    # delegation_name.
     checkformat_signable(untrusted_delegated_metadata)
-
-    # TODO ✅: Consider a further checkformat for delegating metadata.
-
-    if gpg != True and gpg != False:
-        raise TypeError('Argument "gpg" must be a boolean.')
-
+    try:
+        checkformat_delegating_metadata(untrusted_delegated_metadata)
+    except:
+        # If we can't verify that we're verifying more delegating metadata
+        # (e.g. we're using root to verify key_mgr), then we don't need to
+        # perform the type check, as it can just be any signed content we're
+        # verifying.
+        pass
+    else:
+        # If this is indeed more delegating metadata, make sure the type
+        # the caller expects matches what the metadata claims.
+        if delegation_name != untrusted_delegated_metadata['signed']['type']:
+            raise MetadataVerificationError(
+                    'Instructed to verify provided metadata as if it is of '
+                    'type "' + delegation_name + '", but it claims to be of '
+                    'type "' + untrusted_delegated_metadata['signed']['type']
+                    + '"!')
 
 
     # Process the delegation.
@@ -200,7 +253,7 @@ def verify_delegation(
     if delegation_name not in delegations:
         raise UnknownRoleError(
                 'Role ' + delegation_name + ' not found in the given '
-                ' delegating metadata.')
+                'delegating metadata.')
 
     expected_keys = delegations[delegation_name]['pubkeys']
     threshold = delegations[delegation_name]['threshold']

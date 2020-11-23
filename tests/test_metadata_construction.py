@@ -29,7 +29,8 @@ import cryptography.exceptions # for InvalidSignature
 # this codebase
 from car.metadata_construction import *
 from car.common import ( # these aren't already imported by metadata_construction
-        keyfiles_to_bytes, keyfiles_to_keys, checkformat_key, is_a_signable)
+        keyfiles_to_bytes, keyfiles_to_keys, checkformat_key, is_a_signable,
+        checkformat_delegating_metadata)
 from car.signing import wrap_as_signable, sign_signable
 
 # Some REGRESSION test data.
@@ -83,13 +84,13 @@ EXPECTED_UNSIGNED_ROOT = {
     'type': 'root',
     'timestamp': TEST_TIMESTAMP,
     'version': 1,
-    'metadata_spec_version': '0.1.0',
+    'metadata_spec_version': '0.6.0',
     'expiration': TEST_EXPIRY_DATE,
     'delegations': {
-        'key_mgr.json': {
+        'key_mgr': {
             'pubkeys': ['013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7'],
             'threshold': 1},
-        'root.json': {
+        'root': {
             'pubkeys': ['bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'],
             'threshold': 1}}
 }
@@ -212,8 +213,8 @@ def test_build_delegating_metadata():
     # See also test_build_root_metadata.
 
     key_mgr = build_delegating_metadata(
-            metadata_type='intermediate', # 'root' or 'intermediate'
-            delegations={'pkg_mgr.json': {
+            metadata_type='key_mgr', # 'root' or 'key_mgr'
+            delegations={'pkg_mgr': {
                 'pubkeys': [PKGMGR_PUBLIC_HEX],
                 'threshold': 1}},
             version=1,

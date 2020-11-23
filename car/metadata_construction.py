@@ -51,7 +51,8 @@ def build_delegating_metadata(
 
     Arguments:
         metadata_type:
-            currently permits 'root' and 'intermediate'
+            The type of this metadata (e.g. root or key_mgr).  This should
+            match the intended filename (without .json)
 
         delegations (default {} )
             a dictionary defining the delegations this metadata makes.
@@ -94,7 +95,7 @@ def build_delegating_metadata(
     # (multiple signatures from same key being treated as two unique sigs,
     # etc.)
     checkformat_string(metadata_type)
-    # TODO: ✅⚠️ Consider a set of acceptable metadata types (root, channeler,
+    # TODO: ✅⚠️ Consider a set of acceptable metadata types (root, key_mgr,
     #             channel_authority).  Have to be careful about backward
     #             compatibility, though....
     checkformat_utc_isoformat(timestamp)
@@ -150,9 +151,9 @@ def build_root_metadata(
     #     channeler_threshold = max(1, len(channeler_pubkeys))
 
     delegations = {
-        'root.json':
+        'root':
             {'pubkeys': root_pubkeys, 'threshold': root_threshold},
-        'key_mgr.json':
+        'key_mgr':
             {'pubkeys': key_mgr_pubkeys, 'threshold': key_mgr_threshold}
     }
 
@@ -208,6 +209,72 @@ def gen_keys():
     public = private.public_key()
 
     return private, public
+
+
+
+
+## Moved to cli.py
+# def interactive_modify_metadata(metadata):
+#     """
+#     """
+
+#     # Update version if there is a version.
+#     # Update timestamp if there is a timestamp.
+#     #
+#     # Show metadata contents ('signed') -- pprint?
+#     #    indicate updated version/timestamp
+#     #
+#     # Changes phase:
+#     #    Prompt to
+#     #       (m) modify a value, (a) add a new entry, (d) delete an entry,
+#     #       (r) revert to original, (f) finish and sign ((move on to signing
+#     #       prompts))
+#     #
+#     # Signing phase:
+#     #   Show metadata again, ask if metadata looks right
+#     #   Show what keys the original was signed by and ask if those should be
+#     #     the keys used for the new version.
+#     #        ((Later: if root, vet against contents of new and old root versions))
+#     #   Prompt for key (raw key file, raw key data, or gpg key fingerprint)
+#     #   Sign using the given key (gpg if gpg, else normal signing mechanism).
+#     #   Write (making sure not to overwrite, and -- if root -- making sure to
+#     #     prepend "<version>." to root.json file.
+
+
+#     try:
+#         import pygments
+#         import pygments.lexers
+#         import pygments.formatters
+#         import json
+#     except ImportError():
+#         print(
+#                 'Unable to use interactive-modify-metadata mode: missing '
+#                 'optional dependency "pygments" (for JSON syntax '
+#                 'highlighting).  Please install pygments and try again.')
+#         raise
+
+#     done = False
+#     while not done:
+
+
+
+
+
+
+
+#     formatted_metadata = json.dumps(metadata, sort_keys=True, indent=4)
+
+#     colorful_json = pygments.highlight(
+#             formatted_metadata.encode('utf-8'),
+#             pygments.lexers.JsonLexer(),
+#             pygments.formatters.TerminalFormatter())
+#     print(colorful_json)
+
+
+
+#     ### Pull modified from debugging script
+#     ### Pull modified from debugging script
+#     ### Pull modified from debugging script
 
 
 

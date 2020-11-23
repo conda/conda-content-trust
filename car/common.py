@@ -27,9 +27,10 @@ Formats and Validation:
   x  checkformat_natural_int
   x  checkformat_expiration_distance
   x  checkformat_utc_isoformat
-     is_gpg_signature
   x  checkformat_gpg_fingerprint
+     is_gpg_fingerprint
   x  checkformat_gpg_signature
+     is_gpg_signature
      checkformat_any_signature
      is_delegation
      checkformat_delegation
@@ -65,7 +66,7 @@ import cryptography.hazmat.backends.openssl.ed25519 # DANGER
 
 # specification version for the metadata produced by
 # conda-authentication-resources
-SECURITY_METADATA_SPEC_VERSION = '0.1.0'
+SECURITY_METADATA_SPEC_VERSION = '0.6.0'
 
 # The only types we're allowed to wrap as "signables" and sign are
 # the JSON-serializable types.  (There are further constraints to what is
@@ -74,7 +75,7 @@ SUPPORTED_SERIALIZABLE_TYPES = [
         dict, list, tuple, str, int, float, bool, type(None)]
 
 # These are the permissible strings in the "type" field of delegating metadata.
-SUPPORTED_DELEGATING_METADATA_TYPES = ['root', 'intermediate']
+SUPPORTED_DELEGATING_METADATA_TYPES = ['root', 'key_mgr']  # May be loosened later.
 
 # (I think the regular expression checks for datetime strings run faster if we
 #  compile the pattern once and use the same object for all checks.  For a
@@ -148,6 +149,23 @@ def load_metadata_from_file(fname):
     # TODO ✅: Consider validating what is read here, for everywhere.
 
     return metadata
+
+
+
+def write_metadata_to_file(metadata, filename):
+    """
+    Canonicalizes and serializes JSON-friendly metadata, and writes that to the
+    given filename.
+    """
+
+    # TODO ✅: Argument validation for filename.  Consider adding
+    #          "pathvalidate" as a dependency, and calling its
+    #          sanitize_filename() here.
+
+    metadata = canonserialize(metadata)
+
+    with open(filename, 'wb') as fobj:
+        fobj.write(metadata)
 
 
 class MixinKey(object):
@@ -967,7 +985,7 @@ def checkformat_delegating_metadata(metadata):
     checkformat_string(contents['type'])
     if contents['type'] not in SUPPORTED_DELEGATING_METADATA_TYPES:
         raise ValueError(
-                'Given type entry ("' + contents['type'] + ' is not '
+                'Given type entry ("' + contents['type'] + '") is not '
                 'one of the supported types of delegating metadata.')
 
     checkformat_string(contents['metadata_spec_version'])

@@ -50,7 +50,8 @@ except ImportError:
 
 # this codebase
 from .common import (
-        canonserialize, load_metadata_from_file, is_a_signable,
+        canonserialize, load_metadata_from_file, write_metadata_to_file,
+        is_a_signable,
         checkformat_gpg_fingerprint, checkformat_hex_key,
         checkformat_gpg_signature, checkformat_byteslike,
         PrivateKey, PublicKey, checkformat_key)
@@ -61,12 +62,12 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     """
     <Purpose>
 
-        This is an alternative to the car.authenticate.sign() function, for use
-        with OpenPGP keys, allowing us to use protected keys in YubiKeys (which
-        provide an OpenPGP interface) to sign data.
+        This is an alternative to the car.common.PrivateKey.sign() method, for
+        use with OpenPGP keys, allowing us to use protected keys in YubiKeys
+        (which provide an OpenPGP interface) to sign data.
 
         The signature is not simply over data_to_sign, as is the case with the
-        car.authenticate.sign() function, but over an expanded payload with
+        PrivateKey.sign() function, but over an expanded payload with
         metadata about the signature to be signed, as specified by the OpenPGP
         standard (RFC 4880).  See data_to_sign and Security Note below.
 
@@ -231,16 +232,16 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
 
 
 
-def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
+# TODO✅: Rename this to sign_root_metadata_via_gpg and rename
+#         the old sign_root_metadata_via_gpg to sign_root_metadata_file_via_gpg
+def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
+    # Signs root_signable in place, returns nothing.
 
     if not SSLIB_AVAILABLE:
         # TODO✅: Consider a missing-optional-dependency exception class.
         raise Exception(
                 'sign_root_metadata_via_gpg requires the securesystemslib library, which '
                 'appears to be unavailable.')
-
-    # Read in json
-    root_signable = load_metadata_from_file(root_md_fname)
 
 
     # Make sure it's the right format.
@@ -251,7 +252,8 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     # TODO: Add root-specific checks.
 
     # Canonicalize and serialize the data, putting it in the form we expect to
-    # sign over.
+    # sign over.  Note that we'll canonicalize and serialize the whole thing
+    # again once the signatures have been added.
     data_to_sign = canonserialize(root_signable['signed'])
 
     # sig_dict, pgp_pubkey = sign_via_gpg(data_to_sign, gpg_key_fingerprint)
@@ -294,17 +296,27 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     # Add signature in-place.
     root_signable['signatures'][raw_pubkey] = sig_dict
 
-    root_bytes = canonserialize(root_signable)
+    return root_signable
 
 
-    with open(root_md_fname, 'wb') as fobj:
-        fobj.write(root_bytes)
-    # Mooted old debug code:
-    # # <~> DEBUG TODO: ✅ 💣❌⚠️  FILENAME CHANGE IS FOR TEST PURPOSES ONLY!
-    # # The signed file should be overwritten, or some consistent output name
-    # # should be used.
-    # with open(root_md_fname + '.TEST_SIGNED', 'wb') as fobj:
-    #     fobj.write(root_bytes)
+
+def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
+    """
+    # TODO✅: Proper docstring:
+    # This is a higher-level function than sign_via_gpg, including code that
+    # deals with the filesystem.  It is not actually limited to root metadata,
+    # and SHOULD BE RENAMED.
+    """
+
+    # Read in json
+    root_signable = load_metadata_from_file(root_md_fname)
+
+    root_signable = sign_root_metadata_dict_via_gpg(root_signable)
+
+    # TODO: Consider removing write_metadata_to_file.  It might be better for
+    #       readers to see the canonserialize() call being made (again) here,
+    #       and it's not that much longer....
+    write_metadata_to_file(root_signable, root_md_fname)
 
 
 

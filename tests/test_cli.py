@@ -9,7 +9,42 @@ Run the tests this way:
 
 """
 
-from car import cli
+import subprocess
 
-def test_cli_template():
-    assert cli.cli() is None
+import car.cli
+
+def test_cli_basics():
+  assert not subprocess.call(['car', '-V'])
+  assert not subprocess.call(['car', '--version'])
+  assert not subprocess.call(['car', '--help'])
+
+def test_that_all_calls_complete():
+  assert not subprocess.call(['car', '-V'])
+  assert not subprocess.call(['car', '--version'])
+  assert not subprocess.call(['car', '--help'])
+
+def test_gpg_key_fingerprint():
+  assert not subprocess.call(['car', '-V'])
+  raise NotImplementedError()
+
+def test_():
+  raise NotImplementedError()
+
+def test_():
+  raise NotImplementedError()
+
+def test_():
+  raise NotImplementedError()
+
+def test_():
+  raise NotImplementedError()
+
+def test_():
+  raise NotImplementedError()
+
+def test_():
+  raise NotImplementedError()
+
+def test_():
+  raise NotImplementedError()
+

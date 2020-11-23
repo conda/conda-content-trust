@@ -43,12 +43,12 @@ import car.authentication
 # have to generate a new one.
 
 # A 40-hex-character GPG public key fingerprint
-SAMPLE_FINGERPRINT = 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589'
+SAMPLE_FINGERPRINT = '917adb684e2e9fb5ed4e59909ddd19a1268b62d0'
 SAMPLE_UNKNOWN_FINGERPRINT = '0123456789abcdef0123456789abcdef01234567'
 
 # The real key value of the public key (q, 32-byte ed25519 public key val),
 # as a length-64 hex string.
-SAMPLE_KEYVAL = 'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'
+SAMPLE_KEYVAL = 'c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c'
 
 SAMPLE_GPG_KEY_OBJ = {
   'creation_time': 1571411344,
@@ -64,33 +64,35 @@ SAMPLE_GPG_KEY_OBJ = {
 
 SAMPLE_ROOT_MD_CONTENT = {
   'delegations': {
-    'key_mgr.json': {'pubkeys': [], 'threshold': 1},
-    'root.json': {
-      'pubkeys': ['bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'],
+    'key_mgr': {'pubkeys': [], 'threshold': 1},
+    'root': {
+      'pubkeys': ['c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c'],
       'threshold': 1}
   },
   'expiration': '2030-12-09T17:20:19Z',
-  'metadata_spec_version': '0.1.0',
+  'metadata_spec_version': '0.6.0',
   'type': 'root',
   'version': 1
 }
 
+# To generate a new signature after changing SAMPLE_ROOT_MD_CONTENT:
+# >  serialized = car.common.canonserialize(SAMPLE_ROOT_MD_CONTENT)
+# >  new_sig = car.root_signing.sign_via_gpg(serialized, SAMPLE_FINGERPRINT)
+# If desired, you can add:  new_sig['see_also'] = SAMPLE_FINGERPRINT to keep
+# the optional value listed (the OpenPGP fingerprint of the signing key).
 SAMPLE_GPG_SIG = {
-  'see_also': 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589',  # optional entry
-  'other_headers': '04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025f0665cb',
-  'signature': '22cc676101a8435b4354550668e5cf9d0b4ecdbe445c2fabea530838aebf846f6510f6f62126fc304083e1eb3fa3c6a7c98528a78244205c85adcc6f81820d02'
-}
+  'see_also': '917adb684e2e9fb5ed4e59909ddd19a1268b62d0', # optional entry
+  'other_headers': '04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025f970318',
+  'signature': '41867f58064c89acb300b1b42f4d59ec52e11e6aab05cb7f651345d878ee06d3a4f32411646134e112a7d8adc1d1304f63fb918b57cac449baba36ef0a1fbe07'}
 
 SAMPLE_SIGNED_ROOT_MD = {
   'signatures': {
-    'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07': SAMPLE_GPG_SIG
-  },
-  'signed': SAMPLE_ROOT_MD_CONTENT
-}
+    SAMPLE_KEYVAL: SAMPLE_GPG_SIG},
+  'signed': SAMPLE_ROOT_MD_CONTENT}
 
 def test_gpg_key_retrieval_with_unknown_fingerprint():
     if not SSLIB_AVAILABLE:
-        print(
+        pytest.skip(
                 '--TEST SKIPPED⚠️ : Unable to use GPG key retrieval or '
                 'signing without securesystemslib and GPG.')
         return
@@ -110,7 +112,7 @@ def test_gpg_key_retrieval_with_unknown_fingerprint():
 
 def test_gpg_signing_with_unknown_fingerprint():
     if not SSLIB_AVAILABLE:
-        print(
+        pytest.skip(
                 '--TEST SKIPPED⚠️ : Unable to use GPG key retrieval or '
                 'signing without securesystemslib and GPG.')
         return
@@ -155,7 +157,7 @@ def test_root_gen_sign_verify():
 
 
     if not SSLIB_AVAILABLE:
-        print(
+        pytest.skip(
                 '--TEST SKIPPED⚠️ : Unable to perform GPG signing without '
                 'securesystemslib and GPG.')
         return

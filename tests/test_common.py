@@ -46,7 +46,7 @@ SAMPLE_ROOT_MD_CONTENT = {
       'threshold': 1}
   },
   'expiration': '2020-12-09T17:20:19Z',
-  'metadata_spec_version': '0.1.0',
+  'metadata_spec_version': '0.1.0',  # TODO ✅⚠️❌💣: Update to 0.6.0 and remove the ".json" in the delegation names above, update the pubkey, and then re-sign this test metadata with the updated pubkey and adjust SAMPLE_GPG_SIG
   'type': 'root',
   'version': 1
 }
@@ -79,7 +79,7 @@ EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD = (b'{\n  '
                 b'"pubkeys": [\n          "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"\n        ],\n        '
                 b'"threshold": 1\n      }\n    },\n    '
                 b'"expiration": "2020-12-09T17:20:19Z",\n    '
-                b'"metadata_spec_version": "0.1.0",\n    '
+                b'"metadata_spec_version": "0.1.0",\n    '  # TODO ✅⚠️❌💣: Update to 0.6.0 and remove the ".json" in the delegation names above, update the pubkey, and then re-sign this test metadata with the updated pubkey and adjust SAMPLE_GPG_SIG
                 b'"type": "root",\n    '
                 b'"version": 1\n  }\n}')
 
