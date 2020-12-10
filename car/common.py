@@ -45,8 +45,10 @@ Crypto Utility:
    x keyfiles_to_bytes
 
 Exceptions:
-    SignatureError
-    MetadataVerificationError
+    CAR_Error
+        SignatureError
+        MetadataVerificationError
+        UnknownRoleError
 """
 
 # Python2 Compatibility
@@ -61,11 +63,21 @@ from six import string_types
 import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
 import cryptography.hazmat.primitives.serialization as serialization
 import cryptography.hazmat.primitives.hashes
-# THIS IS UNCOUTH
-import cryptography.hazmat.backends.openssl.ed25519 # DANGER
+import cryptography.hazmat.backends.openssl.ed25519
 
 # specification version for the metadata produced by
 # conda-authentication-resources
+# Details in the Conda Security Metadata Specification.  Note that this
+# version string is parsed via setuptools's packaging.version library, and so
+# supports PEP 440; however, we should use a limited subset that is numerical
+# only, and according to SemVer principles.
+# PEP 440 compatibility:
+#   > None is not re.match(r'^([1-9]\d*!)?(0|[1-9]\d*)(\.(0|[1-9]\d*))*((a|b|rc)(0|[1-9]\d*))?(\.post(0|[1-9]\d*))?(\.dev(0|[1-9]\d*))?$', version_string)
+# SemVer compatibility:
+#   > None is not re.match(r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$', version_string)
+# Try, however, to keep to three simple numeric elements separated by periods,
+# i.e., things that match this subset of SemVer:
+#   > None is not re.match(r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)$', version_string)
 SECURITY_METADATA_SPEC_VERSION = '0.6.0'
 
 # The only types we're allowed to wrap as "signables" and sign are
@@ -84,10 +96,13 @@ SUPPORTED_DELEGATING_METADATA_TYPES = ['root', 'key_mgr']  # May be loosened lat
 UTC_ISO8601_REGEX_PATTERN = re.compile(
          '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
 
+
+
 class CAR_Error(Exception):
     """
-    All errors we raise that are not simple ValueErrors or TypeErrors should
-    be instances of this class or of subclasses of this.
+    All errors we raise that are not ValueErrors, TypeErrors, or
+    certain errors from securesystemslib should be instances of this class or
+    of subclasses of this class.
     """
 
 class SignatureError(CAR_Error):
@@ -316,7 +331,7 @@ class MixinKey(object):
 class PrivateKey(
             MixinKey,
             # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
-            #                 possible.  It's a private class!
+            #                 possible.  It's a private class.
             cryptography.hazmat.backends.openssl.ed25519._Ed25519PrivateKey, # DANGER
             cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
         # Note that inheritance class order should use the "true" base class
@@ -373,7 +388,7 @@ class PrivateKey(
 class PublicKey(
             MixinKey,
             # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
-            #                 possible.  It's a private class!
+            #                 possible.  It's a private class.
             cryptography.hazmat.backends.openssl.ed25519._Ed25519PublicKey, # DANGER
             cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
         # Note that inheritance class order should use the "true" base class
