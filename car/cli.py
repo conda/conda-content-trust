@@ -115,6 +115,12 @@ def cli(args=None):
     p_gpglookup = sp.add_parser('gpg-key-lookup', help=(opt_reqs_str +
         'Given the OpenPGP fingerprint of an ed25519-type OpenPGP key, fetch '
         'the actual ed25519 public key value of the underlying key.'))
+    p_gpglookup.add_argument(
+        'gpg_key_fingerprint',
+        help=('the 40-hex-character key fingerprint (long keyid) for the '
+        'OpenPGP/GPG key that you want to sign something with.  Do not '
+        'add prefix "0x".'))
+
 
     # subcommand: gpg-sign
 
@@ -153,6 +159,12 @@ def cli(args=None):
         car.signing.sign_all_in_repodata(
                 args.repodata_fname, args.private_key_hex)
 
+
+
+    elif args.subcommand_name == 'gpg-key-lookup':
+        gpg_key_fingerprint = ''.join(args.gpg_key_fingerprint.split()).lower()
+        keyval = car.root_signing.fetch_keyval_from_gpg(gpg_key_fingerprint)
+        print('Underlying ed25519 key value: ' + str(keyval))
 
 
     elif args.subcommand_name == 'modify-metadata':
