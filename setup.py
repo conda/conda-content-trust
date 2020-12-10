@@ -2,8 +2,8 @@ from setuptools import setup
 import versioneer
 
 requirements = [
-    'six'
-    # package requirements go here
+    'six',
+    'cryptography',
     # securesystemslib is optional: pip install conda-authentication-resources[gpgsigning]
 ]
 
