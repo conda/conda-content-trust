@@ -396,5 +396,16 @@ def demo_verify_pkg_sig_via_key_mgr(key_mgr):
             'trusted key manager metadata.')
 
 
+    # Additional scenario:  tampered metadata / incorrectly signed package
+    # Man-in-the-middle adds false dependency
+    signable['signed']['depends'] += ['django']
+
+    try:
+        car.authentication.verify_delegation('pkg_mgr', signable, key_mgr)
+    except car.common.SignatureError:
+        print('Modified metadata results in verification failure: attack prevented')
+    else:
+        assert False, 'Demo test failed.'
+
 if __name__ == '__main__':
   main()
