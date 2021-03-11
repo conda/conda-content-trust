@@ -7,7 +7,7 @@
 
 
 ##############################################################################
-car: Conda Authentication Resources: Signing and verification tools for Conda
+car: Conda Content Trust: Signing and verification tools for Conda
 ##############################################################################
 
 
@@ -18,9 +18,9 @@ Installation
 Installation can be accomplished by:
 
 1. obtaining this code (download a zip and expand it or git clone the repository). e.g.:
-    ``git clone https://github.com/conda/conda-authentication-resources``
+    ``git clone https://github.com/conda/conda-content-trust``
 
-2. ``cd conda-authentication-resources``
+2. ``cd conda-content-trust``
 
 3. ``pip install .``
 

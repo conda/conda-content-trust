@@ -2,7 +2,7 @@
 
 """ tests.test_root
 
-Some integration tests tests for conda-authentication-resources that focus on
+Some integration tests tests for conda-content-trust that focus on
 generation, signing, and verification of root metadata.  This tests GPG
 integration via securesystemslib if securesystemslib can be successfully
 imported.
@@ -33,11 +33,11 @@ try:
 except ImportError:
     SSLIB_AVAILABLE = False
 
-import car.common
-import car.metadata_construction
-import car.signing
-import car.root_signing
-import car.authentication
+import conda_content_trust.common as common
+import conda_content_trust.metadata_construction as metadata_construction
+import conda_content_trust.signing as signing
+import conda_content_trust.root_signing as root_signing
+import conda_content_trust.authentication as authentication
 
 # Note that changing these sample values breaks the sample signature, so you'd
 # have to generate a new one.
@@ -76,8 +76,8 @@ SAMPLE_ROOT_MD_CONTENT = {
 }
 
 # To generate a new signature after changing SAMPLE_ROOT_MD_CONTENT:
-# >  serialized = car.common.canonserialize(SAMPLE_ROOT_MD_CONTENT)
-# >  new_sig = car.root_signing.sign_via_gpg(serialized, SAMPLE_FINGERPRINT)
+# >  serialized = common.canonserialize(SAMPLE_ROOT_MD_CONTENT)
+# >  new_sig = root_signing.sign_via_gpg(serialized, SAMPLE_FINGERPRINT)
 # If desired, you can add:  new_sig['see_also'] = SAMPLE_FINGERPRINT to keep
 # the optional value listed (the OpenPGP fingerprint of the signing key).
 SAMPLE_GPG_SIG = {
@@ -120,7 +120,7 @@ def test_gpg_signing_with_unknown_fingerprint():
     # TODO✅: Adjust this to use whatever assertRaises() functionality the
     #         testing suite we're using provides.
     try:
-        gpg_sig = car.root_signing.sign_via_gpg(
+        gpg_sig = root_signing.sign_via_gpg(
                 b'1234', SAMPLE_UNKNOWN_FINGERPRINT)
     except securesystemslib.gpg.exceptions.CommandError as e:
         # TODO✅: This is a clumsy check.  It's a shame we don't get better
@@ -145,15 +145,15 @@ def test_root_gen_sign_verify():
 
     # Build a basic root metadata file with empty key_mgr delegation and one
     # root key, threshold 1, version 1.
-    rmd = car.metadata_construction.build_root_metadata(
+    rmd = metadata_construction.build_root_metadata(
             root_version=1,
             root_pubkeys=[SAMPLE_KEYVAL], root_threshold=1,
             key_mgr_pubkeys=[], key_mgr_threshold=1)
-    rmd = car.signing.wrap_as_signable(rmd)
+    rmd = signing.wrap_as_signable(rmd)
 
     signed_portion = rmd['signed']
 
-    canonical_signed_portion = car.common.canonserialize(signed_portion)
+    canonical_signed_portion = common.canonserialize(signed_portion)
 
 
     if not SSLIB_AVAILABLE:
@@ -165,7 +165,7 @@ def test_root_gen_sign_verify():
     # gpg_key_obj = securesystemslib.gpg.functions.export_pubkey(
     #         SAMPLE_FINGERPRINT)
 
-    gpg_sig = car.root_signing.sign_via_gpg(
+    gpg_sig = root_signing.sign_via_gpg(
             canonical_signed_portion, SAMPLE_FINGERPRINT)
 
     signed_rmd = copy.deepcopy(rmd)
@@ -176,16 +176,16 @@ def test_root_gen_sign_verify():
 
     # # Dump working files
     # with open('T_gpg_sig.json', 'wb') as fobj:
-    #     fobj.write(car.common.canonserialize(gpg_sig))
+    #     fobj.write(common.canonserialize(gpg_sig))
 
     # with open('T_gpg_key_obj.json', 'wb') as fobj:
-    #     fobj.write(car.common.canonserialize(gpg_key_obj))
+    #     fobj.write(common.canonserialize(gpg_key_obj))
 
     # with open('T_canonical_sigless_md.json', 'wb') as fobj:
     #     fobj.write(canonical_signed_portion)
 
     # with open('T_full_rmd.json', 'wb') as fobj:
-    #     fobj.write(car.common.canonserialize(signed_rmd))
+    #     fobj.write(common.canonserialize(signed_rmd))
 
 
 
@@ -196,7 +196,7 @@ def test_root_gen_sign_verify():
 
     # assert verified
 
-    car.authentication.verify_gpg_signature(
+    authentication.verify_gpg_signature(
             gpg_sig, SAMPLE_KEYVAL, canonical_signed_portion)
 
     print(
@@ -219,7 +219,7 @@ def test_verify_existing_root_md():
     # gpg_sig = signed_rmd['signatures'][
     #     'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07']
     #
-    # canonical_signed_portion = car.common.canonserialize(signed_rmd['signed'])
+    # canonical_signed_portion = common.canonserialize(signed_rmd['signed'])
     #
     # with open('T_gpg_key_obj.json', 'rb') as fobj:
     #     gpg_key_obj = json.load(fobj)
@@ -227,7 +227,7 @@ def test_verify_existing_root_md():
     # fingerprint = gpg_key_obj['keyid']
 
 
-    canonical_signed_portion = car.common.canonserialize(
+    canonical_signed_portion = common.canonserialize(
             SAMPLE_ROOT_MD_CONTENT)
 
     # # First, try using securesystemslib's GPG signature verifier directly.
@@ -239,7 +239,7 @@ def test_verify_existing_root_md():
     # assert verified
 
     # # Second, try it using my adapter, skipping a bit of ssl's process.
-    # verified = car.root_signing.verify_gpg_sig_using_ssl(
+    # verified = root_signing.verify_gpg_sig_using_ssl(
     #         SAMPLE_GPG_SIG,
     #         SAMPLE_FINGERPRINT,
     #         SAMPLE_KEYVAL,
@@ -251,8 +251,8 @@ def test_verify_existing_root_md():
     # use in conda.)
 
     # Verify using verify_gpg_signature.
-    car.authentication.verify_gpg_signature(
-    # car.authentication.verify_gpg_signature(
+    authentication.verify_gpg_signature(
+    # authentication.verify_gpg_signature(
             SAMPLE_GPG_SIG,
             SAMPLE_KEYVAL,
             canonical_signed_portion)
@@ -262,7 +262,7 @@ def test_verify_existing_root_md():
             'securesystemslib')
 
     # Verify using verify_signable.
-    car.authentication.verify_signable(
+    authentication.verify_signable(
             SAMPLE_SIGNED_ROOT_MD, [SAMPLE_KEYVAL], 1, gpg=True)
 
 

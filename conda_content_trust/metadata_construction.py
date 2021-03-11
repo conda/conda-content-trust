@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-""" car.metadata_construction
+""" conda_content_trust.metadata_construction
 
 This module contains functions that construct metadata and generate signing
 keys.
@@ -197,9 +197,9 @@ def gen_keys():
     Generate an ed25519 key pair and return it (private key, public key).
 
     Returns two objects:
-      - a car.common.PrivateKey, a subclass of
+      - a conda_content_trust.common.PrivateKey, a subclass of
         cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
-      - a car.common.PublicKey, a subclass of
+      - a conda_content_trust.common.PublicKey, a subclass of
         cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
     """
     # Create an ed25519 key pair, employing OS random generation.

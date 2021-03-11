@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
-""" car.cli
-This module provides the CLI interface for conda-authentication-resources.
+""" conda_content_trust.cli
+This module provides the CLI interface for conda-content-trust.
 This is intended to provide a command-line signing and metadata update
 interface.
 """
@@ -13,15 +13,15 @@ import json
 from argparse import ArgumentParser
 import copy
 
-from car.common import (
+from conda_content_trust.common import (
         canonserialize, load_metadata_from_file, write_metadata_to_file,
-        CAR_Error, PrivateKey, is_gpg_fingerprint, is_hex_key)
+        CCT_Error, PrivateKey, is_gpg_fingerprint, is_hex_key)
 
-from car import __version__
-import car.root_signing
-import car.signing
-import car.authentication
-import car.metadata_construction
+from conda_content_trust import __version__
+import conda_content_trust.root_signing as cct_root_signing
+import conda_content_trust.signing as cct_signing
+import conda_content_trust.authentication as cct_authentication
+import conda_content_trust.metadata_construction as cct_metadata_construction
 
 # In Python2, input() performs evaluation and raw_input() does not.  In
 # Python3, input() does not perform evaluation and there is no raw_input().
@@ -48,8 +48,8 @@ def cli(args=None):
     p.add_argument(
         '-V', '--version',
         action='version',
-        help='Show the conda-authentication-resources version number and exit.',
-        version="car %s" % __version__,
+        help='Show the conda-content-trust version number and exit.',
+        version="conda-content-trust %s" % __version__,
     )
 
     # Create separate parsers for the subcommands.
@@ -106,7 +106,7 @@ def cli(args=None):
     # If we're missing optional requirements for the next few options, note
     # that in their help strings.
     opt_reqs_str = ''
-    if not car.root_signing.SSLIB_AVAILABLE:
+    if not cct_root_signing.SSLIB_AVAILABLE:
         opt_reqs_str = ('[Unavailable]: Requires optional '
                 'dependencies: securesystemslib and gpg.  ')
 
@@ -149,21 +149,21 @@ def cli(args=None):
         # so this is necessary for convenience.
         gpg_key_fingerprint = ''.join(args.gpg_key_fingerprint.split()).lower()
 
-        car.root_signing.sign_root_metadata_via_gpg(
+        cct_root_signing.sign_root_metadata_via_gpg(
                 args.filename, gpg_key_fingerprint)
 
 
 
     elif args.subcommand_name == 'sign-artifacts':
 
-        car.signing.sign_all_in_repodata(
+        cct_signing.sign_all_in_repodata(
                 args.repodata_fname, args.private_key_hex)
 
 
 
     elif args.subcommand_name == 'gpg-key-lookup':
         gpg_key_fingerprint = ''.join(args.gpg_key_fingerprint.split()).lower()
-        keyval = car.root_signing.fetch_keyval_from_gpg(gpg_key_fingerprint)
+        keyval = cct_root_signing.fetch_keyval_from_gpg(gpg_key_fingerprint)
         print('Underlying ed25519 key value: ' + str(keyval))
 
 
@@ -189,7 +189,7 @@ def cli(args=None):
 
         old_metadata = load_metadata_from_file(args.metadata_filename)
 
-        # new_metadata = car.metadata_construction.interactive_modify_metadata(old_metadata)
+        # new_metadata = cct_metadata_construction.interactive_modify_metadata(old_metadata)
         # if new_metadata is not None and new_metadata:
         #     write_metadata_to_file(new_metadata, args.metadata_filename)
 
@@ -203,7 +203,7 @@ def cli(args=None):
         # `car verify-metadata <trusted delegating metadata> <untrusted
         # metadata> <(optional) role name>`
 
-        # underlying functions: car.authentication.verify_delegation,
+        # underlying functions: cct_authentication.verify_delegation,
         # load_metadata_from_file
 
         # takes two metadata files, the first being a trusted file that should
@@ -233,11 +233,11 @@ def cli(args=None):
         if metadata_type == 'root':
             # Verifying root has additional steps beyond verify_delegation.
             try:
-                car.authentication.verify_root(trusted_metadata, untrusted_metadata)
+                cct_authentication.verify_root(trusted_metadata, untrusted_metadata)
                 print('Root metadata verification successful.')
                 return 0 # success
 
-            except CAR_Error as e:
+            except CCT_Error as e:
                 errorcode = 10
                 errorstring = str(e)
 
@@ -245,14 +245,14 @@ def cli(args=None):
             # Verifying anything other than root just uses verify_delegation
             # directly.
             try:
-                car.authentication.verify_delegation(
+                cct_authentication.verify_delegation(
                         delegation_name=metadata_type,
                         untrusted_delegated_metadata=untrusted_metadata,
                         trusted_delegating_metadata=trusted_metadata)
                 print('Metadata verification successful.')
                 return 0 # success
 
-            except CAR_Error as e:
+            except CCT_Error as e:
                 errorcode = 20
                 errorstring = str(e)
 
@@ -332,7 +332,7 @@ def interactive_modify_metadata(metadata):
         return 1
 
     def fn_addsig():
-        if not car.root_signing.SSLIB_AVAILABLE:
+        if not cct_root_signing.SSLIB_AVAILABLE:
             print(F_OPTS + 'Signing.  ' + RED + 'Please ABORT (control-c) if '
                     'the metadata above is not EXACTLY what you want to sign!'
                     + ENDC)
@@ -347,12 +347,12 @@ def interactive_modify_metadata(metadata):
 
         if is_hex_key(key):
             private_key = PrivateKey.from_hex(key)
-            car.signing.sign_signable(metadata, private_key)
+            cct_signing.sign_signable(metadata, private_key)
             print(F_OPTS + '\n\n--- Successfully signed!  Please save.' + ENDC)
 
         elif is_gpg_fingerprint(key):
             try:
-                car.root_signing.sign_root_metadata_dict_via_gpg(metadata, key)
+                cct_root_signing.sign_root_metadata_dict_via_gpg(metadata, key)
             except:
                 print(F_OPTS + '\n\n--- ' + RED + 'Signing FAILED.'
                         + F_OPTS + '  Do you have this key loaded in GPG on '

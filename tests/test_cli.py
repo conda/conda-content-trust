@@ -2,7 +2,7 @@
 
 """ tests.test_cli
 
-Integration tests for conda-authentication-resources/car/cli.py.
+Integration tests for conda-content-trust/conda_content_trust/cli.py.
 
 Run the tests this way:
     pytest tests/test_cli.py
@@ -11,20 +11,20 @@ Run the tests this way:
 
 import subprocess
 
-import car.cli
+import conda_content_trust.cli
 
 def test_cli_basics():
-  assert not subprocess.call(['car', '-V'])
-  assert not subprocess.call(['car', '--version'])
-  assert not subprocess.call(['car', '--help'])
+  assert not subprocess.call(['conda-content-trust', '-V'])
+  assert not subprocess.call(['conda-content-trust', '--version'])
+  assert not subprocess.call(['conda-content-trust', '--help'])
 
 def test_that_all_calls_complete():
-  assert not subprocess.call(['car', '-V'])
-  assert not subprocess.call(['car', '--version'])
-  assert not subprocess.call(['car', '--help'])
+  assert not subprocess.call(['conda-content-trust', '-V'])
+  assert not subprocess.call(['conda-content-trust', '--version'])
+  assert not subprocess.call(['conda-content-trust', '--help'])
 
 def test_gpg_key_fingerprint():
-  assert not subprocess.call(['car', '-V'])
+  assert not subprocess.call(['conda-content-trust', '-V'])
   raise NotImplementedError()
 
 def test_():

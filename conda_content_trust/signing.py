@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-""" car.signing
+""" conda_content_trust.signing
 This module contains functions that sign data using ed25519 keys, via the
 pyca/cryptography library.  Functions that perform OpenPGP-compliant (e.g. GPG)
 signing are provided instead in root_signing.
@@ -29,7 +29,7 @@ import json # for json.dump
 #import cryptography.hazmat.backends
 
 
-# car modules
+# conda-content-trust modules
 from .common import (
         SUPPORTED_SERIALIZABLE_TYPES, canonserialize,
         load_metadata_from_file, write_metadata_to_file,
@@ -56,7 +56,7 @@ def serialize_and_sign(obj, private_key):
 
     Arguments:
       obj: a JSON-compatible object -- see common.canonserialize()
-      private_key: a car.common.PrivateKey object
+      private_key: a conda_content_trust.common.PrivateKey object
 
     # TODO ✅: Consider taking the private key data as a hex string instead?
     #          On the other hand, it's useful to support an object that could
