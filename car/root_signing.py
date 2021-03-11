@@ -311,7 +311,7 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     # Read in json
     root_signable = load_metadata_from_file(root_md_fname)
 
-    root_signable = sign_root_metadata_dict_via_gpg(root_signable)
+    root_signable = sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint)
 
     # TODO: Consider removing write_metadata_to_file.  It might be better for
     #       readers to see the canonserialize() call being made (again) here,
