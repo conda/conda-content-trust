@@ -82,8 +82,15 @@ six==1.15.0 \
     --hash=sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259
 
 
-#git+https://github.com/conda/conda-authentication-resources.git@current_state#egg=conda-authentication-resources \
+# Naturally, the requirements file can't keep up with the resulting changes in
+# this project's own codebase, or we'd have a very sophisticated successful
+# *specific*-pre-image attack on SHA-1.
+# (I can't tell you what the hash is *going* to be in a statement that itself
+#  changes the hash.)
+# But the lines are preserved with some old values as comments.
+
+#git+https://github.com/conda/conda-authentication-resources.git@master#egg=conda-authentication-resources \
 #    --hash=sha256:c34b0c93e6574652b749f7eb91bf47111746bea7838b9406eb6346623e273b45
 
-https://github.com/conda/conda-authentication-resources/archive/current_state.zip#egg=conda-authentication-resources \
-    --hash=sha256:c34b0c93e6574652b749f7eb91bf47111746bea7838b9406eb6346623e273b45
+#https://github.com/conda/conda-authentication-resources/archive/master.zip#egg=conda-authentication-resources \
+#    --hash=sha256:c34b0c93e6574652b749f7eb91bf47111746bea7838b9406eb6346623e273b45
