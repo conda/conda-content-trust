@@ -220,7 +220,7 @@ def sign_all_in_repodata(fname, private_key_hex):
         repodata['signatures'][artifact_name] = {public_hex: signature_dict}
 
     # Repeat for the .conda packages in 'packages.conda'.
-    for artifact_name, metadata in repodata['packages.conda'].items():
+    for artifact_name, metadata in repodata.get('packages.conda', {}).items():
         signature_hex = serialize_and_sign(metadata, private)
         repodata['signatures'][artifact_name] = {
                 public_hex: {'signature': signature_hex}}
