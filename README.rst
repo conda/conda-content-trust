@@ -7,7 +7,7 @@
 
 
 ##############################################################################
-car: Conda Content Trust: Signing and verification tools for Conda
+Conda Content Trust: Signing and verification tools for Conda
 ##############################################################################
 
 
@@ -41,7 +41,7 @@ Demonstration and Use
 *********************
 
 Use of the command-line utility provides help functionality::
-  ``car --help``
+  ``conda-content-trust --help``
 
 You should be able to run the demo after installing:
   ``python3 demo.py``

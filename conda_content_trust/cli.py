@@ -75,10 +75,11 @@ def cli(args=None):
     p_verifymd = sp.add_parser(
             'verify-metadata', help=('Verifies the first (not yet trusted) '
             'metadata file based on the second (already trusted) metadata '
-            'file.  For example, "car verify-metadata 5.root.json 4.root.json"'
+            'file.  For example, '
+            '"conda-content-trust verify-metadata 5.root.json 4.root.json"'
             ' to verify version 5 of root based on version 4 of root, or '
-            '"car verify-metadata key_mgr.json 4.root.json" to verify key '
-            'manager metadata based on version 4 of root.'))
+            '"conda-content-trust verify-metadata key_mgr.json 4.root.json" '
+            'to verify key manager metadata based on version 4 of root.'))
     p_verifymd.add_argument(
             'trusted_metadata_filename', help=('the filename of the '
             'already-trusted metadata file that sets the rules for verifying '
@@ -96,7 +97,8 @@ def cli(args=None):
             'or key_mgr.json), or correct an error in an unpublished metadata '
             'file, or review and sign a metadata file.  This increments '
             'version number / timestamp, reports changes on console, etc. For '
-            'example, "car modify-metadata 8.root.json" for assistance in '
+            'example, "conda-content-trust modify-metadata 8.root.json" '
+            'for assistance in '
             'producing a new version of root (version 9) using version 8.'))
     p_modifymd.add_argument(
             'metadata_filename', help=('the filename of the existing metadata '
@@ -169,7 +171,7 @@ def cli(args=None):
 
     elif args.subcommand_name == 'modify-metadata':
 
-        # `car update-metadata <metadata file to produce new version of>`
+        # `conda-content-trust update-metadata <metadata file to produce new version of>`
 
         # underlying functions: build_delegating_metadata,
         # load_metadata_from_file
@@ -200,7 +202,7 @@ def cli(args=None):
     elif args.subcommand_name == 'verify-metadata':
 
 
-        # `car verify-metadata <trusted delegating metadata> <untrusted
+        # `conda-content-trust verify-metadata <trusted delegating metadata> <untrusted
         # metadata> <(optional) role name>`
 
         # underlying functions: cct_authentication.verify_delegation,
@@ -209,8 +211,9 @@ def cli(args=None):
         # takes two metadata files, the first being a trusted file that should
         # provide the verification criteria (expected keys and expected number
         # of keys) for the second file.  This should support root-root
-        # verification (root chaining as currently implemented in CAR) and
-        # delegation from one metadata type to another (e.g. root to key_mgr)
+        # verification (root chaining as currently implemented in
+        # conda-content-trust) and delegation from one metadata type to another
+        # (e.g. root to key_mgr)
 
         # conveys to the user whether or not the file is trusted, and for what
         # role.  e.g., would convey that the first file is (e.g.) a root
@@ -269,7 +272,7 @@ def cli(args=None):
 
 
     else:
-        print('No command provided.  Please use  "car -h" for help.')
+        print('No command provided.  Please use  "conda-content-trust -h" for help.')
 
 
 

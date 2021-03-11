@@ -1,7 +1,7 @@
 [report]
 omit =
     setup.py
-    car/__main__.py
-    car/_version.py
+    conda_content_trust/__main__.py
+    conda_content_trust/_version.py
     versioneer.py
     tests/*

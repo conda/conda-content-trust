@@ -19,10 +19,10 @@ install:
   - conda install conda-build anaconda-client pytest pytest-cov
   - conda config --set auto_update_conda no
   - conda build conda.recipe --no-test
-  - conda install --use-local car
+  - conda install --use-local conda-content-trust
   - conda info -a
 script:
-  - pytest -v --color=yes --cov=car tests
+  - pytest -v --color=yes --cov=conda-content-trust tests
 after_success:
   - conda install -c conda-forge codecov
   - codecov

@@ -43,7 +43,7 @@ def get_config():
     cfg.style = ""
     cfg.tag_prefix = ""
     cfg.parentdir_prefix = "conda-authentication-resources-"
-    cfg.versionfile_source = "car/_version.py"
+    cfg.versionfile_source = "conda_content_trust/_version.py"
     cfg.verbose = False
     return cfg
 
