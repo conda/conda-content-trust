@@ -2,7 +2,7 @@
 
 """ tests.test_common
 
-(Mostly) unit tests for conda-authentication-resources/car/common.py.
+(Mostly) unit tests for conda-content-trust/conda_content_trust/common.py.
 
 Run the tests this way:
     pytest tests/test_common.py
@@ -16,7 +16,7 @@ import os
 
 import pytest
 
-from car.common import *
+from conda_content_trust.common import *
 
 # A 40-hex-character GPG public key fingerprint
 SAMPLE_FINGERPRINT = 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589'

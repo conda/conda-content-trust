@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-""" car.root_signing
+""" conda_content_trust.root_signing
 This module contains functions that sign data in an OpenPGP-compliant (i.e.
 GPG-friendly) way.  Root metadata may be signed in this manner.  Functions that
 perform simpler, direct signing using raw ed25519 keys are provided in
-car.signing instead.
+conda_content_trust.signing instead.
 
 This library takes advantage of the securesystemslib library for its gpg
 signing interface.
@@ -19,7 +19,7 @@ the API for this module:
     _gpg_pubkey_in_ssl_format
     _verify_gpg_sig_using_ssl     # requires securesystemslib
 
-Note that there is a function in car.authentication that verifies these
+Note that there is a function in conda_content_trust.authentication that verifies these
 signatures without requiring securesystemslib.
 """
 
@@ -62,7 +62,7 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     """
     <Purpose>
 
-        This is an alternative to the car.common.PrivateKey.sign() method, for
+        This is an alternative to the conda_content_trust.common.PrivateKey.sign() method, for
         use with OpenPGP keys, allowing us to use protected keys in YubiKeys
         (which provide an OpenPGP interface) to sign data.
 
@@ -133,7 +133,7 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
             'signature':        <ed25519 signature, 64 bytes as 128 hex chars>}
 
 
-        This is unlike car.signing.sign(), which simply returns 64 bytes of raw
+        This is unlike conda_content_trust.signing.sign(), which simply returns 64 bytes of raw
         ed25519 signature.
 
 
@@ -333,7 +333,7 @@ def fetch_keyval_from_gpg(fingerprint):
     if not SSLIB_AVAILABLE:
         # TODO✅: Consider a missing-optional-dependency exception class.
         raise Exception(
-                'sign_root_metadata_via_gpg requires the securesystemslib library, which '
+                'fetch_keyval_from_gpg requires the securesystemslib library, which '
                 'appears to be unavailable.')
 
     checkformat_gpg_fingerprint(fingerprint)
@@ -347,7 +347,7 @@ def fetch_keyval_from_gpg(fingerprint):
 def _verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
     """
     THIS IS PROVIDED ONLY FOR TESTING PURPOSES.
-    We will verify signatures using our own code in car.authentication, not
+    We will verify signatures using our own code in conda_content_trust.authentication, not
     by using the securesystemslib.gpg.functions.verify_signature call that
     sits here.
 
@@ -434,7 +434,7 @@ def _gpg_pubkey_in_ssl_format(fingerprint, q):
 
 # def _gpgsig_to_sslgpgsig(gpg_sig):
 #
-#     car.common.checkformat_gpg_signature(gpg_sig)
+#     conda_content_trust.common.checkformat_gpg_signature(gpg_sig)
 #
 #     return {
 #             'keyid': copy.deepcopy(gpg_sig['key_fingerprint']),

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-""" car.authentication
+""" conda_content_trust.authentication
 This module contains functions that verify signatures and thereby authenticate
 data.
 
@@ -519,7 +519,7 @@ def verify_gpg_signature(signature, key_value, data):
     checkformat_gpg_signature(signature)
     checkformat_hex_key(key_value)
     checkformat_byteslike(data)
-    # if not isinstance(data, bytes):   # TODO: ✅ use the byteslike checker in car.common.
+    # if not isinstance(data, bytes):   # TODO: ✅ use the byteslike checker in conda_content_trust.common.
     #     raise TypeError()
 
     public_key = PublicKey.from_hex(key_value)

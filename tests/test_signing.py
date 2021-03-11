@@ -2,10 +2,10 @@
 
 """ tests.test_signing
 
-Unit tests for conda-authentication-resources/car/signing.py
+Unit tests for conda-content-trust/conda_content_trust/signing.py
 
 
-⚠️ NOTE that much of the signing module is currently tested in
+ NOTE that much of the signing module is currently tested in
    test_authentication.py instead.  Some unit tests are missing.
 
 
@@ -21,9 +21,9 @@ import os, os.path
 import shutil
 import copy
 
-from car.common import *
-from car.authentication import *
-from car.signing import *
+from conda_content_trust.common import *
+from conda_content_trust.authentication import *
+from conda_content_trust.signing import *
 
 import pytest
 

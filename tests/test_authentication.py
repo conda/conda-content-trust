@@ -2,7 +2,7 @@
 
 """ tests.test_authentication
 
-Unit tests for conda-authentication-resources/car/authentication.py
+Unit tests for conda-content-trust/car/authentication.py
 as well as integration tests for the signing.py + authentication.py.
 
 Run the tests this way:
@@ -22,15 +22,15 @@ import pytest
 import cryptography.exceptions
 
 # this codebase
-from car.authentication import *
-from car.metadata_construction import (
+from conda_content_trust.authentication import *
+from conda_content_trust.metadata_construction import (
         gen_keys, gen_and_write_keys, # for new-key tests
         # build_repodata_verification_metadata
         )
-from car.common import (
+from conda_content_trust.common import (
         PrivateKey, PublicKey, keyfiles_to_bytes, keyfiles_to_keys,
         SignatureError, MetadataVerificationError)
-from car.signing import wrap_as_signable, sign_signable
+from conda_content_trust.signing import wrap_as_signable, sign_signable
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = 'keytest_old'
@@ -144,7 +144,7 @@ TEST_ROOT_MD_V2 = {
 
 
 
-# ⚠️ NOTE to dev:
+# NOTE to dev:
 #  test_authenticate was originally a long sequence of tests in a single
 #  function.  I pulled out most of it, and what remains is has to be compared
 #  to the new tests to see if it's still useful.
@@ -404,7 +404,7 @@ def test_verify_signature():
 # verify_root is also tested in test_root.py (but test_root.py expects GPG)
 def test_verify_root():
     """
-    Tests car.authentication.verify_root
+    Tests conda_content_trust.authentication.verify_root
     """
 
     # Root chaining: normal test
@@ -463,6 +463,6 @@ def test_verify_root():
 
 # def test_verify_delegation():
 #     """
-#     Tests car.authentication.verify_delegation
+#     Tests conda_content_trust.authentication.verify_delegation
 #     """
 #     raise NotImplementedError('verify_delegation requires unit tests.')

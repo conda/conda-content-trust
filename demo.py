@@ -6,14 +6,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import json
 
-import car.metadata_construction
-import car.common
-import car.signing
-import car.root_signing
-import car.authentication
+import conda_content_trust.metadata_construction as cct_metadata_construction
+import conda_content_trust.common as cct_common
+import conda_content_trust.signing as cct_signing
+import conda_content_trust.root_signing as cct_root_signing
+import conda_content_trust.authentication as cct_authentication
 
 
-PRESENT_SLOWLY = True
+PRESENT_SLOWLY = False
 
 ROOT_PUBKEY_HEX = 'c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c'
 ROOT_PUBKEY_GPG_FINGERPRINT = '917adb684e2e9fb5ed4e59909ddd19a1268b62d0'
@@ -71,7 +71,7 @@ def main():
     # demo_root_chaining(root_v1, root_v2) # redundant test for my dev purposes
 
     # To load metadata from a file
-    # key_mgr = car.common.load_metadata_from_file('test_key_mgr.json')
+    # key_mgr = cct_common.load_metadata_from_file('test_key_mgr.json')
 
     # If loading a key from file, for example....
     # with open(name + '.pri', 'rb') as fobj:
@@ -100,12 +100,12 @@ def main():
 
 def demo_create_and_sign_key_mgr():
 
-    prikey_keymgr = car.common.PrivateKey.from_hex(KEYMGR_PRIVATE_HEX)
-    # pubkey_keymgr = car.common.PublicKey.from_bytes(KEYMGR_PUBLIC_BYTES)
+    prikey_keymgr = cct_common.PrivateKey.from_hex(KEYMGR_PRIVATE_HEX)
+    # pubkey_keymgr = cct_common.PublicKey.from_bytes(KEYMGR_PUBLIC_BYTES)
     # print('public test key for keymgr: ' + pubkey_keymgr.to_hex())
     # print('private test key for keymgr: ' + prikey_keymgr.to_hex())
 
-    key_mgr = car.metadata_construction.build_delegating_metadata(
+    key_mgr = cct_metadata_construction.build_delegating_metadata(
             metadata_type='key_mgr', # 'root' or 'key_mgr'
             delegations={'pkg_mgr': {
                 'pubkeys': [PKGMGR_PUBLIC_HEX],
@@ -115,13 +115,13 @@ def demo_create_and_sign_key_mgr():
             #expiration  default: now plus root expiration default duration
             )
 
-    key_mgr = car.signing.wrap_as_signable(key_mgr)
+    key_mgr = cct_signing.wrap_as_signable(key_mgr)
 
     # sign dictionary in place
-    car.signing.sign_signable(key_mgr, prikey_keymgr)
+    cct_signing.sign_signable(key_mgr, prikey_keymgr)
 
     with open(KEYMGR_FNAME, 'wb') as fobj:
-        fobj.write(car.common.canonserialize(key_mgr))
+        fobj.write(cct_common.canonserialize(key_mgr))
 
     return key_mgr
 
@@ -132,19 +132,19 @@ def demo_create_and_sign_key_mgr():
 def demo_verify_key_mgr_using_root(key_mgr_metadata, root_metadata):
 
     # Some argument validation
-    car.common.checkformat_signable(root_metadata)
+    cct_common.checkformat_signable(root_metadata)
     if 'delegations' not in root_metadata['signed']:
         raise ValueError('Expected "delegations" entry in root metadata.')
     root_delegations = root_metadata['signed']['delegations'] # for brevity
-    car.common.checkformat_delegations(root_delegations)
+    cct_common.checkformat_delegations(root_delegations)
     if 'key_mgr' not in root_delegations:
         raise ValueError(
                 'Missing expected delegation to "key_mgr" in root metadata.')
-    car.common.checkformat_delegation(root_delegations['key_mgr'])
+    cct_common.checkformat_delegation(root_delegations['key_mgr'])
 
 
     # Doing delegation processing.
-    car.authentication.verify_delegation(
+    cct_authentication.verify_delegation(
             'key_mgr', key_mgr_metadata, root_metadata)
 
     print('\n-- Success: key mgr metadata verified based on root metadata.')
@@ -153,7 +153,7 @@ def demo_verify_key_mgr_using_root(key_mgr_metadata, root_metadata):
 
 def demo_root_signing_and_verifying_and_chaining():
     # Build sample root metadata.  ('metadata' -> 'md')
-    root_md = car.metadata_construction.build_root_metadata(
+    root_md = cct_metadata_construction.build_root_metadata(
             root_pubkeys=[ROOT_PUBKEY_HEX],
             root_threshold=1,
             root_version=1,
@@ -161,14 +161,14 @@ def demo_root_signing_and_verifying_and_chaining():
             key_mgr_threshold=1)
 
     # Wrap the metadata in a signing envelope.
-    root_md = car.signing.wrap_as_signable(root_md)
+    root_md = cct_signing.wrap_as_signable(root_md)
 
-    root_md_serialized_unsigned = car.common.canonserialize(root_md)
+    root_md_serialized_unsigned = cct_common.canonserialize(root_md)
 
     print('\n-- Unsigned root metadata version 1 generated.\n')
 
     # # This is the part of the data over which signatures are constructed.
-    # root_md_serialized_portion_to_sign = car.common.canonserialize(
+    # root_md_serialized_portion_to_sign = cct_common.canonserialize(
     #         root_md['signed'])
 
 
@@ -192,28 +192,28 @@ def demo_root_signing_and_verifying_and_chaining():
             'pin, hit enter to begin.')
 
     # This overwrites the file with a signed version of the file.
-    car.root_signing.sign_root_metadata_via_gpg(
+    cct_root_signing.sign_root_metadata_via_gpg(
             ROOT_FNAME_V1, ROOT_PUBKEY_GPG_FINGERPRINT)
-    car.root_signing.sign_root_metadata_via_gpg(
+    cct_root_signing.sign_root_metadata_via_gpg(
             ROOT_FNAME_V1, ROOT_PUBKEY_GPG_FINGERPRINT)
     junk = input_func('\n-- Root metadata v1 signed.  Next: load signed root v1.\n')
 
 
     # Load untrusted signed root metadata.
-    signed_root_md = car.common.load_metadata_from_file(ROOT_FNAME_V1)
+    signed_root_md = cct_common.load_metadata_from_file(ROOT_FNAME_V1)
     junk = input_func('\n-- Signed root metadata v1 loaded.  Next: verify signed root v1\n')
 
     # Verify untrusted signed root metadata.  (Normally, one uses the prior
     # version of root, but here we're bootstrapping for the demo.  We'll verify
     # with a prior version lower down in this demo.)
-    car.authentication.verify_signable(
+    cct_authentication.verify_signable(
             signed_root_md, [ROOT_PUBKEY_HEX], 1, gpg=True)
     junk = input_func('\n-- Root metadata v1 fully verified.  Next: build root metadata v2.\n')
 
 
     # Build sample second version of root metadata.  In this case, let's try
     # adding another authorized key and requiring signatures from both keys.
-    root_md2 = car.metadata_construction.build_root_metadata(
+    root_md2 = cct_metadata_construction.build_root_metadata(
             root_pubkeys=[ROOT_PUBKEY_HEX, ROOT_PUBKEY_2_HEX],
             root_threshold=2,
             root_version=2,
@@ -222,8 +222,8 @@ def demo_root_signing_and_verifying_and_chaining():
 
     # Wrap the version 2 metadata in a signing envelope, canonicalize it, and
     # serialize it to write to disk.
-    root_md2 = car.signing.wrap_as_signable(root_md2)
-    root_md2 = car.common.canonserialize(root_md2)
+    root_md2 = cct_signing.wrap_as_signable(root_md2)
+    root_md2 = cct_common.canonserialize(root_md2)
 
 
     # Write unsigned sample root metadata.
@@ -233,17 +233,17 @@ def demo_root_signing_and_verifying_and_chaining():
 
     # This overwrites the file with a signed version of the file.
     # We'll sign with both keys specified.
-    car.root_signing.sign_root_metadata_via_gpg(
+    cct_root_signing.sign_root_metadata_via_gpg(
             ROOT_FNAME_V2, ROOT_PUBKEY_GPG_FINGERPRINT)
-    car.root_signing.sign_root_metadata_via_gpg(
+    cct_root_signing.sign_root_metadata_via_gpg(
             ROOT_FNAME_V2, ROOT_PUBKEY_2_GPG_FINGERPRINT)
     junk = input_func('\n-- Root metadata v2 signed.  Next: load and verify signed root v2 based on root v1 (root chaining).\n')
 
     # Load the now-signed version from disk.
-    signed_root_md2 = car.common.load_metadata_from_file(ROOT_FNAME_V2)
+    signed_root_md2 = cct_common.load_metadata_from_file(ROOT_FNAME_V2)
 
     # Test root chaining (verifying v2 using v1)
-    car.authentication.verify_root(signed_root_md, signed_root_md2)
+    cct_authentication.verify_root(signed_root_md, signed_root_md2)
     print(
             '\n-- Root metadata v2 fully verified based directly on Root '
             'metadata v1 (root chaining success)\n')
@@ -254,7 +254,7 @@ def demo_root_signing_and_verifying_and_chaining():
 
     # Build sample third version of root metadata.  In this case, let's reduce
     # the number of required keys to one.
-    root_md3 = car.metadata_construction.build_root_metadata(
+    root_md3 = cct_metadata_construction.build_root_metadata(
             root_pubkeys=[ROOT_PUBKEY_HEX, ROOT_PUBKEY_2_HEX],
             root_threshold=1,
             root_version=3,
@@ -263,8 +263,8 @@ def demo_root_signing_and_verifying_and_chaining():
 
     # Wrap the version 2 metadata in a signing envelope, canonicalize it, and
     # serialize it to write to disk.
-    root_md3 = car.signing.wrap_as_signable(root_md3)
-    root_md3 = car.common.canonserialize(root_md3)
+    root_md3 = cct_signing.wrap_as_signable(root_md3)
+    root_md3 = cct_common.canonserialize(root_md3)
 
 
     # Write unsigned sample root metadata.
@@ -274,17 +274,17 @@ def demo_root_signing_and_verifying_and_chaining():
 
     # This overwrites the file with a signed version of the file.
     # We'll sign with both keys specified.
-    car.root_signing.sign_root_metadata_via_gpg(
+    cct_root_signing.sign_root_metadata_via_gpg(
             ROOT_FNAME_V3, ROOT_PUBKEY_GPG_FINGERPRINT)
-    car.root_signing.sign_root_metadata_via_gpg(
+    cct_root_signing.sign_root_metadata_via_gpg(
             ROOT_FNAME_V3, ROOT_PUBKEY_2_GPG_FINGERPRINT)
     junk = input_func('\n-- Root metadata v2 signed.  Next: load and verify signed root v2 based on root v1 (root chaining).\n')
 
     # Load the now-signed version from disk.
-    signed_root_md3 = car.common.load_metadata_from_file(ROOT_FNAME_V3)
+    signed_root_md3 = cct_common.load_metadata_from_file(ROOT_FNAME_V3)
 
     # Test root chaining (verifying v2 using v1)
-    car.authentication.verify_root(signed_root_md2, signed_root_md3)
+    cct_authentication.verify_root(signed_root_md2, signed_root_md3)
     print(
             '\n-- Root metadata v3 fully verified based directly on Root '
             'metadata v2 (root chaining success)\n')
@@ -309,9 +309,9 @@ def demo_root_chaining_w_files(trusted_root_fname, new_untrusted_root_fname):
     #       variables, for example, can be compromised by random packages
     #       adding environment variables?
 
-    trusted_root = car.common.load_metadata_from_file(trusted_root_fname)
+    trusted_root = cct_common.load_metadata_from_file(trusted_root_fname)
 
-    untrusted_root = car.common.load_metadata_from_file(new_untrusted_root_fname)
+    untrusted_root = cct_common.load_metadata_from_file(new_untrusted_root_fname)
 
     # Use that to verify the next root.
 
@@ -358,13 +358,13 @@ def demo_verify_pkg_sig_via_key_mgr(key_mgr):
     pprint(packages)
     junk = input_func('\n\nNext: sign it with the pkg_mgr key.')
 
-    signable = car.signing.wrap_as_signable(
+    signable = cct_signing.wrap_as_signable(
             packages['pytorch-1.2.0-cuda92py27hd3e106c_0.tar.bz2'])
 
     # Sign in place.
-    car.signing.sign_signable(
+    cct_signing.sign_signable(
             signable,
-            car.common.PrivateKey.from_hex('f3cdab14740066fb277651ec4f96b9f6c3e3eb3f812269797b9656074cd52133'))
+            cct_common.PrivateKey.from_hex('f3cdab14740066fb277651ec4f96b9f6c3e3eb3f812269797b9656074cd52133'))
 
     print('Signed envelope around this pytorch package metadata:\n\n')
     pprint(signable)
@@ -376,20 +376,20 @@ def demo_verify_pkg_sig_via_key_mgr(key_mgr):
 
 
     # Some argument validation for the key manager role.
-    car.common.checkformat_signable(key_mgr)
+    cct_common.checkformat_signable(key_mgr)
     if 'delegations' not in key_mgr['signed']:
         raise ValueError('Expected "delegations" entry in key manager metadata.')
     key_mgr_delegations = key_mgr['signed']['delegations'] # for brevity
-    car.common.checkformat_delegations(key_mgr_delegations)
+    cct_common.checkformat_delegations(key_mgr_delegations)
     if 'pkg_mgr' not in key_mgr_delegations:
         raise ValueError(
                 'Missing expected delegation to "pkg_mgr" in key manager metadata.')
-    car.common.checkformat_delegation(
+    cct_common.checkformat_delegation(
             key_mgr_delegations['pkg_mgr'])
 
 
     # Doing delegation processing.
-    car.authentication.verify_delegation('pkg_mgr', signable, key_mgr)
+    cct_authentication.verify_delegation('pkg_mgr', signable, key_mgr)
 
     print(
             '\n\nSuccess: signature over package metadata verified based on '
@@ -401,8 +401,8 @@ def demo_verify_pkg_sig_via_key_mgr(key_mgr):
     signable['signed']['depends'] += ['django']
 
     try:
-        car.authentication.verify_delegation('pkg_mgr', signable, key_mgr)
-    except car.common.SignatureError:
+        cct_authentication.verify_delegation('pkg_mgr', signable, key_mgr)
+    except cct_common.SignatureError:
         print('Modified metadata results in verification failure: attack prevented')
     else:
         assert False, 'Demo test failed.'

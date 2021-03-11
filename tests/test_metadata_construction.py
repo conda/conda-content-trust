@@ -3,7 +3,7 @@
 """ tests.test_metadata_construction
 
 (Mostly) unit tests for
-conda-authentication-resources/car/metadata_construction.py.
+conda-content-trust/conda_content_trust/metadata_construction.py.
 
 Run the tests this way:
     pytest tests/test_metadata_construction.py
@@ -27,11 +27,11 @@ import pytest
 import cryptography.exceptions # for InvalidSignature
 
 # this codebase
-from car.metadata_construction import *
-from car.common import ( # these aren't already imported by metadata_construction
+from conda_content_trust.metadata_construction import *
+from conda_content_trust.common import ( # these aren't already imported by metadata_construction
         keyfiles_to_bytes, keyfiles_to_keys, checkformat_key, is_a_signable,
         checkformat_delegating_metadata)
-from car.signing import wrap_as_signable, sign_signable
+from conda_content_trust.signing import wrap_as_signable, sign_signable
 
 # Some REGRESSION test data.
 KEYPAIR_NAME = 'keytest_old'

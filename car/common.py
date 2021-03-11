@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-""" car.common
+""" conda_content_trust.common
 
 This module contains functions that provide format validation, serialization,
 and some key transformations for the pyca/cryptography library.  These are used
-across CAR modules.
+across conda_content_trust modules.
 
 Function Manifest for this Module, by Category
 
@@ -45,7 +45,7 @@ Crypto Utility:
    x keyfiles_to_bytes
 
 Exceptions:
-    CAR_Error
+    CCT_Error
         SignatureError
         MetadataVerificationError
         UnknownRoleError
@@ -65,8 +65,7 @@ import cryptography.hazmat.primitives.serialization as serialization
 import cryptography.hazmat.primitives.hashes
 import cryptography.hazmat.backends.openssl.ed25519
 
-# specification version for the metadata produced by
-# conda-authentication-resources
+# specification version for the metadata produced by conda-content-trust
 # Details in the Conda Security Metadata Specification.  Note that this
 # version string is parsed via setuptools's packaging.version library, and so
 # supports PEP 440; however, we should use a limited subset that is numerical
@@ -98,27 +97,27 @@ UTC_ISO8601_REGEX_PATTERN = re.compile(
 
 
 
-class CAR_Error(Exception):
+class CCT_Error(Exception):
     """
     All errors we raise that are not ValueErrors, TypeErrors, or
     certain errors from securesystemslib should be instances of this class or
     of subclasses of this class.
     """
 
-class SignatureError(CAR_Error):
+class SignatureError(CCT_Error):
     """
     Indicates that a signable cannot be verified due to issues with the
     signature(s) inside it.
     """
 
-class MetadataVerificationError(CAR_Error):
+class MetadataVerificationError(CCT_Error):
     """
     Indicates that a chain of authority metadata cannot be verified (e.g.
     a metadata update is found on the repository, but could not be
     authenticated).
     """
 
-class UnknownRoleError(CAR_Error):
+class UnknownRoleError(CCT_Error):
     """
     Indicates that a piece of role metadata (like root.json, or key_mgr.json)
     was expected but not found.
@@ -269,7 +268,7 @@ class MixinKey(object):
         # #
         # # Before the next two lines are run, this is the situation:
         # # > cls.__bases__
-        # #    (<class 'car.common.MixinKey'>,
+        # #    (<class 'conda_content_trust.common.MixinKey'>,
         # #     <class 'cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey'>)
         # # > new_object.__class__
         # #    <class 'cryptography.hazmat.backends.openssl.ed25519._Ed25519PrivateKey'>
@@ -756,10 +755,10 @@ def checkformat_gpg_signature(signature_obj):
 def is_a_signature(signature_obj):
     """
     Returns True if signature_obj is a dictionary representing an ed25519
-    signature, either in the conda-authentication-resources normal format, or
+    signature, either in the conda-content-trust normal format, or
     the format for a GPG signature.
 
-    See car.common.checkformat_signature() docstring for more details.
+    See conda_content_trust.common.checkformat_signature() docstring for more details.
     """
     try:
         checkformat_signature(signature_obj)
@@ -1244,7 +1243,7 @@ def iso8601_time_plus_delta(delta):
 # made (just a few adjustments).
 # def _gpgsig_to_sslgpgsig(gpg_sig):
 #
-#     car.common.checkformat_gpg_signature(gpg_sig)
+#     conda_content_trust.common.checkformat_gpg_signature(gpg_sig)
 #
 #     return {
 #             'keyid': copy.deepcopy(gpg_sig['key_fingerprint']),
