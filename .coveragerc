@@ -1,7 +1,13 @@
 [report]
+include =
+    conda_content_trust/*.py
+
 omit =
     setup.py
     conda_content_trust/__main__.py
     conda_content_trust/_version.py
+    conda_content_trust/cli.py
     versioneer.py
     tests/*
+    demo/*
+
