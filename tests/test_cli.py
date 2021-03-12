@@ -23,28 +23,29 @@ def test_that_all_calls_complete():
   assert not subprocess.call(['conda-content-trust', '--version'])
   assert not subprocess.call(['conda-content-trust', '--help'])
 
-def test_gpg_key_fingerprint():
-  assert not subprocess.call(['conda-content-trust', '-V'])
-  raise NotImplementedError()
 
-def test_():
-  raise NotImplementedError()
 
-def test_():
-  raise NotImplementedError()
+# def test_gpg_key_fingerprint():
+#   raise NotImplementedError()
 
-def test_():
-  raise NotImplementedError()
+# def test_():
+#   raise NotImplementedError()
 
-def test_():
-  raise NotImplementedError()
+# def test_():
+#   raise NotImplementedError()
 
-def test_():
-  raise NotImplementedError()
+# def test_():
+#   raise NotImplementedError()
 
-def test_():
-  raise NotImplementedError()
+# def test_():
+#   raise NotImplementedError()
 
-def test_():
-  raise NotImplementedError()
+# def test_():
+#   raise NotImplementedError()
+
+# def test_():
+#   raise NotImplementedError()
+
+# def test_():
+#   raise NotImplementedError()
 

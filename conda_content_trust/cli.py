@@ -26,18 +26,10 @@ import conda_content_trust.metadata_construction as cct_metadata_construction
 # In Python2, input() performs evaluation and raw_input() does not.  In
 # Python3, input() does not perform evaluation and there is no raw_input().
 # So... use raw_input in Python2, and input in Python3.
-try:
+try:                     # pragma: no cover
     _input_func = raw_input
-except NameError:
+except NameError:        # pragma: no cover
     _input_func = input
-
-# Step by step demo or an uninterrupted run, based on PRESENT_SLOWLY.
-def input_func(s):
-    if PRESENT_SLOWLY:
-        return _input_func(s)
-    else:
-        return print(s)
-
 
 
 def cli(args=None):
