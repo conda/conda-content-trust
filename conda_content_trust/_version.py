@@ -42,7 +42,7 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = ""
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "conda-authentication-resources-"
+    cfg.parentdir_prefix = "conda-content-trust-"
     cfg.versionfile_source = "conda_content_trust/_version.py"
     cfg.verbose = False
     return cfg
