@@ -66,12 +66,12 @@ def cli(args=None):
     # subcommand: verify-metadata
 
     p_verifymd = sp.add_parser(
-            'verify-metadata', help=('Verifies the first (not yet trusted) '
-            'metadata file based on the second (already trusted) metadata '
-            'file.  For example, '
-            '"conda-content-trust verify-metadata 5.root.json 4.root.json"'
+            'verify-metadata', help=('Uses the first (trusted) metadata file '
+            'to verify the second (not yet trusted) metadata file.  For '
+            'example, '
+            '"conda-content-trust verify-metadata 4.root.json 5.root.json"'
             ' to verify version 5 of root based on version 4 of root, or '
-            '"conda-content-trust verify-metadata key_mgr.json 4.root.json" '
+            '"conda-content-trust verify-metadata 4.root.json key_mgr.json" '
             'to verify key manager metadata based on version 4 of root.'))
     p_verifymd.add_argument(
             'trusted_metadata_filename', help=('the filename of the '
