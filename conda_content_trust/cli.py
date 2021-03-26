@@ -303,7 +303,7 @@ def interactive_modify_metadata(metadata):
         import pygments.lexers
         import pygments.formatters
         import json
-    except ImportError():
+    except ImportError:
         print(
                 'Unable to use interactive-modify-metadata mode: missing '
                 'optional dependency "pygments" (for JSON syntax '
