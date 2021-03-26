@@ -328,13 +328,22 @@ def fetch_keyval_from_gpg(fingerprint):
     key, parse it, and return "q", the 32-byte ed25519 key value.
 
     This takes advantage of the GPG key parser in securesystemslib.
-    """
 
+    The fingerprint will be stripped of spaces and lowercased, so you can use
+    the GPG output even if it's in a funky format:
+            94A3 EED0 806C 1F10 7754  A446 FDAD 11B8 2DD4 0E8C
+            94A3 EED0 806C 1F10 7754  A446 FDAD 11B8 2DD4 0E8C    # <-- No, this is actually not the same as the previous one, which uses \\xa0....
+            94A3EED0806C1F107754A446FDAD11B82DD40E8C
+            94a3eed0806c1f107754a446fdad11b82dd40e8c
+            etc.
+    """
     if not SSLIB_AVAILABLE:
         # TODO✅: Consider a missing-optional-dependency exception class.
         raise Exception(
                 'fetch_keyval_from_gpg requires the securesystemslib library, which '
                 'appears to be unavailable.')
+
+    fingerprint = fingerprint.lower().replace(' ', '').replace('\xa0', '')  # \xa0 is another space character that GPG sometimes outputs
 
     checkformat_gpg_fingerprint(fingerprint)
 
