@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import json
 from argparse import ArgumentParser
 import copy
+import json
 
 from conda_content_trust.common import (
         canonserialize, load_metadata_from_file, write_metadata_to_file,
@@ -302,13 +303,15 @@ def interactive_modify_metadata(metadata):
         import pygments
         import pygments.lexers
         import pygments.formatters
-        import json
     except ImportError:
         print(
-                'Unable to use interactive-modify-metadata mode: missing '
-                'optional dependency "pygments" (for JSON syntax '
-                'highlighting).  Please install pygments and try again.')
-        raise
+                'interactive modify-metadata mode employs pygments for syntax '
+                'highlighting, if pygments is available.  pygments was not '
+                'found, so the JSON contents will be... uglier than they '
+                'would otherwise be.  If you would like syntax highlighting '
+                'and prettier printing of JSON, you may install pygments.')
+        pygments = None
+        from pprint import pprint
 
     # Build the modification options and prompt.
     def promptfor(s):
@@ -424,12 +427,14 @@ def interactive_modify_metadata(metadata):
 
         print(F_OPTS + BOLD + '\n\n---------------------\n--- Current metadata:\n---------------------\n' + ENDC)
 
-        formatted_metadata = json.dumps(metadata, sort_keys=True, indent=4)
-
-        print(pygments.highlight(
-                formatted_metadata.encode('utf-8'),
-                pygments.lexers.JsonLexer(),
-                pygments.formatters.TerminalFormatter()))
+        if pygments is not None:
+            formatted_metadata = json.dumps(metadata, sort_keys=True, indent=4)
+            print(pygments.highlight(
+                    formatted_metadata.encode('utf-8'),
+                    pygments.lexers.JsonLexer(),
+                    pygments.formatters.TerminalFormatter()))
+        else:
+            pprint(metadata)
 
         print(option_text)
         selected = _input_func(F_OPTS + 'Choice: ' + ENDC)
