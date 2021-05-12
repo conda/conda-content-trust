@@ -1,31 +1,23 @@
-.. image:: https://img.shields.io/travis/conda/conda-authentication-resources.svg
-        :target: https://travis-ci.org/conda/conda-authentication-resources
-.. image:: https://circleci.com/gh/conda/conda-authentication-resources.svg?style=svg
-    :target: https://circleci.com/gh/conda/conda-authentication-resources
-.. image:: https://codecov.io/gh/conda/conda-authentication-resources/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/conda/conda-authentication-resources
-
 
 ##############################################################################
 Conda Content Trust: Signing and verification tools for Conda
 ##############################################################################
 
+Based on `The Update Framework (TUF)<https://theupdateframework.io/>`_, conda-content-trust is intended to ensure that when users in the conda ecosystem obtain a package or data about that package, they can know whether or not it is trustworthy (e.g. originally comes from a reliable source and has not been tampered with).  It is used in conda 4.10.1+ to verify package metadata signatures when they are available.  A basic library and basic CLI are included to provide signing, verification, and trust delegation functionality.
 
 **************
 Installation
 **************
 
-Installation can be accomplished by:
+Installation can be accomplished via conda:
+  ``conda install conda-content-trust``
 
-1. obtaining this code (download a zip and expand it or git clone the repository). e.g.:
-    ``git clone https://github.com/conda/conda-content-trust``
+Or via pip:
+  ``git clone https://github.com/conda/conda-content-trust
+  cd conda-content-trust
+  pip install .``
 
-2. ``cd conda-content-trust``
-
-3. ``pip install .``
-
-If you intend to tinker with the code, use an editable install instead:
-``pip install -e .``
+(If you intend to tinker with the code, use an editable install instead, of course: ``pip install -e .``)
 
 ========================================================================
 Optional Dependencies for Producing Signatures with GPG Keys / YubiKeys
