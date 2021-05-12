@@ -7,7 +7,7 @@ Conda Content Trust: Signing and verification tools for Conda
 
 **Why:** This exists as an alteration of TUF because of the very particular needs of the conda ecosystem.  (Developers are encouraged to *just use TUF* whenever possible!)
 
-**Where:** This tool is general purpose.  It is used in conda 4.10.1+ to verify package metadata signatures when they are available.
+**Where:** This tool is general purpose.  It is currently used in conda 4.10.1+ to verify package metadata signatures when they are available (`announcement <https://www.anaconda.com/blog/conda-signature-verification>`_, `instructions <https://docs.anaconda.com/anaconda-commercial/security>`_).
 
 
 **************
@@ -18,9 +18,7 @@ Installation can be accomplished via conda:
   ``conda install conda-content-trust``
 
 Or via pip:
- | ``git clone https://github.com/conda/conda-content-trust``
- | ``cd conda-content-trust``
- | ``pip install .``
+  ``pip install conda-content-trust``
 
 (If you intend to tinker with the code, use an editable install instead, of course: ``pip install -e .``)
 
