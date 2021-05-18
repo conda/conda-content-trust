@@ -1,3 +1,7 @@
+[run]
+branch = True
+source = conda_content_trust
+
 [report]
 include =
     conda_content_trust/*.py
@@ -5,9 +9,6 @@ include =
 omit =
     setup.py
     conda_content_trust/__main__.py
-    conda_content_trust/_version.py
     conda_content_trust/cli.py
-    versioneer.py
     tests/*
     demo/*
-
