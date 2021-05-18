@@ -42,7 +42,7 @@ jobs:
         run: conda info -a
 
       - name: Run tests
-        run: pytest
+        run: conda run --no-capture-output pytest
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1
