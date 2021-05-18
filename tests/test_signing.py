@@ -75,12 +75,10 @@ REG__REPODATA_SAMPLE_FNAME = 'tests/repodata_sample.json'
 REG__REPODATA_SAMPLE_TEMP_FNAME = 'tests/repodata_sample_temp.json'
 
 
-
 # def test_serialize_and_sign():
 #     raise(NotImplementedError()
 #             '⚠️ These tests are currently implemented in '
 #             'test_authentication.py instead.'))
-
 
 # def test_sign_signable():
 #     raise(NotImplementedError(
@@ -92,8 +90,14 @@ REG__REPODATA_SAMPLE_TEMP_FNAME = 'tests/repodata_sample_temp.json'
 #             '⚠️ This function is tested in multiple modules, but '
 #             'a unit test should be constructed from those tests.'))
 
+def remove_sample_tempfile():
+    if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
+        os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
 
-def test_sign_all_in_repodata():
+
+def test_sign_all_in_repodata(request):
+
+    request.addfinalizer(remove_sample_tempfile)
 
     public = PublicKey.from_hex(REG__PUBLIC_HEX)
 
@@ -134,8 +138,6 @@ def test_sign_all_in_repodata():
                 canonserialize(repodata['packages'][artifact_name]))
 
 
-    # if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
-    #     os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
 
 
 
