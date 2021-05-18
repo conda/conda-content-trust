@@ -24,7 +24,7 @@ install:
   - conda install --use-local conda-content-trust
   - conda info -a
 script:
-  - pytest -v --color=yes --cov=conda-content-trust tests
+  - pytest
 after_success:
   - conda install -c conda-forge codecov
   - codecov
