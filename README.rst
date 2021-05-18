@@ -1,7 +1,13 @@
-
 ##############################################################################
 Conda Content Trust: Signing and verification tools for Conda
 ##############################################################################
+
+.. image:: https://github.com/conda/conda-content-trust/workflows/CI/badge.svg
+  :target: https://github.com/conda/conda-content-trust/actions
+  :alt: GitHub Actions
+.. image:: https://codecov.io/gh/conda/conda-content-trust/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/conda/conda-content-trust
+  :alt: Test coverage
 
 **What:** Based on `The Update Framework (TUF) <https://theupdateframework.io/>`_, conda-content-trust is intended to ensure that when users in the conda ecosystem obtain a package or data about that package, they can know whether or not it is trustworthy (e.g. originally comes from a reliable source and has not been tampered with).  A basic library and basic CLI are included to provide signing, verification, and trust delegation functionality.
 
