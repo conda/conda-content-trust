@@ -59,8 +59,9 @@ def cli(args=None):
             'repodata_fname', help=('the filename of a repodata.json file from '
             'which to retrieve metadata for individual artifacts.'))
     p_signrepo.add_argument(
-            'private_key_hex', help=('the ed25519 private key to be used to '
-            'sign each artifact\'s metadata'))
+            'private_key_fname', help=('the filename of a file containing a '
+            'hex string representation of an ed25519 private key to be used '
+            'to sign each artifact\'s metadata'))
 
 
     # subcommand: verify-metadata
@@ -150,6 +151,17 @@ def cli(args=None):
 
 
     elif args.subcommand_name == 'sign-artifacts':
+
+        with open(args.private_key_fname, 'r') as key_fobj:
+            # Lower-case the hex string and ignore any whitespace before and
+            # after it (in case someone adds some).
+            private_key_hex = key_fobj.read().strip().lower()
+
+        if not is_hex_key(private_key_hex):
+            print(
+                    'ABORTED.  Expected key file to contain only a hex string '
+                    'representation of an ed25519 key.  It does not.')
+            return
 
         cct_signing.sign_all_in_repodata(
                 args.repodata_fname, args.private_key_hex)
