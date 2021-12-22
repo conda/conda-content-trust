@@ -159,7 +159,7 @@ def cli(args=None):
     elif args.subcommand_name == 'gpg-key-lookup':
         gpg_key_fingerprint = ''.join(args.gpg_key_fingerprint.split()).lower()
         keyval = cct_root_signing.fetch_keyval_from_gpg(gpg_key_fingerprint)
-        print('Underlying ed25519 key value: ' + str(keyval))
+        print('Underlying ed25519 public key value: ' + str(keyval))
 
 
     elif args.subcommand_name == 'modify-metadata':
