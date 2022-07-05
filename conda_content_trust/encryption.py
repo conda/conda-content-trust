@@ -36,8 +36,10 @@ def raw_key_from_nacl_key(nacl_key):
     Given an nacl.public.PrivateKey or an nacl.public.PublicKey, returns the
     underlying 32-byte key value (a Curve25519 key).
     """
-    if not (isinstance(nacl_key, nacl.public.PublicKey)
-            or isinstance(nacl_key, nacl.public.PrivateKey)):
+    if not (
+        isinstance(nacl_key, nacl.public.PublicKey)
+        or isinstance(nacl_key, nacl.public.PrivateKey)
+    ):
         raise TypeError('Expecting a PublicKey or PrivateKey object')
     return nacl_key.encode()
 
@@ -62,7 +64,6 @@ def public_nacl_key_from_raw_key(key_value):
     nacl.public.PublicKey(key_value)
 
 
-
 def encrypt(data, public_key):
     """
     Takes bytes and a public key (nacl.public.PublicKey), returns encrypted
@@ -78,7 +79,6 @@ def encrypt(data, public_key):
     encryptor = nacl.public.SealedBox(public_key)
 
     return encryptor.encrypt(data)
-
 
 
 def decrypt(encrypted, private_key):

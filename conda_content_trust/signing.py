@@ -17,30 +17,36 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # std libs
 import binascii
-import copy # for deepcopy
-import json # for json.dump
+import copy  # for deepcopy
+import json  # for json.dump
 
 # Dependency-provided libraries
-#import cryptography
-#import cryptography.exceptions
-#import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
-#import cryptography.hazmat.primitives.serialization as serialization
-#import cryptography.hazmat.primitives.hashes
-#import cryptography.hazmat.backends
+# import cryptography
+# import cryptography.exceptions
+# import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
+# import cryptography.hazmat.primitives.serialization as serialization
+# import cryptography.hazmat.primitives.hashes
+# import cryptography.hazmat.backends
 
 
 # conda-content-trust modules
 from .common import (
-        SUPPORTED_SERIALIZABLE_TYPES, canonserialize,
-        load_metadata_from_file, write_metadata_to_file,
-        PublicKey, PrivateKey,
-        checkformat_string, checkformat_key, checkformat_hex_key,
-        checkformat_signable, checkformat_signature,
-        #is_hex_string, is_hex_signature, is_hex_key,
-        #checkformat_natural_int, checkformat_expiration_distance,
-        #checkformat_hex_key, checkformat_list_of_hex_keys,
-        #checkformat_utc_isoformat,
-        )
+    SUPPORTED_SERIALIZABLE_TYPES,
+    canonserialize,
+    load_metadata_from_file,
+    write_metadata_to_file,
+    PublicKey,
+    PrivateKey,
+    checkformat_string,
+    checkformat_key,
+    checkformat_hex_key,
+    checkformat_signable,
+    checkformat_signature,
+    # is_hex_string, is_hex_signature, is_hex_key,
+    # checkformat_natural_int, checkformat_expiration_distance,
+    # checkformat_hex_key, checkformat_list_of_hex_keys,
+    # checkformat_utc_isoformat,
+)
 
 
 def serialize_and_sign(obj, private_key):
@@ -73,7 +79,6 @@ def serialize_and_sign(obj, private_key):
     return signature_as_hexstr
 
 
-
 def wrap_as_signable(obj):
     """
     Given a JSON-serializable object (dictionary, list, string, numeric, etc.),
@@ -92,9 +97,10 @@ def wrap_as_signable(obj):
     """
     if not type(obj) in SUPPORTED_SERIALIZABLE_TYPES:
         raise TypeError(
-                'wrap_dict_as_signable requires a JSON-serializable object, '
-                'but the given argument is of type ' + str(type(obj)) + ', '
-                'which is not supported by the json library functions.')
+            'wrap_dict_as_signable requires a JSON-serializable object, '
+            'but the given argument is of type ' + str(type(obj)) + ', '
+            'which is not supported by the json library functions.'
+        )
 
     # TODO: ✅ Later on, consider switching back to TUF-style
     #          signatures-as-a-list.  (Is there some reason it's saner?)
@@ -104,7 +110,6 @@ def wrap_as_signable(obj):
     #          list anyway, so a dictionary is probably better.
 
     return {'signatures': {}, 'signed': copy.deepcopy(obj)}
-
 
 
 def sign_signable(signable, private_key):
@@ -159,7 +164,6 @@ def sign_signable(signable, private_key):
 
     # Add signature in-place, in the usual signature format.
     signable['signatures'][public_key_as_hexstr] = signature_dict
-
 
 
 def sign_all_in_repodata(fname, private_key_hex):
@@ -223,9 +227,8 @@ def sign_all_in_repodata(fname, private_key_hex):
     for artifact_name, metadata in repodata.get('packages.conda', {}).items():
         signature_hex = serialize_and_sign(metadata, private)
         repodata['signatures'][artifact_name] = {
-                public_hex: {'signature': signature_hex}}
-
-
+            public_hex: {'signature': signature_hex}
+        }
 
     # Note: takes >0.5s on a macbook for large files
     write_metadata_to_file(repodata, fname)
