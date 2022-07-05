@@ -37,39 +37,45 @@ REG__PUBLIC_HEX = '013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c8
 REG__SIGNATURE = b'\xb6\xda\x14\xa1\xedU\x9e\xbf\x01\xb3\xa9\x18\xc9\xb8\xbd\xccFM@\x87\x99\xe8\x98\x84C\xe4}9;\xa4\xe5\xfd\xcf\xdaau\x04\xf5\xcc\xc0\xe7O\x0f\xf0F\x91\xd3\xb8"\x7fD\x1dO)*\x1f?\xd7&\xd6\xd3\x1f\r\x0e'
 REG__HASHED_VAL = b'string to hash\n'
 REG__HASH_HEX = '73aec9a93f4beb41a9bad14b9d1398f60e78ccefd97e4eb7d3cf26ba71dbe0ce'
-#REG__HASH_BYTES = b's\xae\xc9\xa9?K\xebA\xa9\xba\xd1K\x9d\x13\x98\xf6\x0ex\xcc\xef\xd9~N\xb7\xd3\xcf&\xbaq\xdb\xe0\xce'
+# REG__HASH_BYTES = b's\xae\xc9\xa9?K\xebA\xa9\xba\xd1K\x9d\x13\x98\xf6\x0ex\xcc\xef\xd9~N\xb7\xd3\xcf&\xbaq\xdb\xe0\xce'
 REG__REPODATA_HASHMAP = {
     "noarch/current_repodata.json": "908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe",
     "noarch/repodata.json": "908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe",
     "noarch/repodata_from_packages.json": "908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe",
     "osx-64/current_repodata.json": "8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2",
     "osx-64/repodata.json": "8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2",
-    "osx-64/repodata_from_packages.json": "8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2"
+    "osx-64/repodata_from_packages.json": "8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2",
 }
 REG__TEST_TIMESTAMP = '2019-10-01T00:00:00Z'
 REG__TEST_EXPIRY_DATE = '2025-01-01T10:30:00Z'
 REG__EXPECTED_UNSIGNED_REPODATA_VERIFY = {
-    'type': 'repodata_verify', 'timestamp': REG__TEST_TIMESTAMP,
-    'metadata_spec_version': '0.1.0', 'expiration': REG__TEST_EXPIRY_DATE,
+    'type': 'repodata_verify',
+    'timestamp': REG__TEST_TIMESTAMP,
+    'metadata_spec_version': '0.1.0',
+    'expiration': REG__TEST_EXPIRY_DATE,
     'secured_files': {
         'noarch/current_repodata.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
         'noarch/repodata.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
         'noarch/repodata_from_packages.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
         'osx-64/current_repodata.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2',
         'osx-64/repodata.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2',
-        'osx-64/repodata_from_packages.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2'}
+        'osx-64/repodata_from_packages.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2',
+    },
 }
 REG__EXPECTED_REGSIGNED_REPODATA_VERIFY = {
     # Re-sign this if its data changes: it's signed!
-    'type': 'repodata_verify', 'timestamp': '2019-10-01T00:00:00Z',
-    'metadata_spec_version': '0.1.0', 'expiration': '2025-01-01T10:30:00Z',
+    'type': 'repodata_verify',
+    'timestamp': '2019-10-01T00:00:00Z',
+    'metadata_spec_version': '0.1.0',
+    'expiration': '2025-01-01T10:30:00Z',
     'secured_files': {
         'noarch/current_repodata.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
         'noarch/repodata.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
         'noarch/repodata_from_packages.json': '908724926552827ab58dfc0bccba92426cec9f1f483883da3ff0d8664e18c0fe',
         'osx-64/current_repodata.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2',
         'osx-64/repodata.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2',
-        'osx-64/repodata_from_packages.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2'}
+        'osx-64/repodata_from_packages.json': '8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2',
+    },
 }
 REG__REPODATA_SAMPLE_FNAME = 'tests/repodata_sample.json'
 REG__REPODATA_SAMPLE_TEMP_FNAME = 'tests/repodata_sample_temp.json'
@@ -90,6 +96,7 @@ REG__REPODATA_SAMPLE_TEMP_FNAME = 'tests/repodata_sample_temp.json'
 #             '⚠️ This function is tested in multiple modules, but '
 #             'a unit test should be constructed from those tests.'))
 
+
 def remove_sample_tempfile():
     if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
         os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
@@ -105,11 +112,9 @@ def test_sign_all_in_repodata(request):
     # update it.
     if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
         os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
-    shutil.copy(
-            REG__REPODATA_SAMPLE_FNAME,
-            REG__REPODATA_SAMPLE_TEMP_FNAME)
+    shutil.copy(REG__REPODATA_SAMPLE_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
 
-        # grab data and use it to compare to what we produce in a bit
+    # grab data and use it to compare to what we produce in a bit
 
     repodata = load_metadata_from_file(REG__REPODATA_SAMPLE_FNAME)
 
@@ -132,12 +137,8 @@ def test_sign_all_in_repodata(request):
         assert REG__PUBLIC_HEX in repodata_signed['signatures'][artifact_name]
         # The signature is valid.
         verify_signature(
-                # signature, (supposed) key, data that was (supposedly) signed
-                repodata_signed['signatures'][artifact_name][REG__PUBLIC_HEX]['signature'],
-                public,
-                canonserialize(repodata['packages'][artifact_name]))
-
-
-
-
-
+            # signature, (supposed) key, data that was (supposedly) signed
+            repodata_signed['signatures'][artifact_name][REG__PUBLIC_HEX]['signature'],
+            public,
+            canonserialize(repodata['packages'][artifact_name]),
+        )

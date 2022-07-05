@@ -24,19 +24,27 @@ import cryptography.exceptions
 # this codebase
 from conda_content_trust.authentication import *
 from conda_content_trust.metadata_construction import (
-        gen_keys, gen_and_write_keys, # for new-key tests
-        # build_repodata_verification_metadata
-        )
+    gen_keys,
+    gen_and_write_keys,  # for new-key tests
+    # build_repodata_verification_metadata
+)
 from conda_content_trust.common import (
-        PrivateKey, PublicKey, keyfiles_to_bytes, keyfiles_to_keys,
-        SignatureError, MetadataVerificationError)
+    PrivateKey,
+    PublicKey,
+    keyfiles_to_bytes,
+    keyfiles_to_keys,
+    SignatureError,
+    MetadataVerificationError,
+)
 from conda_content_trust.signing import wrap_as_signable, sign_signable
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = 'keytest_old'
 REG__PRIVATE_BYTES = b'\xc9\xc2\x06\r~\r\x93al&T\x84\x0bI\x83\xd0\x02!\xd8\xb6\xb6\x9c\x85\x01\x07\xdat\xb4!h\xf97'
 REG__PUBLIC_BYTES = b"\x01=\xddqIb\x86m\x12\xba[\xae'?\x14\xd4\x8c\x89\xcf\x07s\xde\xe2\xdb\xf6\xd4V\x1eR\x1c\x83\xf7"
-REG__PUBLIC_HEX_ROOT = 'c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c'
+REG__PUBLIC_HEX_ROOT = (
+    'c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c'
+)
 REG__MESSAGE_THAT_WAS_SIGNED = b'123456\x067890'
 # Signature is over REG__MESSAGE_THAT_WAS_SIGNED using key REG__PRIVATE_BYTES.
 REG__SIGNATURE = b'\xb6\xda\x14\xa1\xedU\x9e\xbf\x01\xb3\xa9\x18\xc9\xb8\xbd\xccFM@\x87\x99\xe8\x98\x84C\xe4}9;\xa4\xe5\xfd\xcf\xdaau\x04\xf5\xcc\xc0\xe7O\x0f\xf0F\x91\xd3\xb8"\x7fD\x1dO)*\x1f?\xd7&\xd6\xd3\x1f\r\x0e'
@@ -79,69 +87,68 @@ REG__TEST_EXPIRY_DATE = '2025-01-01T10:30:00Z'
 # }
 
 TEST_ROOT_MD_V1 = {
-  "signatures": {
-    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
-      "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025f96ff1a",
-      "signature": "9327c2c4907c964741924420c4c35eb01805c15ec2fe5cad17bc98c0c3daf03006fcafb332eaa543a1ed212fac05f227662d8617970afc6c919ee4b78bacb004"
-    }
-  },
-  "signed": {
-    "delegations": {
-      "key_mgr": {
-        "pubkeys": [
-          "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
-        ],
-        "threshold": 1
-      },
-      "root": {
-        "pubkeys": [
-          "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c"
-        ],
-        "threshold": 1
-      }
+    "signatures": {
+        "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
+            "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025f96ff1a",
+            "signature": "9327c2c4907c964741924420c4c35eb01805c15ec2fe5cad17bc98c0c3daf03006fcafb332eaa543a1ed212fac05f227662d8617970afc6c919ee4b78bacb004",
+        }
     },
-    "expiration": "2021-10-26T16:53:46Z",
-    "metadata_spec_version": "0.6.0",
-    "timestamp": "2020-10-26T16:53:46Z",
-    "type": "root",
-    "version": 1
-  }
+    "signed": {
+        "delegations": {
+            "key_mgr": {
+                "pubkeys": [
+                    "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+                ],
+                "threshold": 1,
+            },
+            "root": {
+                "pubkeys": [
+                    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c"
+                ],
+                "threshold": 1,
+            },
+        },
+        "expiration": "2021-10-26T16:53:46Z",
+        "metadata_spec_version": "0.6.0",
+        "timestamp": "2020-10-26T16:53:46Z",
+        "type": "root",
+        "version": 1,
+    },
 }
 
 TEST_ROOT_MD_V2 = {
-  "signatures": {
-    "a59cea0987ee9046d68d2d011e919eb9278e3f478cca77f5204d65191ff8d7a5": {
-      "other_headers": "04001608001d1621040a14b126c986f276831c7b04134f35b47db4364305025f96ff1b",
-      "signature": "d406839499630a75350ba6f6c009aae173f15dd8c9be069c9b535ff77b6d624d6092487fe18e2c4f5c13b252a3ebe3f89ab15f4c52c66db752f8cbbfc6d96609"
+    "signatures": {
+        "a59cea0987ee9046d68d2d011e919eb9278e3f478cca77f5204d65191ff8d7a5": {
+            "other_headers": "04001608001d1621040a14b126c986f276831c7b04134f35b47db4364305025f96ff1b",
+            "signature": "d406839499630a75350ba6f6c009aae173f15dd8c9be069c9b535ff77b6d624d6092487fe18e2c4f5c13b252a3ebe3f89ab15f4c52c66db752f8cbbfc6d96609",
+        },
+        "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
+            "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025f96ff1b",
+            "signature": "f4c13d4456028778026639fcdc63ec7d6005e1e88f2dcfaf87afa3b89ce6a1ec8938af83fdc9d3d7045d0ebd648654c6af027daaf7164e014a8a53f373e9b906",
+        },
     },
-    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c": {
-      "other_headers": "04001608001d162104917adb684e2e9fb5ed4e59909ddd19a1268b62d005025f96ff1b",
-      "signature": "f4c13d4456028778026639fcdc63ec7d6005e1e88f2dcfaf87afa3b89ce6a1ec8938af83fdc9d3d7045d0ebd648654c6af027daaf7164e014a8a53f373e9b906"
-    }
-  },
-  "signed": {
-    "delegations": {
-      "key_mgr": {
-        "pubkeys": [
-          "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
-        ],
-        "threshold": 1
-      },
-      "root": {
-        "pubkeys": [
-          "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c"
-        ],
-        "threshold": 1
-      }
+    "signed": {
+        "delegations": {
+            "key_mgr": {
+                "pubkeys": [
+                    "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+                ],
+                "threshold": 1,
+            },
+            "root": {
+                "pubkeys": [
+                    "c8bd83b3bfc991face417d97b9c0db011b5d256476b602b92fec92849fc2b36c"
+                ],
+                "threshold": 1,
+            },
+        },
+        "expiration": "2021-10-26T16:53:46Z",
+        "metadata_spec_version": "0.6.0",
+        "timestamp": "2020-10-26T16:53:46Z",
+        "type": "root",
+        "version": 2,
     },
-    "expiration": "2021-10-26T16:53:46Z",
-    "metadata_spec_version": "0.6.0",
-    "timestamp": "2020-10-26T16:53:46Z",
-    "type": "root",
-    "version": 2
-  }
 }
-
 
 
 # NOTE to dev:
@@ -154,8 +161,7 @@ def test_wrap_sign_verify_signable():
     # Then load it from disk and compare that to the return value.  Exercise
     # some of the functions redundantly.
     generated_private, generated_public = gen_and_write_keys('keytest_new')
-    loaded_new_private_bytes, loaded_new_public_bytes = keyfiles_to_bytes(
-            'keytest_new')
+    loaded_new_private_bytes, loaded_new_public_bytes = keyfiles_to_bytes('keytest_new')
     loaded_new_private, loaded_new_public = keyfiles_to_keys('keytest_new')
 
     old_private = PrivateKey.from_bytes(REG__PRIVATE_BYTES)
@@ -164,21 +170,23 @@ def test_wrap_sign_verify_signable():
     assert generated_private.is_equivalent_to(loaded_new_private)
     assert generated_public.is_equivalent_to(loaded_new_public)
     assert loaded_new_private.is_equivalent_to(
-                PrivateKey.from_bytes(loaded_new_private_bytes))
+        PrivateKey.from_bytes(loaded_new_private_bytes)
+    )
     assert loaded_new_public.is_equivalent_to(
-                PublicKey.from_bytes(loaded_new_public_bytes))
-
+        PublicKey.from_bytes(loaded_new_public_bytes)
+    )
 
     # Clean up a bit for the next tests.
     new_private = loaded_new_private
     new_public = loaded_new_public
     del (
-            loaded_new_public, loaded_new_private,
-            generated_private, generated_public,
-            loaded_new_private_bytes, loaded_new_public_bytes)
-
-
-
+        loaded_new_public,
+        loaded_new_private,
+        generated_private,
+        generated_public,
+        loaded_new_private_bytes,
+        loaded_new_public_bytes,
+    )
 
     # Test wrapping, signing signables, and verifying signables.
     d = {'foo': 'bar', '1': 2}
@@ -189,16 +197,16 @@ def test_wrap_sign_verify_signable():
     assert is_a_signable(signable_d)
 
     verify_signable(
-            signable=signable_d,
-            authorized_pub_keys=[old_public.to_hex()],
-            threshold=1)
+        signable=signable_d, authorized_pub_keys=[old_public.to_hex()], threshold=1
+    )
 
     # Expect failure this time due to bad format.
     try:
         verify_signable(
-                signable=signable_d['signed'],
-                authorized_pub_keys=[old_public.to_hex()],
-                threshold=1)
+            signable=signable_d['signed'],
+            authorized_pub_keys=[old_public.to_hex()],
+            threshold=1,
+        )
     except TypeError:
         pass
     else:
@@ -209,22 +217,24 @@ def test_wrap_sign_verify_signable():
         modified_signable_d = copy.deepcopy(signable_d)
         modified_signable_d['signed'] = d_modified
         verify_signable(
-                signable=modified_signable_d,
-                authorized_pub_keys=[old_public.to_hex()],
-                threshold=1)
+            signable=modified_signable_d,
+            authorized_pub_keys=[old_public.to_hex()],
+            threshold=1,
+        )
     except SignatureError:
         pass
     else:
         assert False, 'Failed to raise expected exception.'
 
-
     # Clean up a bit.
     for fname in [
-            'keytest_new.pub', 'keytest_new.pri',
-            'keytest_old.pri', 'keytest_old.pub']:
+        'keytest_new.pub',
+        'keytest_new.pri',
+        'keytest_old.pri',
+        'keytest_old.pub',
+    ]:
         if os.path.exists(fname):
             os.remove(fname)
-
 
 
 # def test_repodata_verify_funcs():
@@ -325,7 +335,7 @@ def test_sign_and_verify():
     new_sig = new_private.sign(REG__MESSAGE_THAT_WAS_SIGNED)
     new_sig2 = new_private.sign(REG__MESSAGE_THAT_WAS_SIGNED)
     assert new_sig == new_sig2  # deterministic (obv not a thorough test)
-    assert old_sig == REG__SIGNATURE # regression
+    assert old_sig == REG__SIGNATURE  # regression
 
     # Test verify()
 
@@ -336,7 +346,8 @@ def test_sign_and_verify():
 
     # Use wrong public key.
     wrong_pubkey_obj = PublicKey.from_hex(
-            '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef')
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+    )
     with pytest.raises(cryptography.exceptions.InvalidSignature):
         wrong_pubkey_obj.verify(REG__SIGNATURE, REG__MESSAGE_THAT_WAS_SIGNED)
 
@@ -348,57 +359,63 @@ def test_sign_and_verify():
         new_public.verify(new_sig, REG__MESSAGE_THAT_WAS_SIGNED[0:-1])
 
 
-
 def test_verify_signature():
     verify_signature(
-            REG__SIGNATURE_HEX,
-            PublicKey.from_bytes(REG__PUBLIC_BYTES),
-            REG__MESSAGE_THAT_WAS_SIGNED)
+        REG__SIGNATURE_HEX,
+        PublicKey.from_bytes(REG__PUBLIC_BYTES),
+        REG__MESSAGE_THAT_WAS_SIGNED,
+    )
 
     # invalid signatures
     with pytest.raises(cryptography.exceptions.InvalidSignature):
         verify_signature(
-                REG__SIGNATURE_HEX[:-6] + 'ffffff', # wrong value
-                PublicKey.from_bytes(REG__PUBLIC_BYTES),
-                REG__MESSAGE_THAT_WAS_SIGNED)
+            REG__SIGNATURE_HEX[:-6] + 'ffffff',  # wrong value
+            PublicKey.from_bytes(REG__PUBLIC_BYTES),
+            REG__MESSAGE_THAT_WAS_SIGNED,
+        )
 
     with pytest.raises(TypeError):
         verify_signature(
-                REG__SIGNATURE_HEX[:-1], # wrong length
-                PublicKey.from_bytes(REG__PUBLIC_BYTES),
-                REG__MESSAGE_THAT_WAS_SIGNED)
+            REG__SIGNATURE_HEX[:-1],  # wrong length
+            PublicKey.from_bytes(REG__PUBLIC_BYTES),
+            REG__MESSAGE_THAT_WAS_SIGNED,
+        )
 
     with pytest.raises(TypeError):
         verify_signature(
-                REG__SIGNATURE, # wrong type
-                PublicKey.from_bytes(REG__PUBLIC_BYTES),
-                REG__MESSAGE_THAT_WAS_SIGNED)
-
+            REG__SIGNATURE,  # wrong type
+            PublicKey.from_bytes(REG__PUBLIC_BYTES),
+            REG__MESSAGE_THAT_WAS_SIGNED,
+        )
 
     # other bad args
     with pytest.raises(cryptography.exceptions.InvalidSignature):
         verify_signature(
-                REG__SIGNATURE_HEX, # wrong type
-                PublicKey.from_bytes(REG__PUBLIC_BYTES),
-                REG__MESSAGE_THAT_WAS_SIGNED + b'\xc9') # altered message
+            REG__SIGNATURE_HEX,  # wrong type
+            PublicKey.from_bytes(REG__PUBLIC_BYTES),
+            REG__MESSAGE_THAT_WAS_SIGNED + b'\xc9',
+        )  # altered message
 
     with pytest.raises(cryptography.exceptions.InvalidSignature):
         verify_signature(
-                REG__SIGNATURE_HEX,
-                PublicKey.from_bytes(REG__PUBLIC_BYTES[:-4] + b'0000'), # wrong key
-                REG__MESSAGE_THAT_WAS_SIGNED)
+            REG__SIGNATURE_HEX,
+            PublicKey.from_bytes(REG__PUBLIC_BYTES[:-4] + b'0000'),  # wrong key
+            REG__MESSAGE_THAT_WAS_SIGNED,
+        )
 
     with pytest.raises(TypeError):
         verify_signature(
-                REG__SIGNATURE_HEX,
-                REG__PUBLIC_BYTES,                  # wrong type
-                REG__MESSAGE_THAT_WAS_SIGNED)
+            REG__SIGNATURE_HEX,
+            REG__PUBLIC_BYTES,  # wrong type
+            REG__MESSAGE_THAT_WAS_SIGNED,
+        )
 
     with pytest.raises(TypeError):
         verify_signature(
-                REG__SIGNATURE_HEX,
-                PublicKey.from_bytes(REG__PUBLIC_BYTES),
-                {'this is not bytes': 1})              # wrong type
+            REG__SIGNATURE_HEX,
+            PublicKey.from_bytes(REG__PUBLIC_BYTES),
+            {'this is not bytes': 1},
+        )  # wrong type
 
 
 # verify_root is also tested in test_root.py (but test_root.py expects GPG)
@@ -410,10 +427,8 @@ def test_verify_root():
     # Root chaining: normal test
     verify_root(TEST_ROOT_MD_V1, TEST_ROOT_MD_V2)
 
-
     # Now we tinker a bit to break stuff.
     root_v2_edited = copy.deepcopy(TEST_ROOT_MD_V2)
-
 
     # Can't verify root v10 using root v1 (chaining)
     with pytest.raises(MetadataVerificationError):
@@ -422,7 +437,6 @@ def test_verify_root():
 
     # Reset.
     root_v2_edited['signed']['version'] = TEST_ROOT_MD_V2['signed']['version']
-
 
     # Bad signature, same keys, same contents
     # with pytest.raises(cryptography.exceptions.InvalidSignature):
@@ -435,18 +449,17 @@ def test_verify_root():
     # Reset.
     root_v2_edited['signatures'] = copy.deepcopy(TEST_ROOT_MD_V2['signatures'])
 
-
     # Not enough signatures from authorized keys:
     #     Have one of the signatures claim to be from the wrong key.
     with pytest.raises(SignatureError):
-        root_v2_edited['signatures'][REG__PUBLIC_HEX_ROOT[:-6] + 'ffffff'] \
-                = root_v2_edited['signatures'][REG__PUBLIC_HEX_ROOT]
+        root_v2_edited['signatures'][
+            REG__PUBLIC_HEX_ROOT[:-6] + 'ffffff'
+        ] = root_v2_edited['signatures'][REG__PUBLIC_HEX_ROOT]
         del root_v2_edited['signatures'][REG__PUBLIC_HEX_ROOT]
         verify_root(TEST_ROOT_MD_V1, root_v2_edited)
 
     # Reset.
     root_v2_edited['signatures'] = copy.deepcopy(TEST_ROOT_MD_V2['signatures'])
-
 
     # Not enough signatures from authorized keys:
     #     Change the trusted metadata such that we expect sigs from 3 distinct
@@ -458,7 +471,6 @@ def test_verify_root():
 
     # Reset.
     root_v1_edited['signed']['delegations']['root']['threshold'] -= 1
-
 
 
 # def test_verify_delegation():

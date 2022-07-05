@@ -27,61 +27,63 @@ SAMPLE_UNKNOWN_FINGERPRINT = '0123456789abcdef0123456789abcdef01234567'
 SAMPLE_KEYVAL = 'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'
 
 SAMPLE_GPG_KEY_OBJ = {
-  'creation_time': 1571411344,
-  'hashes': ['pgp+SHA2'],
-  'keyid': SAMPLE_FINGERPRINT,
-  'keyval': {
-    'private': '',
-    'public': {'q': SAMPLE_KEYVAL}
-  },
-  'method': 'pgp+eddsa-ed25519',
-  'type': 'eddsa'
+    'creation_time': 1571411344,
+    'hashes': ['pgp+SHA2'],
+    'keyid': SAMPLE_FINGERPRINT,
+    'keyval': {'private': '', 'public': {'q': SAMPLE_KEYVAL}},
+    'method': 'pgp+eddsa-ed25519',
+    'type': 'eddsa',
 }
 
 SAMPLE_ROOT_MD_CONTENT = {
-  'delegations': {
-    'key_mgr.json': {'pubkeys': [], 'threshold': 1},
-    'root.json': {
-      'pubkeys': ['bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'],
-      'threshold': 1}
-  },
-  'expiration': '2020-12-09T17:20:19Z',
-  'metadata_spec_version': '0.1.0',  # TODO ✅⚠️❌💣: Update to 0.6.0 and remove the ".json" in the delegation names above, update the pubkey, and then re-sign this test metadata with the updated pubkey and adjust SAMPLE_GPG_SIG
-  'type': 'root',
-  'version': 1
+    'delegations': {
+        'key_mgr.json': {'pubkeys': [], 'threshold': 1},
+        'root.json': {
+            'pubkeys': [
+                'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'
+            ],
+            'threshold': 1,
+        },
+    },
+    'expiration': '2020-12-09T17:20:19Z',
+    'metadata_spec_version': '0.1.0',  # TODO ✅⚠️❌💣: Update to 0.6.0 and remove the ".json" in the delegation names above, update the pubkey, and then re-sign this test metadata with the updated pubkey and adjust SAMPLE_GPG_SIG
+    'type': 'root',
+    'version': 1,
 }
 
 SAMPLE_GPG_SIG = {
-  'see_also': 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589',
-  'other_headers': '04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3',
-  'signature': 'd6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201'
+    'see_also': 'f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589',
+    'other_headers': '04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3',
+    'signature': 'd6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201',
 }
 
 SAMPLE_SIGNED_ROOT_MD = {
-  'signatures': {
-    'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07': SAMPLE_GPG_SIG
-  },
-  'signed': SAMPLE_ROOT_MD_CONTENT
+    'signatures': {
+        'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07': SAMPLE_GPG_SIG
+    },
+    'signed': SAMPLE_ROOT_MD_CONTENT,
 }
 
-EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD = (b'{\n  '
+EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD = (
+    b'{\n  '
     b'"signatures": {\n    '
-        b'"bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07": {\n      '
-            b'"other_headers": "04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3",\n      '
-            b'"see_also": "f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589",\n      '
-            b'"signature": "d6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201"\n    }\n  },\n  '
+    b'"bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07": {\n      '
+    b'"other_headers": "04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3",\n      '
+    b'"see_also": "f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589",\n      '
+    b'"signature": "d6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201"\n    }\n  },\n  '
     b'"signed": {\n    '
-        b'"delegations": {\n      '
-            b'"key_mgr.json": {\n        '
-                b'"pubkeys": [],\n        '
-                b'"threshold": 1\n      },\n      '
-            b'"root.json": {\n        '
-                b'"pubkeys": [\n          "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"\n        ],\n        '
-                b'"threshold": 1\n      }\n    },\n    '
-                b'"expiration": "2020-12-09T17:20:19Z",\n    '
-                b'"metadata_spec_version": "0.1.0",\n    '  # TODO ✅⚠️❌💣: Update to 0.6.0 and remove the ".json" in the delegation names above, update the pubkey, and then re-sign this test metadata with the updated pubkey and adjust SAMPLE_GPG_SIG
-                b'"type": "root",\n    '
-                b'"version": 1\n  }\n}')
+    b'"delegations": {\n      '
+    b'"key_mgr.json": {\n        '
+    b'"pubkeys": [],\n        '
+    b'"threshold": 1\n      },\n      '
+    b'"root.json": {\n        '
+    b'"pubkeys": [\n          "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"\n        ],\n        '
+    b'"threshold": 1\n      }\n    },\n    '
+    b'"expiration": "2020-12-09T17:20:19Z",\n    '
+    b'"metadata_spec_version": "0.1.0",\n    '  # TODO ✅⚠️❌💣: Update to 0.6.0 and remove the ".json" in the delegation names above, update the pubkey, and then re-sign this test metadata with the updated pubkey and adjust SAMPLE_GPG_SIG
+    b'"type": "root",\n    '
+    b'"version": 1\n  }\n}'
+)
 
 # # Some REGRESSION test data.
 # REG__KEYPAIR_NAME = 'keytest_old'
@@ -97,13 +99,11 @@ REG__HASH_HEX = '73aec9a93f4beb41a9bad14b9d1398f60e78ccefd97e4eb7d3cf26ba71dbe0c
 # #REG__HASH_BYTES = b's\xae\xc9\xa9?K\xebA\xa9\xba\xd1K\x9d\x13\x98\xf6\x0ex\xcc\xef\xd9~N\xb7\xd3\xcf&\xbaq\xdb\xe0\xce'
 
 
-
 # def test_sha512256():
 #     # Test the SHA-512-truncate-256 hashing function w/ an expected result.
 #     assert sha512256(REG__HASHED_VAL) == REG__HASH_HEX
 
 #     # TODO: Test more?  Unusual input
-
 
 
 def test_canonserialize():
@@ -113,7 +113,8 @@ def test_canonserialize():
     assert canonserialize('a') == b'"a"'
     assert canonserialize(12) == b'12'
     assert canonserialize(SAMPLE_KEYVAL) == (
-            b'"bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"')
+        b'"bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"'
+    )
 
     # Tuples
     assert canonserialize((1, 2, 3)) == b'[\n  1,\n  2,\n  3\n]'
@@ -121,20 +122,20 @@ def test_canonserialize():
 
     # Dictionaries indexed by ints, strings, or both
     assert canonserialize({}) == b'{}'
-    assert canonserialize({1: 'v1', 2: 'v2'}) == (
-            b'{\n  "1": "v1",\n  "2": "v2"\n}')
+    assert canonserialize({1: 'v1', 2: 'v2'}) == (b'{\n  "1": "v1",\n  "2": "v2"\n}')
     assert canonserialize({'a': 'v1', 'b': 'v2'}) == (
-            b'{\n  "a": "v1",\n  "b": "v2"\n}')
+        b'{\n  "a": "v1",\n  "b": "v2"\n}'
+    )
     with pytest.raises(TypeError):
         # Currently, json.dumps(...sort_keys=True) raises a TypeError while
         # sorting if it has to sort string keys and integer keys together.
         canonserialize({5: 'value', 'key': 9, 'key2': 'value2'})
 
     assert canonserialize(SAMPLE_SIGNED_ROOT_MD) == (
-            EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+        EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD
+    )
 
     # TODO: Tricksy tests that mess with encoding.
-
 
 
 def test_keyfile_operations():
@@ -150,8 +151,7 @@ def test_keyfile_operations():
         fobj.write(REG__PRIVATE_BYTES)
     with open('keytest_old.pub', 'wb') as fobj:
         fobj.write(REG__PUBLIC_BYTES)
-    loaded_old_private_bytes, loaded_old_public_bytes = keyfiles_to_bytes(
-            'keytest_old')
+    loaded_old_private_bytes, loaded_old_public_bytes = keyfiles_to_bytes('keytest_old')
     loaded_old_private, loaded_old_public = keyfiles_to_keys('keytest_old')
 
     # Clean up a bit.
@@ -164,7 +164,6 @@ def test_keyfile_operations():
     assert loaded_old_public_bytes == REG__PUBLIC_BYTES
 
 
-
 def test_key_functions():
     # """
     # Tests for functions:
@@ -175,17 +174,16 @@ def test_key_functions():
     #     is_equivalent_to
     # """
     # First key, generated in two ways:
-    private_1_byt = PrivateKey.from_bytes(b'1'*32)
-    private_1_hex = PrivateKey.from_hex('31'*32)  # hex representation of b'1'
+    private_1_byt = PrivateKey.from_bytes(b'1' * 32)
+    private_1_hex = PrivateKey.from_hex('31' * 32)  # hex representation of b'1'
 
     # Second key, generated in two ways:
-    private_2_byt = PrivateKey.from_bytes(b'10' + b'1'*30)
-    private_2_hex = PrivateKey.from_hex('3130' + '31'*30)
+    private_2_byt = PrivateKey.from_bytes(b'10' + b'1' * 30)
+    private_2_hex = PrivateKey.from_hex('3130' + '31' * 30)
 
     # Regression key, generated in two ways:
     private_reg_byt = PrivateKey.from_bytes(REG__PRIVATE_BYTES)
     private_reg_hex = PrivateKey.from_hex(REG__PRIVATE_HEX)
-
 
     # Check these against each other and also against the expected output:
     #   - to_bytes
@@ -197,8 +195,8 @@ def test_key_functions():
     # key 1 from bytes vs key 1 from hex, also vs raw key 1 value
     assert private_1_byt.is_equivalent_to(private_1_hex)
     assert private_1_hex.is_equivalent_to(private_1_byt)
-    assert b'1'*32 == private_1_byt.to_bytes() == private_1_hex.to_bytes()
-    assert '31'*32 == private_1_byt.to_hex() == private_1_hex.to_hex()
+    assert b'1' * 32 == private_1_byt.to_bytes() == private_1_hex.to_bytes()
+    assert '31' * 32 == private_1_byt.to_hex() == private_1_hex.to_hex()
 
     # key 1 vs key 2 vs regression key
     assert not private_1_byt.is_equivalent_to(private_2_byt)
@@ -211,8 +209,8 @@ def test_key_functions():
     # key 2 from bytes vs key 2 from hex, also vs raw key 2 value
     assert private_2_byt.is_equivalent_to(private_2_hex)
     assert private_2_hex.is_equivalent_to(private_2_byt)
-    assert b'10' + b'1'*30 == private_2_byt.to_bytes() == private_2_hex.to_bytes()
-    assert '3130' + '31'*30 == private_2_byt.to_hex() == private_2_hex.to_hex()
+    assert b'10' + b'1' * 30 == private_2_byt.to_bytes() == private_2_hex.to_bytes()
+    assert '3130' + '31' * 30 == private_2_byt.to_hex() == private_2_hex.to_hex()
 
     # regression key from bytes vs from hex, and vs raw key value
     assert private_reg_byt.is_equivalent_to(private_reg_hex)
@@ -222,12 +220,10 @@ def test_key_functions():
     assert REG__PRIVATE_HEX == private_reg_byt.to_hex()
     assert REG__PRIVATE_HEX == private_reg_hex.to_hex()
 
-
     # Test the behavior when is_equivalent_to is provided a bad argument.
-    for bad_argument in ['1', 1, '1'*32, REG__PRIVATE_BYTES, b'1'*31, b'1'*33]:
+    for bad_argument in ['1', 1, '1' * 32, REG__PRIVATE_BYTES, b'1' * 31, b'1' * 33]:
         with pytest.raises(TypeError):
             private_reg_byt.is_equivalent_to(bad_argument)
-
 
 
 # This is the version of the tests before PrivateKey and PublicKey classes were
@@ -310,7 +306,6 @@ def test_key_functions():
 #     #         loaded_new_public, public_key_from_bytes(loaded_new_public_bytes))
 
 
-
 # Pull these from the integration tests in test_authentication.py
 
 
@@ -338,8 +333,8 @@ def test_is_gpg_signature():
         assert not is_a_signature(sig)
 
     gpg_sig = {
-            'other_headers': '04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3',
-            'signature': 'd6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201'
+        'other_headers': '04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3',
+        'signature': 'd6a3754dbd604a703434058c70db6a510b84a571236155df0b1f7f42605eb9e0faabca111d6ee808a7fcba663eafb5d66ecdfd33bd632df016fde3aed0f75201',
     }
 
     expect_success(gpg_sig)
@@ -362,12 +357,6 @@ def test_is_gpg_signature():
     expect_failure(gpg_sig, ValueError)
 
 
-
-
-
-
-
-
 # def test_wrap_as_signable():
 #     raise(NotImplementedError())
 
@@ -376,6 +365,7 @@ def test_is_gpg_signature():
 
 # def test_is_hex_signature():
 #     raise(NotImplementedError())
+
 
 def test_is_hex_key():
     assert is_hex_key('00' * 32)
@@ -393,12 +383,14 @@ def test_is_hex_key():
     assert not is_hex_key(public)
     assert is_hex_key(public.to_hex())
 
+
 def test_checkformat_hex_string():
     # TODO ✅: Add other tests.
     with pytest.raises(ValueError):
-        checkformat_hex_string('A') # single case is important
+        checkformat_hex_string('A')  # single case is important
     checkformat_hex_string('a')
     checkformat_hex_string(SAMPLE_KEYVAL)
+
 
 # def test_checkformat_hex_key():
 #     raise NotImplementedError()
@@ -432,22 +424,16 @@ def test_checkformat_delegation():
     with pytest.raises(ValueError):
         checkformat_delegation({})
     with pytest.raises(ValueError):
-        checkformat_delegation({
-            'threshold': 0, 'pubkeys': ['01'*32]})
+        checkformat_delegation({'threshold': 0, 'pubkeys': ['01' * 32]})
     with pytest.raises(ValueError):
-        checkformat_delegation({
-            'threshold': 1.5, 'pubkeys': ['01'*32]})
-    checkformat_delegation({
-        'threshold': 1, 'pubkeys': ['01'*32]})
+        checkformat_delegation({'threshold': 1.5, 'pubkeys': ['01' * 32]})
+    checkformat_delegation({'threshold': 1, 'pubkeys': ['01' * 32]})
 
     with pytest.raises(ValueError):
-        checkformat_delegation({
-            'threshold': 1, 'pubkeys': ['01'*31]})
+        checkformat_delegation({'threshold': 1, 'pubkeys': ['01' * 31]})
 
     with pytest.raises(ValueError):
-        checkformat_delegation({
-            'threshold': 1, 'pubkeys': ['01'*31]})
-
+        checkformat_delegation({'threshold': 1, 'pubkeys': ['01' * 31]})
 
 
 def test_checkformat_delegating_metadata():
@@ -460,15 +446,12 @@ def test_checkformat_delegating_metadata():
     #           - root metadata:
     #               - one signed using raw ed25519 instead of OpenPGP
 
-
     for badval in [
-            SAMPLE_ROOT_MD_CONTENT,
-            # TODO ✅: Add more bad values (bad sig formats, etc.)
-            ]:
-        with pytest.raises( (TypeError, ValueError) ):
+        SAMPLE_ROOT_MD_CONTENT,
+        # TODO ✅: Add more bad values (bad sig formats, etc.)
+    ]:
+        with pytest.raises((TypeError, ValueError)):
             checkformat_delegating_metadata(badval)
-
-
 
 
 # def test_iso8601_time_plus_delta():
@@ -479,4 +462,3 @@ def test_checkformat_delegating_metadata():
 
 # def test_set_expiry():
 #     raise NotImplementedError()
-
