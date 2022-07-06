@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import os
-import json
+import pathlib
 
 import conda_content_trust.metadata_construction as cct_metadata_construction
 import conda_content_trust.common as cct_common
@@ -165,7 +161,7 @@ def demo_root_signing_and_verifying_and_chaining():
     # TODO: ✅ Format-validate constructed root metadata using checkformat
     #          function.
 
-    if not os.path.exists('demo'):
+    if not pathlib.Path('demo').exists():
         os.mkdir('demo')
 
     # Write unsigned sample root metadata.

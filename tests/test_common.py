@@ -9,13 +9,13 @@ Run the tests this way:
 
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
+# Standard Library
+from pathlib import Path
 
-import os
-
+# Dependencies
 import pytest
 
+# This codebase
 from conda_content_trust.common import *
 
 # A 40-hex-character GPG public key fingerprint
@@ -154,10 +154,9 @@ def test_keyfile_operations():
     loaded_old_private_bytes, loaded_old_public_bytes = keyfiles_to_bytes('keytest_old')
     loaded_old_private, loaded_old_public = keyfiles_to_keys('keytest_old')
 
-    # Clean up a bit.
+    # Clean up files produced by the test.
     for fname in ['keytest_old.pri', 'keytest_old.pub']:
-        if os.path.exists(fname):
-            os.remove(fname)
+        Path(fname).unlink(missing_ok=True)
 
     # Check the keys we wrote and then loaded.
     assert loaded_old_private_bytes == REG__PRIVATE_BYTES

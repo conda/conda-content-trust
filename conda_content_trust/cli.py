@@ -6,14 +6,12 @@ This is intended to provide a command-line signing and metadata update
 interface.
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import json
+# Standard Library
 from argparse import ArgumentParser
 import copy
 import json
 
+# This codebase
 from conda_content_trust.common import (
     canonserialize,
     load_metadata_from_file,
@@ -24,11 +22,11 @@ from conda_content_trust.common import (
     is_hex_key,
 )
 
-from conda_content_trust import __version__
-import conda_content_trust.root_signing as cct_root_signing
-import conda_content_trust.signing as cct_signing
-import conda_content_trust.authentication as cct_authentication
-import conda_content_trust.metadata_construction as cct_metadata_construction
+from . import __version__
+import .authentication as cct_authentication
+import .metadata_construction as cct_metadata_construction
+import .root_signing as cct_root_signing
+import .signing as cct_signing
 
 # In Python2, input() performs evaluation and raw_input() does not.  In
 # Python3, input() does not perform evaluation and there is no raw_input().

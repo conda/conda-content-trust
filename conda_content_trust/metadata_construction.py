@@ -16,20 +16,11 @@ Metadata Construction:
   build_root_metadata         (wraps build_delegating_metadata)
 
 """
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
 
-# std libs
+# Standard Library
 import datetime
 
-# dependencies
-from six import string_types
-
-# Default expiration distance for repodata_verify.json.
-REPODATA_VERIF_MD_EXPIRY_DISTANCE = datetime.timedelta(days=31)
-ROOT_MD_EXPIRY_DISTANCE = datetime.timedelta(days=365)
-
-# car modules
+# This codebase
 from .common import (
     PrivateKey,
     PublicKey,
@@ -44,6 +35,10 @@ from .common import (
     iso8601_time_plus_delta,
     SECURITY_METADATA_SPEC_VERSION,
 )
+
+# # Default expiration distance for repodata_verify.json.
+# REPODATA_VERIF_MD_EXPIRY_DISTANCE = datetime.timedelta(days=31)
+# ROOT_MD_EXPIRY_DISTANCE = datetime.timedelta(days=365)
 
 
 def build_delegating_metadata(

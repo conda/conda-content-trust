@@ -9,8 +9,10 @@ Run the tests this way:
 
 """
 
+# Standard Library
 import subprocess
 
+# This codebase
 import conda_content_trust.cli
 
 

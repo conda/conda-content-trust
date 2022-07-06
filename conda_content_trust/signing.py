@@ -12,15 +12,12 @@ Function Manifest for this Module:
 
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
+# Standard Library
 import binascii
 import copy  # for deepcopy
 import json  # for json.dump
 
-# Dependency-provided libraries
+# Dependencies
 # import cryptography
 # import cryptography.exceptions
 # import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
@@ -28,8 +25,7 @@ import json  # for json.dump
 # import cryptography.hazmat.primitives.hashes
 # import cryptography.hazmat.backends
 
-
-# conda-content-trust modules
+# This codebase
 from .common import (
     SUPPORTED_SERIALIZABLE_TYPES,
     canonserialize,

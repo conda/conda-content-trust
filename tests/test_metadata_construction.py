@@ -8,25 +8,17 @@ conda-content-trust/conda_content_trust/metadata_construction.py.
 Run the tests this way:
     pytest tests/test_metadata_construction.py
 
-⚠️ Note that these tests may require more dependencies than the codebase
-   itself:
-     - pytest
-     - parameterize?
-
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
+# Standard Library
 import copy
 import os
 
-# external dependencies
+# Dependencies
 import pytest
 import cryptography.exceptions  # for InvalidSignature
 
-# this codebase
+# This codebase
 from conda_content_trust.metadata_construction import *
 from conda_content_trust.common import (  # these aren't already imported by metadata_construction
     keyfiles_to_bytes,

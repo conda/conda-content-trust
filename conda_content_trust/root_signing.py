@@ -23,16 +23,13 @@ Note that there is a function in conda_content_trust.authentication that verifie
 signatures without requiring securesystemslib.
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
+# Standard Library
 import json
 
 # import binascii  # for binascii.unhexlify / hexlify
 # import struct    # for struct.pack
 
-# dependencies
+# Dependencies
 # For ed25519 signing operations and hashing
 import cryptography.hazmat.primitives.asymmetric.ed25519  # as ed25519
 import cryptography.hazmat.primitives.hashes  # as pyca_crypto_hashes
@@ -50,7 +47,7 @@ try:
 except ImportError:
     SSLIB_AVAILABLE = False
 
-# this codebase
+# This codebase
 from .common import (
     canonserialize,
     load_metadata_from_file,

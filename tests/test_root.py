@@ -15,12 +15,11 @@ Run the tests this way:
 
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+# Standard Library
 import copy
 import json
 
+# Dependencies
 import pytest
 
 # securesystemslib is an optional dependency, and required only for signing

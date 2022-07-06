@@ -51,15 +51,13 @@ Exceptions:
         UnknownRoleError
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+# Standard Library
 import json
 import datetime
 import re  # for UTC iso8601 date string checking
 import binascii  # solely for hex string <-> bytes conversions
 
-from six import string_types
+# Dependencies
 import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
 import cryptography.hazmat.primitives.serialization as serialization
 import cryptography.hazmat.primitives.hashes
@@ -415,12 +413,12 @@ def is_hex_string(s):
 
 def checkformat_hex_string(s):
     """
-    Throws TypeError if s is not a string (string_types).
+    Throws TypeError if s is not a string (str).
     Throws ValueError if the given string is not a string of hexadecimal
     characters (upper-case not allowed to prevent redundancy).
     """
 
-    if not isinstance(s, string_types):
+    if not isinstance(s, str):
         raise TypeError('Expected a hex string; given value is not string typed.')
 
     for c in s:
@@ -527,7 +525,7 @@ def checkformat_natural_int(number):
 # This is not yet widely used.
 # TODO: ✅ See to it that anywhere we're checking for a string, we use this.
 def checkformat_string(s):
-    if not isinstance(s, string_types):
+    if not isinstance(s, str):
         raise TypeError('Expecting a string')
 
 
@@ -535,7 +533,7 @@ def checkformat_expiration_distance(expiration_distance):
     if not isinstance(expiration_distance, datetime.timedelta):
         raise TypeError(
             'Expiration distance must be a datetime.timedelta object. '
-            'Instead received a ' + +str(type(expiration_distance))
+            'Instead received a ' + str(type(expiration_distance))
         )
 
 

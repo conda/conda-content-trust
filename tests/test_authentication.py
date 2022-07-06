@@ -10,18 +10,15 @@ Run the tests this way:
 
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
+# Standard Library
 import copy
-import os
+from pathlib import Path
 
-# dependencies
+# Dependencies
 import pytest
 import cryptography.exceptions
 
-# this codebase
+# This codebase
 from conda_content_trust.authentication import *
 from conda_content_trust.metadata_construction import (
     gen_keys,
@@ -233,8 +230,7 @@ def test_wrap_sign_verify_signable():
         'keytest_old.pri',
         'keytest_old.pub',
     ]:
-        if os.path.exists(fname):
-            os.remove(fname)
+        Path(fname).unlink(missing_ok=True)
 
 
 # def test_repodata_verify_funcs():

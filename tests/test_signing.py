@@ -4,28 +4,27 @@
 
 Unit tests for conda-content-trust/conda_content_trust/signing.py
 
-
  NOTE that much of the signing module is currently tested in
    test_authentication.py instead.  Some unit tests are missing.
-
 
 Run the tests this way:
     pytest tests/test_signing.py
 
 """
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import os, os.path
-import shutil
+# Standard Library
 import copy
+from pathlib import Path
+import shutil
 
+# Dependencies
+import pytest
+
+# This codebase
 from conda_content_trust.common import *
 from conda_content_trust.authentication import *
 from conda_content_trust.signing import *
 
-import pytest
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = 'keytest_old'
@@ -98,8 +97,7 @@ REG__REPODATA_SAMPLE_TEMP_FNAME = 'tests/repodata_sample_temp.json'
 
 
 def remove_sample_tempfile():
-    if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
-        os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
+    Path(REG__REPODATA_SAMPLE_TEMP_FNAME).unlink(missing_ok=True)
 
 
 def test_sign_all_in_repodata(request):
@@ -110,12 +108,10 @@ def test_sign_all_in_repodata(request):
 
     # Make a test copy of the repodata sample, since we're going to
     # update it.
-    if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
-        os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
+    Path(REG__REPODATA_SAMPLE_TEMP_FNAME).unlink(missing_ok=True)
     shutil.copy(REG__REPODATA_SAMPLE_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
 
     # grab data and use it to compare to what we produce in a bit
-
     repodata = load_metadata_from_file(REG__REPODATA_SAMPLE_FNAME)
 
     sign_all_in_repodata(REG__REPODATA_SAMPLE_TEMP_FNAME, REG__PRIVATE_HEX)
