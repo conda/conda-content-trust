@@ -259,10 +259,10 @@ def verify_delegation(
 
     verify_signable(
         untrusted_delegated_metadata,
-        expected_keys,  #        drawn from trusted_delegating_metadata
-        threshold,  #            drawn from trusted_delegating_metadata
-        gpg=gpg,
-    )  # from argument to this func
+        expected_keys,  # drawn from trusted_delegating_metadata
+        threshold,  # drawn from trusted_delegating_metadata
+        gpg=gpg,  # from argument to this func
+    )
 
 
 # TODO ✅: Consider taking a hex public key instead of a key object, so that:
