@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-
-""" conda_content_trust.signing
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 This module contains functions that sign data using ed25519 keys, via the
 pyca/cryptography library.  Functions that perform OpenPGP-compliant (e.g. GPG)
 signing are provided instead in root_signing.
@@ -9,13 +10,7 @@ Function Manifest for this Module:
     serialize_and_sign
     wrap_as_signable
     sign_signable
-
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
 import binascii
 import copy # for deepcopy
 import json # for json.dump

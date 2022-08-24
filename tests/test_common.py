@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
-
-""" tests.test_common
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 (Mostly) unit tests for conda-content-trust/conda_content_trust/common.py.
 
 Run the tests this way:
     pytest tests/test_common.py
-
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import os
 
 import pytest
@@ -479,4 +474,3 @@ def test_checkformat_delegating_metadata():
 
 # def test_set_expiry():
 #     raise NotImplementedError()
-

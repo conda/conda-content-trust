@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
-
-""" conda_content_trust.authentication
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 This module contains functions that verify signatures and thereby authenticate
 data.
 
@@ -11,26 +11,16 @@ Function Manifest for this Module
     verify_signable
     verify_root
     verify_delegation
-
-
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# Standard libraries
 import binascii # for Python2/3-compatible hex string <- -> bytes conversion
 import struct # for struct.pack
 
-# Dependency-provided libraries
-from six import string_types   # for Python2/3-compatible string type checks
 import cryptography.exceptions
 import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
 #import cryptography.hazmat.primitives.serialization as serialization
 #import cryptography.hazmat.primitives.hashes
 #import cryptography.hazmat.backends
 
-# car modules
 from .common import (
         #SUPPORTED_SERIALIZABLE_TYPES,
         canonserialize,
@@ -205,7 +195,7 @@ def verify_delegation(
 
     # Argument validation
 
-    if not isinstance(delegation_name, string_types):
+    if not isinstance(delegation_name, str):
         raise TypeError(
                 'delegation_name must be a string, not a ' +
                 str(type(delegation_name)))

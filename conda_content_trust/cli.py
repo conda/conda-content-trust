@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
-
-""" conda_content_trust.cli
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 This module provides the CLI interface for conda-content-trust.
 This is intended to provide a command-line signing and metadata update
 interface.
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import json
 from argparse import ArgumentParser
 import copy
@@ -23,14 +20,6 @@ import conda_content_trust.root_signing as cct_root_signing
 import conda_content_trust.signing as cct_signing
 import conda_content_trust.authentication as cct_authentication
 import conda_content_trust.metadata_construction as cct_metadata_construction
-
-# In Python2, input() performs evaluation and raw_input() does not.  In
-# Python3, input() does not perform evaluation and there is no raw_input().
-# So... use raw_input in Python2, and input in Python3.
-try:                     # pragma: no cover
-    _input_func = raw_input
-except NameError:        # pragma: no cover
-    _input_func = input
 
 
 def cli(args=None):
@@ -315,7 +304,7 @@ def interactive_modify_metadata(metadata):
 
     # Build the modification options and prompt.
     def promptfor(s):
-        return _input_func(F_INSTRUCT + '\n----- Please provide ' + s + ENDC + ': ')
+        return input(F_INSTRUCT + "\n----- Please provide " + s + ENDC + ": ")
 
     def fn_write():
         fname = promptfor('a filename to save this metadata as')
@@ -437,7 +426,7 @@ def interactive_modify_metadata(metadata):
             pprint(metadata)
 
         print(option_text)
-        selected = _input_func(F_OPTS + 'Choice: ' + ENDC)
+        selected = input(F_OPTS + "Choice: " + ENDC)
         try:
             selected = int(selected)
         except:

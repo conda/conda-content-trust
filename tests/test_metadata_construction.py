@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
-""" tests.test_metadata_construction
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 (Mostly) unit tests for
 conda-content-trust/conda_content_trust/metadata_construction.py.
 
@@ -12,21 +12,13 @@ Run the tests this way:
    itself:
      - pytest
      - parameterize?
-
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
 import copy
 import os
 
-# external dependencies
 import pytest
 import cryptography.exceptions # for InvalidSignature
 
-# this codebase
 from conda_content_trust.metadata_construction import *
 from conda_content_trust.common import ( # these aren't already imported by metadata_construction
         keyfiles_to_bytes, keyfiles_to_keys, checkformat_key, is_a_signable,
@@ -294,5 +286,3 @@ def test_gen_keys():
     with pytest.raises(cryptography.exceptions.InvalidSignature):
         generated_public_1.verify(sig_from_2, b'1234')
         generated_public_1.verify(sig_from_1, b'5678')
-
-

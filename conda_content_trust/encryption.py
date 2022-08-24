@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 # # If nacl/encryption is optional.  Also, the checks in functions would probably
 # # then be best as a wrapper.
 # try:

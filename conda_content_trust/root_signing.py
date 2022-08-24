@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-
-""" conda_content_trust.root_signing
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 This module contains functions that sign data in an OpenPGP-compliant (i.e.
 GPG-friendly) way.  Root metadata may be signed in this manner.  Functions that
 perform simpler, direct signing using raw ed25519 keys are provided in
@@ -22,16 +23,10 @@ the API for this module:
 Note that there is a function in conda_content_trust.authentication that verifies these
 signatures without requiring securesystemslib.
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
 import json
 #import binascii  # for binascii.unhexlify / hexlify
 #import struct    # for struct.pack
 
-# dependencies
 # For ed25519 signing operations and hashing
 import cryptography.hazmat.primitives.asymmetric.ed25519# as ed25519
 import cryptography.hazmat.primitives.hashes# as pyca_crypto_hashes
@@ -48,7 +43,6 @@ try:
 except ImportError:
     SSLIB_AVAILABLE = False
 
-# this codebase
 from .common import (
         canonserialize, load_metadata_from_file, write_metadata_to_file,
         is_a_signable,
