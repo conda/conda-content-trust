@@ -381,7 +381,7 @@ def test_is_hex_key():
     assert not is_hex_key('1g' * 32)
     assert not is_hex_key(b'1g' * 32)
 
-    pubkey_bytes = binascii.unhexlify(SAMPLE_KEYVAL)
+    pubkey_bytes = unhexlify(SAMPLE_KEYVAL)
     assert not is_hex_key(pubkey_bytes)
 
     public = PublicKey.from_bytes(pubkey_bytes)

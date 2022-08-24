@@ -11,7 +11,9 @@ from json import dumps
 from copy import deepcopy
 
 from . import __version__
-from .authentication import authentication as cct_authentication
+from . import authentication as cct_authentication
+from . import root_signing as cct_root_signing
+from . import signing as cct_signing
 from .common import (
     load_metadata_from_file,
     write_metadata_to_file,
@@ -20,8 +22,6 @@ from .common import (
     is_gpg_fingerprint,
     is_hex_key,
 )
-from .root_signing import root_signing as cct_root_signing
-from .signing import signing as cct_signing
 
 
 def cli(args=None):

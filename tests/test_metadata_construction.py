@@ -13,17 +13,22 @@ Run the tests this way:
      - pytest
      - parameterize?
 """
-import copy
 import os
 
 import pytest
-import cryptography.exceptions # for InvalidSignature
+from cryptography.exceptions import InvalidSignature
 
 from conda_content_trust.metadata_construction import *
-from conda_content_trust.common import ( # these aren't already imported by metadata_construction
-        keyfiles_to_bytes, keyfiles_to_keys, checkformat_key, is_a_signable,
-        checkformat_delegating_metadata)
-from conda_content_trust.signing import wrap_as_signable, sign_signable
+from conda_content_trust.common import (
+    keyfiles_to_bytes,
+    keyfiles_to_keys,
+    checkformat_key,
+    is_a_signable,
+    checkformat_delegating_metadata,
+    PublicKey,
+    PrivateKey,
+)
+from conda_content_trust.signing import wrap_as_signable
 
 # Some REGRESSION test data.
 KEYPAIR_NAME = 'keytest_old'
@@ -283,6 +288,6 @@ def test_gen_keys():
     generated_public_1.verify(sig_from_1, b'1234')
     generated_public_2.verify(sig_from_2, b'1234')
 
-    with pytest.raises(cryptography.exceptions.InvalidSignature):
+    with pytest.raises(InvalidSignature):
         generated_public_1.verify(sig_from_2, b'1234')
         generated_public_1.verify(sig_from_1, b'5678')
