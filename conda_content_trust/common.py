@@ -50,10 +50,10 @@ Exceptions:
         MetadataVerificationError
         UnknownRoleError
 """
-import json
-import datetime
-import re # for UTC iso8601 date string checking
-import binascii # solely for hex string <-> bytes conversions
+from json import dumps, load
+from datetime import datetime, timedelta
+from re import compile  # for UTC iso8601 date string checking
+from binascii import hexlify, unhexlify  # solely for hex string <-> bytes conversions
 
 import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
 import cryptography.hazmat.primitives.serialization as serialization
@@ -87,9 +87,7 @@ SUPPORTED_DELEGATING_METADATA_TYPES = ['root', 'key_mgr']  # May be loosened lat
 #  compile the pattern once and use the same object for all checks.  For a
 #  pattern like this, it's probably a negligible difference, though, and
 #  it's conceivable that the compiler already optimizes this....)
-UTC_ISO8601_REGEX_PATTERN = re.compile(
-         '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
-
+UTC_ISO8601_REGEX_PATTERN = compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 
 
 class CCT_Error(Exception):
@@ -138,7 +136,7 @@ def canonserialize(obj):
     try:
         # TODO: In the future, assess whether or not to employ more typical
         #       practice of using no whitespace (instead of NLs and 2-indent).
-        json_string = json.dumps(obj, indent=2, sort_keys=True)
+        json_string = dumps(obj, indent=2, sort_keys=True)
     except TypeError:
         # TODO: ✅ Log or craft/use an appropriate exception class.
         raise
@@ -153,7 +151,7 @@ def load_metadata_from_file(fname):
     #          as a dependency, and calling its sanitize_filename() here.
 
     with open(fname, 'rb') as fobj:
-        metadata = json.load(fobj)
+        metadata = load(fobj)
 
     # TODO ✅: Consider validating what is read here, for everywhere.
 
@@ -209,8 +207,7 @@ class MixinKey(object):
         Represents the underlying ed25519 key value as a hex string, 64
         characters long, representing 32 bytes of data.
         """
-        return binascii.hexlify(self.to_bytes()).decode('utf-8')
-
+        return hexlify(self.to_bytes()).decode("utf-8")
 
     def is_equivalent_to(self, k2):
         """
@@ -289,7 +286,7 @@ class MixinKey(object):
         # the right type, so we'll do that here before calling them.
         checkformat_hex_key(key_value_in_hex)
 
-        key_value_in_bytes = binascii.unhexlify(key_value_in_hex)
+        key_value_in_bytes = unhexlify(key_value_in_hex)
 
         new_object = cls.from_bytes(key_value_in_bytes)
 
@@ -303,10 +300,10 @@ class MixinKey(object):
 
 
         # if   issubclass(cls, ed25519.Ed25519PrivateKey):
-        #     return cls.from_private_bytes(binascii.unhexlify(key_value_in_hex))
+        #     return cls.from_private_bytes(unhexlify(key_value_in_hex))
 
         # elif issubclass(cls, ed25519.Ed25519PublicKey):
-        #     return cls.from_public_bytes(binascii.unhexlify(key_value_in_hex))
+        #     return cls.from_public_bytes(unhexlify(key_value_in_hex))
 
         # else:
         #     assert False, (
@@ -546,7 +543,7 @@ def checkformat_string(s):
 
 
 def checkformat_expiration_distance(expiration_distance):
-    if not isinstance(expiration_distance, datetime.timedelta):
+    if not isinstance(expiration_distance, timedelta):
         raise TypeError(
                 'Expiration distance must be a datetime.timedelta object. '
                 'Instead received a ' + + str(type(expiration_distance)))
@@ -1149,7 +1146,7 @@ def keyfiles_to_keys(name):
 
 #     checkformat_hex_key(public_hex_string)
 
-#     return ed25519.Ed25519PublicKey.from_public_bytes(binascii.unhexlify(
+#     return ed25519.Ed25519PublicKey.from_public_bytes(unhexlify(
 #             public_hex_string))
 
 def checkformat_key(key):
@@ -1180,17 +1177,17 @@ def checkformat_key(key):
 #     Returns (hex) strings.
 #     """
 #     checkformat_key(key)
-#     return binascii.hexlify(key.public_bytes()).decode('utf-8')
+#     return hexlify(key.public_bytes()).decode('utf-8')
 
 
 # def signature
 # def bytes_to_hex_string():
 # def bytes_from_hex_string(hex):
 
-#     binascii.hexlify().
+#     hexlify().
 
 # def public_key_from_hex_string(public_hex_string):
-#     return ed25519.Ed25519PublicKey.from_public_bytes(binascii.unhexlify(public_hex_string))
+#     return ed25519.Ed25519PublicKey.from_public_bytes(unhexlify(public_hex_string))
 
 # def private_key_from_bytes(private_bytes):
 #     # from_private_bytes() checks length (32), but does not produce helpful
@@ -1227,7 +1224,7 @@ def iso8601_time_plus_delta(delta):
     """
     checkformat_expiration_distance(delta)
 
-    unix_expiry = datetime.datetime.utcnow().replace(microsecond=0) + delta
+    unix_expiry = datetime.utcnow().replace(microsecond=0) + delta
 
     return unix_expiry.isoformat() + 'Z'
 

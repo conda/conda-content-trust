@@ -12,40 +12,29 @@ Function Manifest for this Module
     verify_root
     verify_delegation
 """
-import binascii # for Python2/3-compatible hex string <- -> bytes conversion
-import struct # for struct.pack
+from binascii import unhexlify  # for Python2/3-compatible hex string <- -> bytes conversion
+from struct import pack
 
 import cryptography.exceptions
-import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
-#import cryptography.hazmat.primitives.serialization as serialization
-#import cryptography.hazmat.primitives.hashes
-#import cryptography.hazmat.backends
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from .common import (
-        #SUPPORTED_SERIALIZABLE_TYPES,
-        canonserialize,
-        PublicKey,
-        is_a_signable,
-        checkformat_signable,
-        # is_hex_string,
-        is_hex_signature,
-        is_hex_key,
-        is_signature,
-        is_gpg_signature,
-        is_a_signature,
-        checkformat_gpg_signature,
-        checkformat_hex_key,
-        checkformat_byteslike,
-        # checkformat_natural_int, checkformat_expiration_distance,
-        # checkformat_list_of_hex_keys,
-        # checkformat_utc_isoformat,
-        checkformat_delegation,
-        checkformat_delegating_metadata,
-        SignatureError,
-        UnknownRoleError,
-        MetadataVerificationError   # TODO: ✅ Use this more.
+    canonserialize,
+    PublicKey,
+    is_a_signable,
+    checkformat_signable,
+    is_hex_signature,
+    is_hex_key,
+    is_signature,
+    is_gpg_signature,
+    checkformat_gpg_signature,
+    checkformat_hex_key,
+    checkformat_byteslike,
+    checkformat_delegating_metadata,
+    SignatureError,
+    UnknownRoleError,
+    MetadataVerificationError,
 )
-
 
 
 # TODO✅: Consider reversing this argument order?  What's more intuitive?
@@ -300,7 +289,7 @@ def verify_signature(signature, public_key, data):
                 'verify_signature expects a bytes object as the "signature" '
                 'argument.  Instead, received ' + str(type(data)))
 
-    public_key.verify(binascii.unhexlify(signature), data)
+    public_key.verify(unhexlify(signature), data)
 
     # If no error is raised, return, indicating success (Explicit for editors)
     return
@@ -526,11 +515,11 @@ def verify_gpg_signature(signature, key_value, data):
 
     # See RFC4880-bis8 14.8. EdDSA and 5.2.4 "Computing Signatures"
     # digest = securesystemslib.gpg.util.hash_object(
-    #     binascii.unhexlify(signature["other_headers"]),
+    #     unhexlify(signature["other_headers"]),
     #     hasher(), data)
 
     # Additional headers in the OpenPGP signature (bleh).
-    additional_header_data = binascii.unhexlify(signature['other_headers'])
+    additional_header_data = unhexlify(signature["other_headers"])
 
     # As per RFC4880 Section 5.2.4., we need to hash the content,
     # signature headers and add a very opinionated trailing header
@@ -539,8 +528,8 @@ def verify_gpg_signature(signature, key_value, data):
             cryptography.hazmat.backends.default_backend())
     hasher.update(data)
     hasher.update(additional_header_data)
-    hasher.update(b'\x04\xff')
-    hasher.update(struct.pack('>I', len(additional_header_data)))
+    hasher.update(b"\x04\xff")
+    hasher.update(pack(">I", len(additional_header_data)))
 
     digest = hasher.finalize()
 
@@ -549,8 +538,7 @@ def verify_gpg_signature(signature, key_value, data):
     # print('Digest as produced by verify_gpg_signature: ' + str(digest))
 
     # Raises cryptography.exceptions.InvalidSignature if not a valid signature.
-    public_key.verify(
-            binascii.unhexlify(signature['signature']), digest)
+    public_key.verify(unhexlify(signature["signature"]), digest)
 
     # Return if we succeeded.
     return # explicit for clarity

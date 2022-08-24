@@ -23,33 +23,26 @@ the API for this module:
 Note that there is a function in conda_content_trust.authentication that verifies these
 signatures without requiring securesystemslib.
 """
-import json
-#import binascii  # for binascii.unhexlify / hexlify
-#import struct    # for struct.pack
-
-# For ed25519 signing operations and hashing
-import cryptography.hazmat.primitives.asymmetric.ed25519# as ed25519
-import cryptography.hazmat.primitives.hashes# as pyca_crypto_hashes
-import cryptography.hazmat.backends# as pyca_crypto_backends
-import cryptography.exceptions# as pyca_crypto_exceptions
-
 # securesystemslib is an optional dependency, and required only for signing
 # root metadata via GPG.  Verification of those signatures, and signing other
 # metadata with raw ed25519 signatures, does not require securesystemslib.
 try:
-    import securesystemslib.gpg.functions as gpg_funcs
+    from securesystemslib.gpg import functions as gpg_funcs
     import securesystemslib.formats
     SSLIB_AVAILABLE = True
 except ImportError:
     SSLIB_AVAILABLE = False
 
 from .common import (
-        canonserialize, load_metadata_from_file, write_metadata_to_file,
-        is_a_signable,
-        checkformat_gpg_fingerprint, checkformat_hex_key,
-        checkformat_gpg_signature, checkformat_byteslike,
-        PrivateKey, PublicKey, checkformat_key)
-
+    canonserialize,
+    load_metadata_from_file,
+    write_metadata_to_file,
+    is_a_signable,
+    checkformat_gpg_fingerprint,
+    checkformat_hex_key,
+    checkformat_byteslike,
+    checkformat_key,
+)
 
 
 def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):

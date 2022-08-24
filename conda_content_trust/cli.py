@@ -6,20 +6,22 @@ This module provides the CLI interface for conda-content-trust.
 This is intended to provide a command-line signing and metadata update
 interface.
 """
-import json
 from argparse import ArgumentParser
-import copy
-import json
+from json import dumps
+from copy import deepcopy
 
-from conda_content_trust.common import (
-        canonserialize, load_metadata_from_file, write_metadata_to_file,
-        CCT_Error, PrivateKey, is_gpg_fingerprint, is_hex_key)
-
-from conda_content_trust import __version__
-import conda_content_trust.root_signing as cct_root_signing
-import conda_content_trust.signing as cct_signing
-import conda_content_trust.authentication as cct_authentication
-import conda_content_trust.metadata_construction as cct_metadata_construction
+from . import __version__
+from .authentication import authentication as cct_authentication
+from .common import (
+    load_metadata_from_file,
+    write_metadata_to_file,
+    CCT_Error,
+    PrivateKey,
+    is_gpg_fingerprint,
+    is_hex_key,
+)
+from .root_signing import root_signing as cct_root_signing
+from .signing import signing as cct_signing
 
 
 def cli(args=None):
@@ -286,7 +288,7 @@ def interactive_modify_metadata(metadata):
     #     prepend "<version>." to root.json file.
 
     initial_metadata = metadata
-    metadata = copy.deepcopy(initial_metadata)
+    metadata = deepcopy(initial_metadata)
 
     try:
         import pygments
@@ -417,7 +419,7 @@ def interactive_modify_metadata(metadata):
         print(F_OPTS + BOLD + '\n\n---------------------\n--- Current metadata:\n---------------------\n' + ENDC)
 
         if pygments is not None:
-            formatted_metadata = json.dumps(metadata, sort_keys=True, indent=4)
+            formatted_metadata = dumps(metadata, sort_keys=True, indent=4)
             print(pygments.highlight(
                     formatted_metadata.encode('utf-8'),
                     pygments.lexers.JsonLexer(),

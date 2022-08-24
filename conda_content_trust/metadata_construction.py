@@ -15,19 +15,22 @@ Metadata Construction:
   build_delegating_metadata
   build_root_metadata         (wraps build_delegating_metadata)
 """
-import datetime
+from datetime import timedelta
 
 from .common import (
-        PrivateKey, PublicKey,
-        checkformat_natural_int, checkformat_list_of_hex_keys,
-        checkformat_string, checkformat_utc_isoformat, is_hex_hash,
-        checkformat_delegation, checkformat_delegations, is_delegations,
-        iso8601_time_plus_delta, SECURITY_METADATA_SPEC_VERSION)
+    PrivateKey,
+    checkformat_natural_int,
+    checkformat_string,
+    checkformat_utc_isoformat,
+    checkformat_delegations,
+    iso8601_time_plus_delta,
+    SECURITY_METADATA_SPEC_VERSION,
+)
 
 
 # Default expiration distance for repodata_verify.json.
-REPODATA_VERIF_MD_EXPIRY_DISTANCE = datetime.timedelta(days=31)
-ROOT_MD_EXPIRY_DISTANCE = datetime.timedelta(days=365)
+REPODATA_VERIF_MD_EXPIRY_DISTANCE = timedelta(days=31)
+ROOT_MD_EXPIRY_DISTANCE = timedelta(days=365)
 
 
 def build_delegating_metadata(
@@ -77,7 +80,7 @@ def build_delegating_metadata(
     if delegations is None:
         delegations = {}
     if timestamp is None:
-        timestamp = iso8601_time_plus_delta(datetime.timedelta(0)) #now plus 0
+        timestamp = iso8601_time_plus_delta(timedelta(0))  # now plus 0
     if expiration is None:
         expiration = iso8601_time_plus_delta(ROOT_MD_EXPIRY_DISTANCE)
 
@@ -306,7 +309,7 @@ def gen_keys():
 #         expiry = iso8601_time_plus_delta(REPODATA_VERIF_MD_EXPIRY_DISTANCE)
 
 #     if timestamp is None:
-#         timestamp = iso8601_time_plus_delta(datetime.timedelta(0))
+#         timestamp = iso8601_time_plus_delta(timedelta(0))
 
 #     # TODO: ✅ More argument validation: channel,
 #     checkformat_utc_isoformat(expiry)
