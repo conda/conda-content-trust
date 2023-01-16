@@ -29,7 +29,7 @@ setup(
     # pyca/cryptography).  *Verification* of either signature type does NOT
     # require securesystemslib.
     # WARNING: DEPENDENCY ON SECURESYSTEMSLIB PINNED.
-    extras_require = {'gpgsigning': ['securesystemslib==0.13.1']},
+    extras_require = {'gpgsigning': ['securesystemslib==0.26.0']},
     keywords='conda-content-trust conda-authentication-resources conda signing secure verify authentication key compromise',
     classifiers=[
         'Programming Language :: Python :: 2.7',
