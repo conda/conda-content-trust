@@ -101,9 +101,9 @@ six==1.16.0 \
 #     --hash=67c1ad65807009d3ed90e1b68571fb6c4407e0c9666d65a5340a1bac1b8d8d68
 
 # https://pypi.org/project/securesystemslib/0.18.0/#files
-securesystemslib==0.18.0 \
-    --hash=sha256:6f1a5e45efcfbc09941d9d2b8c239d86a6f9e62f8f9a6f76055877ad14f2387c \
-    --hash=sha256:01df48c690230373543b941603de3c8ec72e60224273ae30b7e931cecc21b565
+securesystemslib==0.27.0 \
+    --hash=sha256:27fab4aae9adaf82530dc58f8e85a546f637d5ec5c5ef00d261689985420a70b \
+    --hash=sha256:7ba326a41f980b3897356663144f6091531bf3d4e8333b821164526ce8e9f48d
 
 
 
