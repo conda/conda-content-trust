@@ -13,7 +13,7 @@ requirements = [
 setup(
     name='conda-content-trust',
     version=conda_content_trust.__version__,
-    description="Signing and verification tools for the conda ecosystem",
+    description="Signing and verification tools, geared toward the conda ecosystem",
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
     license="BSD",
