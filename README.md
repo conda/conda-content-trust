@@ -1,4 +1,4 @@
-[ci-tests-badge]: https://github.com/conda/conda-content-trust/workflows/ci.yml/badge.svg
+[ci-tests-badge]: https://github.com/conda/conda-content-trust/actions/workflows/ci.yml/badge.svg
 [codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda-build/main.svg?label=coverage
 [release-badge]: https://img.shields.io/github/release/conda/conda-build.svg
 
