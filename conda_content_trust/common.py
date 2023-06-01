@@ -56,14 +56,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import json
 import datetime
-import re # for UTC iso8601 date string checking
-import binascii # solely for hex string <-> bytes conversions
+import re  # for UTC iso8601 date string checking
+import binascii  # solely for hex string <-> bytes conversions
 
 from six import string_types
 import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
 import cryptography.hazmat.primitives.serialization as serialization
-import cryptography.hazmat.primitives.hashes
-import cryptography.hazmat.backends.openssl.ed25519
 
 # specification version for the metadata produced by conda-content-trust
 # Details in the Conda Security Metadata Specification.  Note that this
@@ -83,7 +81,7 @@ SECURITY_METADATA_SPEC_VERSION = '0.6.0'
 # the JSON-serializable types.  (There are further constraints to what is
 # JSON-serializable in addition to these type constraints.)
 SUPPORTED_SERIALIZABLE_TYPES = [
-        dict, list, tuple, str, int, float, bool, type(None)]
+    dict, list, tuple, str, int, float, bool, type(None)]
 
 # These are the permissible strings in the "type" field of delegating metadata.
 SUPPORTED_DELEGATING_METADATA_TYPES = ['root', 'key_mgr']  # May be loosened later.
@@ -93,8 +91,7 @@ SUPPORTED_DELEGATING_METADATA_TYPES = ['root', 'key_mgr']  # May be loosened lat
 #  pattern like this, it's probably a negligible difference, though, and
 #  it's conceivable that the compiler already optimizes this....)
 UTC_ISO8601_REGEX_PATTERN = re.compile(
-         '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
-
+    '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
 
 
 class CCT_Error(Exception):
@@ -104,11 +101,13 @@ class CCT_Error(Exception):
     of subclasses of this class.
     """
 
+
 class SignatureError(CCT_Error):
     """
     Indicates that a signable cannot be verified due to issues with the
     signature(s) inside it.
     """
+
 
 class MetadataVerificationError(CCT_Error):
     """
@@ -116,6 +115,7 @@ class MetadataVerificationError(CCT_Error):
     a metadata update is found on the repository, but could not be
     authenticated).
     """
+
 
 class UnknownRoleError(CCT_Error):
     """
@@ -151,7 +151,6 @@ def canonserialize(obj):
     return json_string.encode('utf-8')
 
 
-
 def load_metadata_from_file(fname):
 
     # TODO ✅: Argument validation for fname.  Consider adding "pathvalidate"
@@ -163,7 +162,6 @@ def load_metadata_from_file(fname):
     # TODO ✅: Consider validating what is read here, for everywhere.
 
     return metadata
-
 
 
 def write_metadata_to_file(metadata, filename):
@@ -208,14 +206,12 @@ class MixinKey(object):
                     'should only be used by classes inheriting from the '
                     '"cryptography" library ed25519 key classes.')
 
-
     def to_hex(self):
         """
         Represents the underlying ed25519 key value as a hex string, 64
         characters long, representing 32 bytes of data.
         """
         return binascii.hexlify(self.to_bytes()).decode('utf-8')
-
 
     def is_equivalent_to(self, k2):
         """
@@ -224,7 +220,6 @@ class MixinKey(object):
         """
         checkformat_key(k2)
         return self.to_bytes() == k2.to_bytes()
-
 
     @classmethod  # a class method for inheritors of this mix-in
     def from_bytes(cls, key_value_in_bytes):
@@ -241,7 +236,7 @@ class MixinKey(object):
         # the right type, so we'll do that here before calling them.
         checkformat_byteslike(key_value_in_bytes)
 
-        if   issubclass(cls, ed25519.Ed25519PrivateKey):
+        if issubclass(cls, ed25519.Ed25519PrivateKey):
             new_object = cls.from_private_bytes(key_value_in_bytes)
 
         elif issubclass(cls, ed25519.Ed25519PublicKey):
@@ -275,7 +270,6 @@ class MixinKey(object):
         # cls.__bases__ += tuple()
 
         new_object.__class__ = cls
-
         assert isinstance(new_object, cls)
         assert (
                 isinstance(new_object, ed25519.Ed25519PrivateKey)
@@ -283,8 +277,6 @@ class MixinKey(object):
 
         checkformat_key(new_object)
         return new_object
-
-
 
     @classmethod # a class method for inheritors of this mix-in
     def from_hex(cls, key_value_in_hex):
@@ -302,40 +294,12 @@ class MixinKey(object):
         return new_object
 
 
-
-
-
-
-
-        # if   issubclass(cls, ed25519.Ed25519PrivateKey):
-        #     return cls.from_private_bytes(binascii.unhexlify(key_value_in_hex))
-
-        # elif issubclass(cls, ed25519.Ed25519PublicKey):
-        #     return cls.from_public_bytes(binascii.unhexlify(key_value_in_hex))
-
-        # else:
-        #     assert False, (
-        #             'Code error: this should not be possible.  This mix-in '
-        #             'should only be used by classes inheriting from the '
-        #             '"cryptography" library ed25519 key classes.')
-
-        # new_object.__class__ = cls
-        # assert isinstance(new_object, cls)
-        # assert (
-        #         isinstance(new_object, Ed25519PrivateKey)
-        #         or isinstance(new_object, Ed25519PublicKey))
-
-
-
 class PrivateKey(
-            MixinKey,
-            # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
-            #                 possible.  It's a private class.
-            cryptography.hazmat.backends.openssl.ed25519._Ed25519PrivateKey, # DANGER
-            cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
+        MixinKey,
+        cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
         # Note that inheritance class order should use the "true" base class
         # last in Python.
-            ):
+        ):
     """
     This class expands the class
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
@@ -388,7 +352,6 @@ class PublicKey(
             MixinKey,
             # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
             #                 possible.  It's a private class.
-            cryptography.hazmat.backends.openssl.ed25519._Ed25519PublicKey, # DANGER
             cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
         # Note that inheritance class order should use the "true" base class
         # last in Python.
@@ -435,9 +398,8 @@ def checkformat_hex_string(s):
     characters (upper-case not allowed to prevent redundancy).
     """
 
-    if not isinstance(s, string_types):
-        raise TypeError(
-                'Expected a hex string; given value is not string typed.')
+    if not isinstance(s, str):
+        raise TypeError('Expected a hex string; given value is not string typed.')
 
     for c in s:
         if c not in [
