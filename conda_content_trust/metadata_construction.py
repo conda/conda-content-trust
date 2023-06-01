@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2019 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -18,15 +17,14 @@ Metadata Construction:
 from datetime import timedelta
 
 from .common import (
+    SECURITY_METADATA_SPEC_VERSION,
     PrivateKey,
+    checkformat_delegations,
     checkformat_natural_int,
     checkformat_string,
     checkformat_utc_isoformat,
-    checkformat_delegations,
     iso8601_time_plus_delta,
-    SECURITY_METADATA_SPEC_VERSION,
 )
-
 
 # Default expiration distance for repodata_verify.json.
 REPODATA_VERIF_MD_EXPIRY_DISTANCE = timedelta(days=31)
@@ -34,8 +32,8 @@ ROOT_MD_EXPIRY_DISTANCE = timedelta(days=365)
 
 
 def build_delegating_metadata(
-        metadata_type,
-        delegations=None, version=1, timestamp=None, expiration=None):
+    metadata_type, delegations=None, version=1, timestamp=None, expiration=None
+):
     """
     # ✅ TODO: Docstring
 
@@ -99,12 +97,12 @@ def build_delegating_metadata(
     checkformat_delegations(delegations)
 
     md = {
-        'type': metadata_type,
-        'version': version,
-        'metadata_spec_version': SECURITY_METADATA_SPEC_VERSION,
-        'timestamp': timestamp,
-        'expiration': expiration,
-        "delegations": delegations
+        "type": metadata_type,
+        "version": version,
+        "metadata_spec_version": SECURITY_METADATA_SPEC_VERSION,
+        "timestamp": timestamp,
+        "expiration": expiration,
+        "delegations": delegations,
     }
 
     # # This very redundant, but might be useful as defensive code.
@@ -113,12 +111,15 @@ def build_delegating_metadata(
     return md
 
 
-
 def build_root_metadata(
-        root_version,
-        root_pubkeys, root_threshold,
-        key_mgr_pubkeys, key_mgr_threshold,
-        root_timestamp=None, root_expiration=None):
+    root_version,
+    root_pubkeys,
+    root_threshold,
+    key_mgr_pubkeys,
+    key_mgr_threshold,
+    root_timestamp=None,
+    root_expiration=None,
+):
     """
     Wrapper for build_delegating_metadata().  Helpfully requires root to list
     itself and key_mgr in its delegations.
@@ -146,19 +147,19 @@ def build_root_metadata(
     #     channeler_threshold = max(1, len(channeler_pubkeys))
 
     delegations = {
-        'root':
-            {'pubkeys': root_pubkeys, 'threshold': root_threshold},
-        'key_mgr':
-            {'pubkeys': key_mgr_pubkeys, 'threshold': key_mgr_threshold}
+        "root": {"pubkeys": root_pubkeys, "threshold": root_threshold},
+        "key_mgr": {"pubkeys": key_mgr_pubkeys, "threshold": key_mgr_threshold},
     }
 
     root_md = build_delegating_metadata(
-            metadata_type='root', delegations=delegations,
-            version=root_version, timestamp=root_timestamp,
-            expiration=root_expiration)
+        metadata_type="root",
+        delegations=delegations,
+        version=root_version,
+        timestamp=root_timestamp,
+        expiration=root_expiration,
+    )
 
     return root_md
-
 
 
 def gen_and_write_keys(fname):
@@ -178,13 +179,12 @@ def gen_and_write_keys(fname):
     # Write the actual bytes of the key values to disk as requested.
     # Note that where the private key is concerned, we're just grabbing the
     # not-encrypted private key value.
-    with open(fname + '.pri', 'wb') as fobj:
-            fobj.write(private.to_bytes())
-    with open(fname + '.pub', 'wb') as fobj:
-            fobj.write(public.to_bytes())
+    with open(fname + ".pri", "wb") as fobj:
+        fobj.write(private.to_bytes())
+    with open(fname + ".pub", "wb") as fobj:
+        fobj.write(public.to_bytes())
 
     return private, public
-
 
 
 def gen_keys():

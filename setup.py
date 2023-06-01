@@ -1,30 +1,28 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2019 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 from setuptools import setup
+
 import conda_content_trust
 
 requirements = [
-    'six',
-    'cryptography',
+    "six",
+    "cryptography",
     # securesystemslib is optional: pip install conda-authentication-resources[gpgsigning]
 ]
 
 setup(
-    name='conda-content-trust',
+    name="conda-content-trust",
     version=conda_content_trust.__version__,
     description="Signing and verification tools, geared toward the conda ecosystem",
-    long_description=open("README.md", "r").read(),
+    long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     license="BSD",
     author="Sebastien Awwad",
-    author_email='sebastien.awwad@gmail.com',
-    url='https://github.com/conda/conda-content-trust',
-    packages=['conda_content_trust'],
+    author_email="sebastien.awwad@gmail.com",
+    url="https://github.com/conda/conda-content-trust",
+    packages=["conda_content_trust"],
     entry_points={
-        'console_scripts': [
-            'conda-content-trust=conda_content_trust.cli:cli'
-        ]
+        "console_scripts": ["conda-content-trust=conda_content_trust.cli:cli"]
     },
     install_requires=requirements,
     # Note that the securesystemslib optional dependency is only required to
@@ -32,13 +30,13 @@ setup(
     # pyca/cryptography).  *Verification* of either signature type does NOT
     # require securesystemslib.
     # WARNING: DEPENDENCY ON SECURESYSTEMSLIB PINNED.
-    extras_require = {'gpgsigning': ['securesystemslib==0.13.1']},
-    keywords='conda-content-trust conda-authentication-resources conda signing secure verify authentication key compromise',
+    extras_require={"gpgsigning": ["securesystemslib==0.13.1"]},
+    keywords="conda-content-trust conda-authentication-resources conda signing secure verify authentication key compromise",
     classifiers=[
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-    ]
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+    ],
 )
