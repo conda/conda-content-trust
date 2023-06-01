@@ -52,7 +52,7 @@ jobs:
       - name: Conda info
         run: conda info -a
 
-        - name: Run tests
+      - name: Run tests
         run: conda run --no-capture-output pytest
 
       - name: Upload coverage
