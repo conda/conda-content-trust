@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 from setuptools import setup
 import conda_content_trust
 
@@ -10,9 +13,9 @@ requirements = [
 setup(
     name='conda-content-trust',
     version=conda_content_trust.__version__,
-    description="Signing and verification tools for the conda ecosystem",
-    long_description=open('README.rst', 'r').read(),
-    long_description_content_type="text/x-rst",
+    description="Signing and verification tools, geared toward the conda ecosystem",
+    long_description=open("README.md", "r").read(),
+    long_description_content_type="text/markdown",
     license="BSD",
     author="Sebastien Awwad",
     author_email='sebastien.awwad@gmail.com',
