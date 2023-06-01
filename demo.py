@@ -2,7 +2,6 @@
 # Copyright (C) 2019 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import os
-import json
 
 import conda_content_trust.metadata_construction as cct_metadata_construction
 import conda_content_trust.common as cct_common

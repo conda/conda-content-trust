@@ -173,7 +173,7 @@ def sign_all_in_repodata(fname, private_key_hex):
 
     # TODO ✅: Consider more validation for the gross structure expected of
     #            repodata.json
-    if not 'packages' in repodata:
+    if 'packages' not in repodata:
         raise ValueError('Expected a "packages" entry in given repodata file.')
 
     # Add an empty 'signatures' dict to repodata.

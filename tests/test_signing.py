@@ -18,7 +18,6 @@ from conda_content_trust.common import *
 from conda_content_trust.authentication import *
 from conda_content_trust.signing import *
 
-import pytest
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = 'keytest_old'

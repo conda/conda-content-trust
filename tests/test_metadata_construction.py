@@ -164,7 +164,7 @@ def test_build_root_metadata():
     with pytest.raises(TypeError):
         root_md = build_root_metadata(
                 root_pubkeys=[ROOT_PUBLIC_HEX],
-                root_threshold='this is not an integer', #  <---
+                root_threshold='this is not an integer',
                 root_version=1,
                 root_expiration=TEST_EXPIRY_DATE,
                 key_mgr_pubkeys=[PUBLIC_HEX],

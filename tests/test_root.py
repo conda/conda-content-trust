@@ -14,7 +14,6 @@ Run the tests this way:
     pytest tests/test_root.py
 """
 import copy
-import json
 
 import pytest
 

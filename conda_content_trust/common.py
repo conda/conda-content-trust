@@ -584,18 +584,18 @@ def checkformat_hex_hash(h):
 
 
 
-def checkformat_list_of_hex_keys(l):
+def checkformat_list_of_hex_keys(value):
     """
     Note that this rejects any list of keys that includes any exact duplicates.
     """
-    if not isinstance(l, list):
+    if not isinstance(value, list):
         raise TypeError(
                 'Expected a list of 64-character hex strings representing keys.')
 
-    for key in l:
+    for key in value:
         checkformat_hex_key(key)
 
-    if len(set(l)) != len(l):
+    if len(set(value)) != len(value):
         raise ValueError(
             'The given list of keys in hex string form contains duplicates.  '
             'Duplicates are not permitted.')

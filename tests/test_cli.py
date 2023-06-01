@@ -9,7 +9,6 @@ Run the tests this way:
 """
 import subprocess
 
-import conda_content_trust.cli
 
 def test_cli_basics():
   assert not subprocess.call(['conda-content-trust', '-V'])
