@@ -59,8 +59,9 @@ import datetime
 import re  # for UTC iso8601 date string checking
 import binascii  # solely for hex string <-> bytes conversions
 
-import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
-import cryptography.hazmat.primitives.serialization as serialization
+from six import string_types
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import serialization
 
 # specification version for the metadata produced by conda-content-trust
 # Details in the Conda Security Metadata Specification.  Note that this
@@ -74,23 +75,21 @@ import cryptography.hazmat.primitives.serialization as serialization
 # Try, however, to keep to three simple numeric elements separated by periods,
 # i.e., things that match this subset of SemVer:
 #   > None is not re.match(r'^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)$', version_string)
-SECURITY_METADATA_SPEC_VERSION = '0.6.0'
+SECURITY_METADATA_SPEC_VERSION = "0.6.0"
 
 # The only types we're allowed to wrap as "signables" and sign are
 # the JSON-serializable types.  (There are further constraints to what is
 # JSON-serializable in addition to these type constraints.)
-SUPPORTED_SERIALIZABLE_TYPES = [
-    dict, list, tuple, str, int, float, bool, type(None)]
+SUPPORTED_SERIALIZABLE_TYPES = [dict, list, tuple, str, int, float, bool, type(None)]
 
 # These are the permissible strings in the "type" field of delegating metadata.
-SUPPORTED_DELEGATING_METADATA_TYPES = ['root', 'key_mgr']  # May be loosened later.
+SUPPORTED_DELEGATING_METADATA_TYPES = ["root", "key_mgr"]  # May be loosened later.
 
 # (I think the regular expression checks for datetime strings run faster if we
 #  compile the pattern once and use the same object for all checks.  For a
 #  pattern like this, it's probably a negligible difference, though, and
 #  it's conceivable that the compiler already optimizes this....)
-UTC_ISO8601_REGEX_PATTERN = re.compile(
-    '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$')
+UTC_ISO8601_REGEX_PATTERN = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 
 
 class CCT_Error(Exception):
@@ -147,7 +146,7 @@ def canonserialize(obj):
         # TODO: ✅ Log or craft/use an appropriate exception class.
         raise
 
-    return json_string.encode('utf-8')
+    return json_string.encode("utf-8")
 
 
 def load_metadata_from_file(fname):
@@ -155,7 +154,7 @@ def load_metadata_from_file(fname):
     # TODO ✅: Argument validation for fname.  Consider adding "pathvalidate"
     #          as a dependency, and calling its sanitize_filename() here.
 
-    with open(fname, 'rb') as fobj:
+    with open(fname, "rb") as fobj:
         metadata = json.load(fobj)
 
     # TODO ✅: Consider validating what is read here, for everywhere.
@@ -175,122 +174,68 @@ def write_metadata_to_file(metadata, filename):
 
     metadata = canonserialize(metadata)
 
-    with open(filename, 'wb') as fobj:
+    with open(filename, "wb") as fobj:
         fobj.write(metadata)
 
 
-class MixinKey(object):
+class MixinKey:
     """
     This is a mix-in (https://www.ianlewis.org/en/mixins-and-python) for the
     PrivateKey and PublicKey classes, specifically.  It provides some
     convenience functions.
     """
-    def to_bytes(self):
-        """
-        Pops out the nice, tidy bytes of a given ed25519 key object, public or
-        private.
-        """
-        if isinstance(self, ed25519.Ed25519PrivateKey):
-            return self.private_bytes(
-                    encoding=serialization.Encoding.Raw,
-                    format=serialization.PrivateFormat.Raw,
-                    encryption_algorithm=serialization.NoEncryption())
-        elif isinstance(self, ed25519.Ed25519PublicKey):
-            return self.public_bytes(
-                    serialization.Encoding.Raw,
-                    serialization.PublicFormat.Raw)
-        else:
-            assert False, (
-                    'Code error: this should not be possible.  This mix-in '
-                    'should only be used by classes inheriting from the '
-                    '"cryptography" library ed25519 key classes.')
-
-    def to_hex(self):
-        """
-        Represents the underlying ed25519 key value as a hex string, 64
-        characters long, representing 32 bytes of data.
-        """
-        return binascii.hexlify(self.to_bytes()).decode('utf-8')
-
-    def is_equivalent_to(self, k2):
-        """
-        Given Ed25519PrivateKey or Ed25519PublicKey objects, determines if the
-        underlying key data is identical.
-        """
-        checkformat_key(k2)
-        return self.to_bytes() == k2.to_bytes()
-
     @classmethod  # a class method for inheritors of this mix-in
-    def from_bytes(cls, key_value_in_bytes):
-        """
-        Constructs an object of the class based on the given key value.
-        The "cryptography" library provides from_public_bytes() and
-        from_private_bytes() class methods for Ed25519PublicKey and
-        Ed25519PrivateKey classes in place of constructors.  We extend provide
-        a single API for those, and make the created objects objects of the
-        subclass using this mix-in.
-        """
-        # from_private_bytes() and from_public_bytes() both check length (32),
-        # but do not produce helpful errors if the argument provided it is not
-        # the right type, so we'll do that here before calling them.
-        checkformat_byteslike(key_value_in_bytes)
-
-        if issubclass(cls, ed25519.Ed25519PrivateKey):
-            new_object = cls.from_private_bytes(key_value_in_bytes)
-
-        elif issubclass(cls, ed25519.Ed25519PublicKey):
-            new_object = cls.from_public_bytes(key_value_in_bytes)
-
-        else:
-            assert False, (
-                    'Code error: this should not be possible.  This mix-in '
-                    'should only be used by classes inheriting from the '
-                    '"cryptography" library ed25519 key classes.')
-
-        # Fixed:
-        # # TODO: ✅❌⚠️💣 Changing this here is uncouth.  It MUST BE SET AT
-        # #               CLASS DEFINITION time.  Change this!
-        # # Note that this mro modification mess is required in some form or
-        # # another because ed25519.Ed25519PrivateKey and Ed25519PublicKey
-        # # use metaclassing (in a way that I don't think is useful, btw).
-        # # This line is poking cls.__bases__.  It would appear to do nothing,
-        # # since we're extending a tuple with nothing, but it *actually* causes
-        # # the class's MRO (method resolution order) to be recalculated.
-        # # Before this line is run, it does not include PrivateKey (this class),
-        # # and after this line is run, it will include PrivateKey.  This should
-        # # probably be done with some manner of metaclass decorator instead.
-        # #
-        # # Before the next two lines are run, this is the situation:
-        # # > cls.__bases__
-        # #    (<class 'conda_content_trust.common.MixinKey'>,
-        # #     <class 'ed25519.Ed25519PrivateKey'>)
-        # # > new_object.__class__
-        # #    <class 'cryptography.hazmat.backends.openssl.ed25519._Ed25519PrivateKey'>
-        # cls.__bases__ += tuple()
-
-        new_object.__class__ = cls
-        assert isinstance(new_object, cls)
-        assert (
-                isinstance(new_object, ed25519.Ed25519PrivateKey)
-                or isinstance(new_object, ed25519.Ed25519PublicKey))
-
-        checkformat_key(new_object)
-        return new_object
-
-    @classmethod # a class method for inheritors of this mix-in
     def from_hex(cls, key_value_in_hex):
 
         # from_private_bytes() and from_public_bytes() both check length (32),
         # but do not produce helpful errors if the argument provided it is not
         # the right type, so we'll do that here before calling them.
         checkformat_hex_key(key_value_in_hex)
-
         key_value_in_bytes = binascii.unhexlify(key_value_in_hex)
-
         new_object = cls.from_bytes(key_value_in_bytes)
-
         checkformat_key(new_object)
         return new_object
+
+
+def is_equivalent_to(cls, k1, k2):
+    """
+    Given Ed25519PrivateKey or Ed25519PublicKey objects, determines if the
+    underlying key data is identical.
+    """
+    checkformat_key(k2)
+    if type(k1) is not type(k2):
+        return False
+    return cls.to_bytes(k1) == cls.to_bytes(k2)
+
+
+def private_to_hex(key):
+    return binascii.hexlify(private_to_bytes(key)).decode("utf-8")
+
+
+def private_to_bytes(key):
+    """ """
+    return key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+
+def private_from_bytes(key_value_in_bytes):
+    """
+    Constructs an object of the class based on the given key value.
+    The "cryptography" library provides from_public_bytes() and
+    from_private_bytes() class methods for Ed25519PublicKey and
+    Ed25519PrivateKey classes in place of constructors.  We extend provide
+    a single API for those, and make the created objects objects of the
+    subclass using this mix-in.
+    """
+    # from_private_bytes() and from_public_bytes() both check length (32),
+    # but do not produce helpful errors if the argument provided it is not
+    # the right type, so we'll do that here before calling them.
+    checkformat_byteslike(key_value_in_bytes)
+
+    return PrivateKey.from_private_bytes(key_value_in_bytes)
 
 
 class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
@@ -306,8 +251,11 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         value for sign() is a length 64 bytes() object, a raw ed25519
         signature.
     """
+    to_bytes = private_to_bytes
+    from_bytes = private_from_bytes
+    to_hex = private_to_hex
 
-    def public_key(self):   # Overrides ed25519.Ed25519PrivateKey's method
+    def public_key(self):  # Overrides ed25519.Ed25519PrivateKey's method
         """
         Return the public key corresponding to this private key.
         """
@@ -316,27 +264,39 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         #                   parent class's public_key() method be called, we'll
         #                   get an object of the wrong type.
         public = super().public_key()  # TODO: ✅ Python 2 compliance
-        public.__class__ = PublicKey   # TODO: ✅ This should not be hardcoded?
+        # public.__class__ = PublicKey  # TODO: ✅ This should not be hardcoded?
 
         checkformat_key(public)
         return public
 
-    @classmethod  # a class method for inheritors of this mix-in
-    def generate(cls):  # Overrides ed25519.Ed25519PrivateKey's class method
-        """
-        Wrap the superclass's key generation class function
-        (ed25519.Ed25519PrivateKey.generate()), in order to make sure the
-        generated key has the PrivateKey subclass.
-        """
-        # TODO: ✅❌⚠️💣  Confirm that this override works.  We MUST override
-        #                   the generate() class method.  If we just let the
-        #                   parent class's generate() method be called, we'll
-        #                   get an object of the wrong type.
-        private = super().generate()    # TODO: ✅ Python 2 compliance
-        private.__class__ = PrivateKey  # TODO: ✅ Should this be hardcoded?
 
-        checkformat_key(private)
-        return private
+def public_to_hex(key):
+    return binascii.hexlify(public_to_bytes(key)).decode("utf-8")
+
+
+def public_to_bytes(key):
+    """
+    Pops out the nice, tidy bytes of a given ed25519 key object, public or
+    private.
+    """
+    return key.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+
+
+def public_from_bytes(key_value_in_bytes):
+    """
+    Constructs an object of the class based on the given key value.
+    The "cryptography" library provides from_public_bytes() and
+    from_private_bytes() class methods for Ed25519PublicKey and
+    Ed25519PrivateKey classes in place of constructors.  We extend provide
+    a single API for those, and make the created objects objects of the
+    subclass using this mix-in.
+    """
+    # from_private_bytes() and from_public_bytes() both check length (32),
+    # but do not produce helpful errors if the argument provided it is not
+    # the right type, so we'll do that here before calling them.
+    checkformat_byteslike(key_value_in_bytes)
+
+    return PublicKey.from_public_bytes(key_value_in_bytes)
 
 
 class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
@@ -347,7 +307,9 @@ class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
 
     We preserve Ed25519PublicKey's verify() method unchanged.
     """
-
+    to_bytes = public_to_bytes
+    from_bytes = public_from_bytes
+    to_hex = public_to_hex
 
 # No....  For now, I'll stick with the raw dictionary representations.
 # If function profusion makes it inconvenient for folks to use this library,
@@ -373,22 +335,38 @@ def is_hex_string(s):
 
 def checkformat_hex_string(s):
     """
-    Throws TypeError if s is not a string.
+    Throws TypeError if s is not a string (string_types).
     Throws ValueError if the given string is not a string of hexadecimal
     characters (upper-case not allowed to prevent redundancy).
     """
 
-    if not isinstance(s, str):
-        raise TypeError('Expected a hex string; given value is not string typed.')
+    if not isinstance(s, string_types):
+        raise TypeError("Expected a hex string; given value is not string typed.")
 
     for c in s:
         if c not in [
-                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-                'a', 'b', 'c', 'd', 'e', 'f']:
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "0",
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+        ]:
             raise ValueError(
-                    'Expected a hex string; non-hexadecimal or upper-case '
-                    'character found: "' + str(c) + '".')
-
+                "Expected a hex string; non-hexadecimal or upper-case "
+                'character found: "' + str(c) + '".'
+            )
 
 
 def is_hex_signature(sig):
@@ -403,7 +381,6 @@ def is_hex_signature(sig):
         return True
 
     return False
-
 
 
 def is_hex_key(key):
@@ -421,7 +398,6 @@ def is_hex_key(key):
         return False
 
 
-
 def is_hex_hash(h):
     """
     Returns True if h is a hex string with no uppercase characters, no
@@ -435,7 +411,6 @@ def is_hex_hash(h):
     return is_hex_key(h)
 
 
-
 def is_a_signable(dictionary):
     """
     Returns True if the given dictionary is a signable dictionary as produced
@@ -445,18 +420,17 @@ def is_a_signable(dictionary):
     outside of 'signed' is under attacker control.)
     """
     if (
-            isinstance(dictionary, dict)
-            and 'signatures' in dictionary
-            and 'signed' in dictionary
-            and isinstance(dictionary['signatures'], dict) #, list)
-            and type(dictionary['signed']) in SUPPORTED_SERIALIZABLE_TYPES
-            and len(dictionary) == 2
-            ):
+        isinstance(dictionary, dict)
+        and "signatures" in dictionary
+        and "signed" in dictionary
+        and isinstance(dictionary["signatures"], dict)  # , list)
+        and type(dictionary["signed"]) in SUPPORTED_SERIALIZABLE_TYPES
+        and len(dictionary) == 2
+    ):
         return True
 
     else:
         return False
-
 
 
 # TODO: ✅ Consolidate: switch to use of this wherever is_a_signable is called
@@ -464,40 +438,39 @@ def is_a_signable(dictionary):
 def checkformat_signable(dictionary):
     if not is_a_signable(dictionary):
         raise TypeError(
-                'Expected a signable dictionary, but the given argument '
-                'does not match expectations for a signable dictionary '
-                '(must be a dictionary containing only keys "signatures" and '
-                '"signed", where the value for key "signatures" is a dict '
-                'and the value for key "signed" is a supported serializable '
-                'type (' + str(SUPPORTED_SERIALIZABLE_TYPES) + ')')
-
+            "Expected a signable dictionary, but the given argument "
+            "does not match expectations for a signable dictionary "
+            '(must be a dictionary containing only keys "signatures" and '
+            '"signed", where the value for key "signatures" is a dict '
+            'and the value for key "signed" is a supported serializable '
+            "type (" + str(SUPPORTED_SERIALIZABLE_TYPES) + ")"
+        )
 
 
 def checkformat_byteslike(obj):
-    if not hasattr(obj, 'decode'):
-        raise TypeError('Expected a bytes-like object with a decode method.')
-
+    if not hasattr(obj, "decode"):
+        raise TypeError("Expected a bytes-like object with a decode method.")
 
 
 def checkformat_natural_int(number):
     # Technically a TypeError or ValueError, depending, but meh.
     if int(number) != number or number < 1:
-        raise ValueError('Expected an integer >= 1.')
+        raise ValueError("Expected an integer >= 1.")
 
 
 # This is not yet widely used.
 # TODO: ✅ See to it that anywhere we're checking for a string, we use this.
 def checkformat_string(s):
     if not isinstance(s, string_types):
-        raise TypeError('Expecting a string')
+        raise TypeError("Expecting a string")
 
 
 def checkformat_expiration_distance(expiration_distance):
     if not isinstance(expiration_distance, datetime.timedelta):
         raise TypeError(
-                'Expiration distance must be a datetime.timedelta object. '
-                'Instead received a ' + + str(type(expiration_distance)))
-
+            "Expiration distance must be a datetime.timedelta object. "
+            "Instead received a " + +str(type(expiration_distance))
+        )
 
 
 def checkformat_hex_key(k):
@@ -505,17 +478,14 @@ def checkformat_hex_key(k):
     checkformat_hex_string(k)
 
     if 64 != len(k):
-        raise ValueError(
-                'Expected a 64-character hex string representing a key value.')
+        raise ValueError("Expected a 64-character hex string representing a key value.")
 
     # Prevent multiple possible representations of keys.  There are security
     # implications.  For example, we cannot permit two signatures from the
     # same key -- with the key represented differently -- to count as two
     # signatures from distinct keys.
     if k.lower() != k:
-        raise ValueError(
-                'Hex representations of keys must use only lowercase.')
-
+        raise ValueError("Hex representations of keys must use only lowercase.")
 
 
 def checkformat_hex_hash(h):
@@ -523,15 +493,12 @@ def checkformat_hex_hash(h):
     checkformat_hex_string(h)
 
     if 64 != len(h):
-        raise ValueError(
-                'Expected a 64-character hex string representing a hash.')
+        raise ValueError("Expected a 64-character hex string representing a hash.")
 
     # Prevent multiple possible representations.  There are security
     # implications.
     if h.lower() != h:
-        raise ValueError(
-                'Hex representations of hashes must use only lowercase.')
-
+        raise ValueError("Hex representations of hashes must use only lowercase.")
 
 
 def checkformat_list_of_hex_keys(l):
@@ -539,17 +506,16 @@ def checkformat_list_of_hex_keys(l):
     Note that this rejects any list of keys that includes any exact duplicates.
     """
     if not isinstance(l, list):
-        raise TypeError(
-                'Expected a list of 64-character hex strings representing keys.')
+        raise TypeError("Expected a list of 64-character hex strings representing keys.")
 
     for key in l:
         checkformat_hex_key(key)
 
     if len(set(l)) != len(l):
         raise ValueError(
-            'The given list of keys in hex string form contains duplicates.  '
-            'Duplicates are not permitted.')
-
+            "The given list of keys in hex string form contains duplicates.  "
+            "Duplicates are not permitted."
+        )
 
 
 def checkformat_utc_isoformat(s):
@@ -560,10 +526,10 @@ def checkformat_utc_isoformat(s):
     # coding).  See also notes for UTC_ISO8601_REGEX_PATTERN above.
     if UTC_ISO8601_REGEX_PATTERN.fullmatch(s) is None:
         raise TypeError(
-                'The provided string appears not to be a datetime string '
-                'formatted as an ISO8601 UTC-specific datetime (e.g. '
-                '"1999-12-31T23:59:59Z".')
-
+            "The provided string appears not to be a datetime string "
+            "formatted as an ISO8601 UTC-specific datetime (e.g. "
+            '"1999-12-31T23:59:59Z".'
+        )
 
 
 def is_gpg_fingerprint(fingerprint):
@@ -578,7 +544,6 @@ def is_gpg_fingerprint(fingerprint):
         return False
 
 
-
 def checkformat_gpg_fingerprint(fingerprint):
     """
     See is_gpg_fingerprint.  Raises a TypeError if is_gpg_fingerprint is not
@@ -588,8 +553,9 @@ def checkformat_gpg_fingerprint(fingerprint):
 
     if len(fingerprint) != 40:
         raise ValueError(
-                'The given value, "' + str(fingerprint) + '", is not a full '
-                'GPG fingerprint (40 hex characters).')
+            'The given value, "' + str(fingerprint) + '", is not a full '
+            "GPG fingerprint (40 hex characters)."
+        )
 
     # ⚠️ Yes, the following is a redundant test.  Please leave it here in case
     #    code changes elsewhere.
@@ -599,9 +565,8 @@ def checkformat_gpg_fingerprint(fingerprint):
     # signatures from distinct keys.
     if fingerprint.lower() != fingerprint:
         raise ValueError(
-                'Hex representations of GPG key fingerprints should use only '
-                'lowercase.')
-
+            "Hex representations of GPG key fingerprints should use only " "lowercase."
+        )
 
 
 def checkformat_sslgpg_signature(signature_obj):
@@ -619,22 +584,23 @@ def checkformat_sslgpg_signature(signature_obj):
     If the given object matches the format, returns silently.
     """
     if not (
-            isinstance(signature_obj, dict)
-            and 'keyid' in signature_obj
-            and 'other_headers' in signature_obj
-            and 'signature' in signature_obj
-            and len(signature_obj) == 3
-            and is_hex_signature(signature_obj['signature'])
-            # TODO ✅: Determine if we can constrain "other_headers" beyond
-            #          limiting it to a hex string.  (No length constraint is
-            #          provided here, for example.)
-            and is_hex_string(signature_obj['other_headers'])):
+        isinstance(signature_obj, dict)
+        and "keyid" in signature_obj
+        and "other_headers" in signature_obj
+        and "signature" in signature_obj
+        and len(signature_obj) == 3
+        and is_hex_signature(signature_obj["signature"])
+        # TODO ✅: Determine if we can constrain "other_headers" beyond
+        #          limiting it to a hex string.  (No length constraint is
+        #          provided here, for example.)
+        and is_hex_string(signature_obj["other_headers"])
+    ):
         raise TypeError(
-                'Expected a dictionary representing a GPG signature in the '
-                'securesystemslib.formats.GPG_SIGNATURE_SCHEMA format.')
+            "Expected a dictionary representing a GPG signature in the "
+            "securesystemslib.formats.GPG_SIGNATURE_SCHEMA format."
+        )
 
-    checkformat_gpg_fingerprint(signature_obj['keyid'])
-
+    checkformat_gpg_fingerprint(signature_obj["keyid"])
 
 
 def is_gpg_signature(signature_obj):
@@ -645,7 +611,6 @@ def is_gpg_signature(signature_obj):
         return True
     except (ValueError, TypeError):
         return False
-
 
 
 def checkformat_gpg_signature(signature_obj):
@@ -664,34 +629,37 @@ def checkformat_gpg_signature(signature_obj):
     """
     if not isinstance(signature_obj, dict):
         raise TypeError(
-                'OpenPGP signatures objects must be dictionaries.  Received '
-                'type ' + str(type(signature_obj)) + ' instead.')
+            "OpenPGP signatures objects must be dictionaries.  Received "
+            "type " + str(type(signature_obj)) + " instead."
+        )
 
     if sorted(list(signature_obj.keys())) not in [
-            ['other_headers', 'signature'],
-            ['other_headers', 'see_also', 'signature']]:
+        ["other_headers", "signature"],
+        ["other_headers", "see_also", "signature"],
+    ]:
         raise ValueError(
             'OpenPGP signature objects must include a "signature" and an '
             '"other_headers" entry, and may include a "see_also" entry.  No '
-            'other entries are permitted.')
+            "other entries are permitted."
+        )
 
-    if not is_hex_string(signature_obj['other_headers']):
+    if not is_hex_string(signature_obj["other_headers"]):
         raise ValueError(
-                '"other_headers" entry in OpenPGP signature object must be a '
-                'hex string.')
+            '"other_headers" entry in OpenPGP signature object must be a ' "hex string."
+        )
         # TODO ✅: Determine if we can constrain "other_headers" beyond
         #          limiting it to a hex string.  (No length constraint is
         #          provided here, for example.)
 
-    if not is_hex_signature(signature_obj['signature']):
+    if not is_hex_signature(signature_obj["signature"]):
         raise ValueError(
-                '"signature" entry in OpenPGP signature obj must be a hex '
-                'string representing an ed25519 signature, 128 hex characters '
-                'representing 64 bytes of data.')
+            '"signature" entry in OpenPGP signature obj must be a hex '
+            "string representing an ed25519 signature, 128 hex characters "
+            "representing 64 bytes of data."
+        )
 
-    if 'see_also' in signature_obj:
-        checkformat_gpg_fingerprint(signature_obj['see_also'])
-
+    if "see_also" in signature_obj:
+        checkformat_gpg_fingerprint(signature_obj["see_also"])
 
 
 def is_a_signature(signature_obj):
@@ -707,7 +675,6 @@ def is_a_signature(signature_obj):
         return True
     except (TypeError, ValueError):
         return False
-
 
 
 def checkformat_signature(signature_obj):
@@ -736,16 +703,15 @@ def checkformat_signature(signature_obj):
           'see_also': 'deadbeef'*10}}      # listing an OpenPGP key fingerprint
     """
     if not isinstance(signature_obj, dict):
-        raise TypeError('Expected a signature object, of type dict.')
-    elif not (
-            'signature' in signature_obj
-            and is_hex_signature(signature_obj['signature'])):
+        raise TypeError("Expected a signature object, of type dict.")
+    elif not ("signature" in signature_obj and is_hex_signature(signature_obj["signature"])):
         # Even the minimal required element is not correct, so...
         raise ValueError(
-                'Expected a dictionary representing an ed25519 signature as a '
-                '128-character hex string.  This requires at least key '
-                '"signature", with value a 128-character hexadecimal string '
-                'representing a (64-byte) ed25519 signature.')
+            "Expected a dictionary representing an ed25519 signature as a "
+            "128-character hex string.  This requires at least key "
+            '"signature", with value a 128-character hexadecimal string '
+            "representing a (64-byte) ed25519 signature."
+        )
 
     # simple ed25519 signature, not an OpenPGP signature
     elif len(signature_obj) == 1:
@@ -761,9 +727,10 @@ def checkformat_signature(signature_obj):
 
     else:
         raise ValueError(
-                'Provided signature does not have the correct format for a '
-                'signature object (neither simple ed25519 sig nor OpenPGP '
-                'ed25519 sig).')
+            "Provided signature does not have the correct format for a "
+            "signature object (neither simple ed25519 sig nor OpenPGP "
+            "ed25519 sig)."
+        )
 
 
 def is_signature(s):
@@ -777,7 +744,6 @@ def is_signature(s):
         return True
     except (TypeError, ValueError):
         return False
-
 
 
 def checkformat_delegation(delegation):
@@ -796,25 +762,27 @@ def checkformat_delegation(delegation):
     """
     if not isinstance(delegation, dict):
         raise TypeError(
-                'Delegation information must be a dictionary specifying '
-                '"pubkeys" and "threshold" elements.')
+            "Delegation information must be a dictionary specifying "
+            '"pubkeys" and "threshold" elements.'
+        )
     elif not (
-            len(delegation) == 2
-            and 'threshold' in delegation
-            and delegation['threshold'] >= 1
-            and 'pubkeys' in delegation
-            and isinstance(delegation['pubkeys'], list)
-            and all([is_hex_key(k) for k in delegation['pubkeys']])):
+        len(delegation) == 2
+        and "threshold" in delegation
+        and delegation["threshold"] >= 1
+        and "pubkeys" in delegation
+        and isinstance(delegation["pubkeys"], list)
+        and all([is_hex_key(k) for k in delegation["pubkeys"]])
+    ):
         raise ValueError(
-                'Delegation information must be a dictionary specifying '
-                'exactly two elements: "pubkeys" (assigned a list of '
-                '64-character hex strings representing individual ed25519 '
-                'public keys) and "threshold", assigned an integer >= 1.')
+            "Delegation information must be a dictionary specifying "
+            'exactly two elements: "pubkeys" (assigned a list of '
+            "64-character hex strings representing individual ed25519 "
+            'public keys) and "threshold", assigned an integer >= 1.'
+        )
 
     # We have the right type, and the right keys.  Check the values.
-    checkformat_list_of_hex_keys(delegation['pubkeys'])
-    checkformat_natural_int(delegation['threshold'])
-
+    checkformat_list_of_hex_keys(delegation["pubkeys"])
+    checkformat_natural_int(delegation["threshold"])
 
 
 def is_a_delegation(delegation):
@@ -823,7 +791,6 @@ def is_a_delegation(delegation):
         return True
     except (ValueError, TypeError):
         return False
-
 
 
 def checkformat_delegations(delegations):
@@ -839,14 +806,14 @@ def checkformat_delegations(delegations):
     """
     if not isinstance(delegations, dict):
         raise TypeError(
-                '"Delegations" information must be a dictionary indexed by '
-                'role names, with values equal to dictionaries that each '
-                'specify elements "pubkeys" and "threshold".')
+            '"Delegations" information must be a dictionary indexed by '
+            "role names, with values equal to dictionaries that each "
+            'specify elements "pubkeys" and "threshold".'
+        )
 
     for index in delegations:
         checkformat_string(index)
         checkformat_delegation(delegations[index])
-
 
 
 def is_delegations(delegations):
@@ -855,8 +822,6 @@ def is_delegations(delegations):
         return True
     except (ValueError, TypeError):
         return False
-
-
 
 
 def checkformat_delegating_metadata(metadata):
@@ -926,66 +891,61 @@ def checkformat_delegating_metadata(metadata):
     # Signing envelope required
     checkformat_signable(metadata)
 
-    for k in metadata['signatures']:
-        checkformat_any_signature(metadata['signatures'][k])
+    for k in metadata["signatures"]:
+        checkformat_any_signature(metadata["signatures"][k])
 
-    contents = metadata['signed']
+    contents = metadata["signed"]
 
-    for entry in [   # required fields
-            'type', 'metadata_spec_version', 'delegations', 'expiration']:
+    for entry in ["type", "metadata_spec_version", "delegations", "expiration"]:  # required fields
         if entry not in contents:
             raise ValueError(
-                    'Expected a "' + str(entry) + '" entry in the given '
-                    'delegating metadata.')
+                'Expected a "' + str(entry) + '" entry in the given ' "delegating metadata."
+            )
 
-    checkformat_string(contents['type'])
-    if contents['type'] not in SUPPORTED_DELEGATING_METADATA_TYPES:
+    checkformat_string(contents["type"])
+    if contents["type"] not in SUPPORTED_DELEGATING_METADATA_TYPES:
         raise ValueError(
-                'Given type entry ("' + contents['type'] + '") is not '
-                'one of the supported types of delegating metadata.')
+            'Given type entry ("' + contents["type"] + '") is not '
+            "one of the supported types of delegating metadata."
+        )
 
-    checkformat_string(contents['metadata_spec_version'])
+    checkformat_string(contents["metadata_spec_version"])
     # TODO ✅⚠️: For metadata_spec_version, add semantic versioning checks:
     #                 - check format
     #                 - check for compatibility with common.SECURITY_METADATA_SPEC_VERSION
 
-    checkformat_delegations(contents['delegations'])
+    checkformat_delegations(contents["delegations"])
 
-    checkformat_utc_isoformat(contents['expiration'])
+    checkformat_utc_isoformat(contents["expiration"])
 
     # Timestamp and/or Version:
-    if 'timestamp' not in contents and 'version' not in contents:
+    if "timestamp" not in contents and "version" not in contents:
         raise ValueError(
-                'All metadata must include a "version" entry, or a '
-                '"timestamp" entry, or both.')
+            'All metadata must include a "version" entry, or a ' '"timestamp" entry, or both.'
+        )
 
-    if contents['type'] == 'root' and 'version' not in contents:
-        raise ValueError('Root metadata must specify its version number.')
+    if contents["type"] == "root" and "version" not in contents:
+        raise ValueError("Root metadata must specify its version number.")
     # Catch a possible future coding error at the PR stage, here where the
     # assumption is being made.
-    assert 'root' in SUPPORTED_DELEGATING_METADATA_TYPES
+    assert "root" in SUPPORTED_DELEGATING_METADATA_TYPES
 
-    if 'timestamp' in contents:
-        checkformat_utc_isoformat(contents['timestamp'])
-    if 'version' in contents: # optional field for non-root metadata
-        checkformat_natural_int(contents['version'])
+    if "timestamp" in contents:
+        checkformat_utc_isoformat(contents["timestamp"])
+    if "version" in contents:  # optional field for non-root metadata
+        checkformat_natural_int(contents["version"])
     # TODO ✅: Ensure that expiration > timestamp, to help people not shoot
     #          themselves in the foot.
-
-
-
 
 
 def checkformat_any_signature(sig):
     if not is_a_signature(sig) and not is_gpg_signature(sig):
         raise ValueError(
-                'Expected either a hex string representing a raw ed25519 '
-                'signature (see checkformat_signature) or a dictionary '
-                'representing an OpenPGP/GPG signature '
-                '(see checkformat_gpg_signature).')
-
-
-
+            "Expected either a hex string representing a raw ed25519 "
+            "signature (see checkformat_signature) or a dictionary "
+            "representing an OpenPGP/GPG signature "
+            "(see checkformat_gpg_signature)."
+        )
 
 
 # def sha512256(data):
@@ -1017,7 +977,6 @@ def checkformat_any_signature(sig):
 #     return hasher.finalize().hex()
 
 
-
 def keyfiles_to_bytes(name):
     """
     Toy function.  Import an ed25519 key pair, in the forms of raw public and
@@ -1029,14 +988,13 @@ def keyfiles_to_bytes(name):
     Return the 32 bytes of the private key object and the 32 bytes of the
     public key object, in that order.
     """
-    with open(name + '.pri', 'rb') as fobj:
-            private_bytes = fobj.read()
+    with open(name + ".pri", "rb") as fobj:
+        private_bytes = fobj.read()
 
-    with open(name + '.pub', 'rb') as fobj:
-            public_bytes = fobj.read()
+    with open(name + ".pub", "rb") as fobj:
+        public_bytes = fobj.read()
 
     return private_bytes, public_bytes
-
 
 
 def keyfiles_to_keys(name):
@@ -1049,8 +1007,8 @@ def keyfiles_to_keys(name):
     """
     private_bytes, public_bytes = keyfiles_to_bytes(name)
 
-    private = PrivateKey.from_bytes(private_bytes)
-    public = PublicKey.from_bytes(public_bytes)
+    private = private_from_bytes(private_bytes)
+    public = public_from_bytes(public_bytes)
 
     return private, public
 
@@ -1078,7 +1036,6 @@ def keyfiles_to_keys(name):
 #                 str(type(key)))
 
 
-
 # This function has been replaced by method from_bytes() in classes PublicKey
 # and PrivateKey (see class MixinKey).
 # def public_key_from_bytes(public_bytes):
@@ -1099,35 +1056,22 @@ def keyfiles_to_keys(name):
 #     return ed25519.Ed25519PublicKey.from_public_bytes(binascii.unhexlify(
 #             public_hex_string))
 
+
 def checkformat_key(key):
     """
     Enforces expectation that argument is an object of type
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey or
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey.
     """
-    if (        not isinstance(key, ed25519.Ed25519PublicKey)
-            and not isinstance(key, ed25519.Ed25519PrivateKey)):
+    if not isinstance(key, ed25519.Ed25519PublicKey) and not isinstance(
+        key, ed25519.Ed25519PrivateKey
+    ):
         raise TypeError(
-                'Expected an Ed25519PublicKey or Ed25519PrivateKey object '
-                'from the "cryptography" library.  Received object of type ' +
-                str(type(key)) + ' instead.')
-
-
-# This function has been replaced by method to_hex() in classes PublicKey and
-# PrivateKey (see class MixinKey).
-# def key_to_hex_string(key):
-#     """
-#     Converts ed25519 keys from the "cryptography" library into hex string
-#     representations of their underlying values.
-
-#     Expects an object of type
-#     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey or
-#     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey.
-
-#     Returns (hex) strings.
-#     """
-#     checkformat_key(key)
-#     return binascii.hexlify(key.public_bytes()).decode('utf-8')
+            "Expected an Ed25519PublicKey or Ed25519PrivateKey object "
+            'from the "cryptography" library.  Received object of type '
+            + str(type(key))
+            + " instead."
+        )
 
 
 # def signature
@@ -1148,18 +1092,6 @@ def checkformat_key(key):
 #     return ed25519.Ed25519PrivateKey.from_private_bytes(private_bytes)
 
 
-
-# This function is replaced by method is_equivalent_to() in classes PublicKey
-# and PrivateKey (see class MixinKey).
-# def keys_are_equivalent(k1, k2):
-#     """
-#     Given Ed25519PrivateKey or Ed25519PublicKey objects, determines if the
-#     underlying key data is identical.
-#     """
-#     return k1.to_bytes() == k2.to_bytes()
-
-
-
 def iso8601_time_plus_delta(delta):
     """
     Applies a datetime.timedelta to the current time in UTC with microseconds
@@ -1176,8 +1108,7 @@ def iso8601_time_plus_delta(delta):
 
     unix_expiry = datetime.datetime.utcnow().replace(microsecond=0) + delta
 
-    return unix_expiry.isoformat() + 'Z'
-
+    return unix_expiry.isoformat() + "Z"
 
 
 # This function should not be necessary, since we'll only be dealing with

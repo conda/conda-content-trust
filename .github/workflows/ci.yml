@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-        python-version: ["3.6", "3.7", "3.8", "3.9"]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v2
@@ -52,10 +52,7 @@ jobs:
       - name: Conda info
         run: conda info -a
 
-      - name: Conda info
-        run: conda info -a
-
-      - name: Run tests
+        - name: Run tests
         run: conda run --no-capture-output pytest
 
       - name: Upload coverage

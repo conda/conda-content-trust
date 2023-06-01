@@ -31,16 +31,24 @@ ROOT_MD_EXPIRY_DISTANCE = datetime.timedelta(days=365)
 
 # car modules
 from .common import (
-        PrivateKey, PublicKey,
-        checkformat_natural_int, checkformat_list_of_hex_keys,
-        checkformat_string, checkformat_utc_isoformat, is_hex_hash,
-        checkformat_delegation, checkformat_delegations, is_delegations,
-        iso8601_time_plus_delta, SECURITY_METADATA_SPEC_VERSION)
+    PrivateKey,
+    PublicKey,
+    checkformat_natural_int,
+    checkformat_list_of_hex_keys,
+    checkformat_string,
+    checkformat_utc_isoformat,
+    is_hex_hash,
+    checkformat_delegation,
+    checkformat_delegations,
+    is_delegations,
+    iso8601_time_plus_delta,
+    SECURITY_METADATA_SPEC_VERSION,
+)
 
 
 def build_delegating_metadata(
-        metadata_type,
-        delegations=None, version=1, timestamp=None, expiration=None):
+    metadata_type, delegations=None, version=1, timestamp=None, expiration=None
+):
     """
     # ✅ TODO: Docstring
 
@@ -85,7 +93,7 @@ def build_delegating_metadata(
     if delegations is None:
         delegations = {}
     if timestamp is None:
-        timestamp = iso8601_time_plus_delta(datetime.timedelta(0)) #now plus 0
+        timestamp = iso8601_time_plus_delta(datetime.timedelta(0))  # now plus 0
     if expiration is None:
         expiration = iso8601_time_plus_delta(ROOT_MD_EXPIRY_DISTANCE)
 
@@ -104,12 +112,12 @@ def build_delegating_metadata(
     checkformat_delegations(delegations)
 
     md = {
-        'type': metadata_type,
-        'version': version,
-        'metadata_spec_version': SECURITY_METADATA_SPEC_VERSION,
-        'timestamp': timestamp,
-        'expiration': expiration,
-        "delegations": delegations
+        "type": metadata_type,
+        "version": version,
+        "metadata_spec_version": SECURITY_METADATA_SPEC_VERSION,
+        "timestamp": timestamp,
+        "expiration": expiration,
+        "delegations": delegations,
     }
 
     # # This very redundant, but might be useful as defensive code.
@@ -118,12 +126,15 @@ def build_delegating_metadata(
     return md
 
 
-
 def build_root_metadata(
-        root_version,
-        root_pubkeys, root_threshold,
-        key_mgr_pubkeys, key_mgr_threshold,
-        root_timestamp=None, root_expiration=None):
+    root_version,
+    root_pubkeys,
+    root_threshold,
+    key_mgr_pubkeys,
+    key_mgr_threshold,
+    root_timestamp=None,
+    root_expiration=None,
+):
     """
     Wrapper for build_delegating_metadata().  Helpfully requires root to list
     itself and key_mgr in its delegations.
@@ -151,19 +162,19 @@ def build_root_metadata(
     #     channeler_threshold = max(1, len(channeler_pubkeys))
 
     delegations = {
-        'root':
-            {'pubkeys': root_pubkeys, 'threshold': root_threshold},
-        'key_mgr':
-            {'pubkeys': key_mgr_pubkeys, 'threshold': key_mgr_threshold}
+        "root": {"pubkeys": root_pubkeys, "threshold": root_threshold},
+        "key_mgr": {"pubkeys": key_mgr_pubkeys, "threshold": key_mgr_threshold},
     }
 
     root_md = build_delegating_metadata(
-            metadata_type='root', delegations=delegations,
-            version=root_version, timestamp=root_timestamp,
-            expiration=root_expiration)
+        metadata_type="root",
+        delegations=delegations,
+        version=root_version,
+        timestamp=root_timestamp,
+        expiration=root_expiration,
+    )
 
     return root_md
-
 
 
 def gen_and_write_keys(fname):
@@ -183,13 +194,12 @@ def gen_and_write_keys(fname):
     # Write the actual bytes of the key values to disk as requested.
     # Note that where the private key is concerned, we're just grabbing the
     # not-encrypted private key value.
-    with open(fname + '.pri', 'wb') as fobj:
-            fobj.write(private.to_bytes())
-    with open(fname + '.pub', 'wb') as fobj:
-            fobj.write(public.to_bytes())
+    with open(fname + ".pri", "wb") as fobj:
+        fobj.write(PrivateKey.to_bytes(private))
+    with open(fname + ".pub", "wb") as fobj:
+        fobj.write(PublicKey.to_bytes(public))
 
     return private, public
-
 
 
 def gen_keys():
@@ -209,8 +219,6 @@ def gen_keys():
     public = private.public_key()
 
     return private, public
-
-
 
 
 ## Moved to cli.py
@@ -257,11 +265,6 @@ def gen_keys():
 #     while not done:
 
 
-
-
-
-
-
 #     formatted_metadata = json.dumps(metadata, sort_keys=True, indent=4)
 
 #     colorful_json = pygments.highlight(
@@ -271,11 +274,9 @@ def gen_keys():
 #     print(colorful_json)
 
 
-
 #     ### Pull modified from debugging script
 #     ### Pull modified from debugging script
 #     ### Pull modified from debugging script
-
 
 
 # This function is not in use.  It's here for reference, in case it's useful
@@ -316,7 +317,7 @@ def gen_keys():
 #     if timestamp is None:
 #         timestamp = iso8601_time_plus_delta(datetime.timedelta(0))
 
-#     # TODO: ✅ More argument validation: channel, 
+#     # TODO: ✅ More argument validation: channel,
 #     checkformat_utc_isoformat(expiry)
 #     checkformat_utc_isoformat(timestamp)
 #     if not ( # dict with string keys and 32-byte-hash-as-hex-string values

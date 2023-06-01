@@ -195,38 +195,38 @@ def test_key_functions():
     #   - from_hex
 
     # key 1 from bytes vs key 1 from hex, also vs raw key 1 value
-    assert private_1_byt.is_equivalent_to(private_1_hex)
-    assert private_1_hex.is_equivalent_to(private_1_byt)
-    assert b'1'*32 == private_1_byt.to_bytes() == private_1_hex.to_bytes()
-    assert '31'*32 == private_1_byt.to_hex() == private_1_hex.to_hex()
+    assert is_equivalent_to(PrivateKey, private_1_byt, private_1_hex)
+    assert is_equivalent_to(PrivateKey, private_1_hex, private_1_byt)
+    assert b'1'*32 == PrivateKey.to_bytes(private_1_byt) == PrivateKey.to_bytes(private_1_hex)
+    assert '31'*32 == PrivateKey.to_hex(private_1_byt) == PrivateKey.to_hex(private_1_hex)
 
     # key 1 vs key 2 vs regression key
-    assert not private_1_byt.is_equivalent_to(private_2_byt)
-    assert not private_2_byt.is_equivalent_to(private_1_byt)
-    assert not private_1_byt.is_equivalent_to(private_2_hex)
-    assert not private_2_hex.is_equivalent_to(private_1_byt)
-    assert not private_reg_byt.is_equivalent_to(private_1_byt)
-    assert not private_1_byt.is_equivalent_to(private_reg_byt)
+    assert not is_equivalent_to(PrivateKey, private_1_byt, private_2_byt)
+    assert not is_equivalent_to(PrivateKey, private_2_byt, private_1_byt)
+    assert not is_equivalent_to(PrivateKey, private_1_byt, private_2_hex)
+    assert not is_equivalent_to(PrivateKey, private_2_hex, private_1_byt)
+    assert not is_equivalent_to(PrivateKey, private_reg_byt, private_1_byt)
+    assert not is_equivalent_to(PrivateKey, private_1_byt, private_reg_byt)
 
     # key 2 from bytes vs key 2 from hex, also vs raw key 2 value
-    assert private_2_byt.is_equivalent_to(private_2_hex)
-    assert private_2_hex.is_equivalent_to(private_2_byt)
-    assert b'10' + b'1'*30 == private_2_byt.to_bytes() == private_2_hex.to_bytes()
-    assert '3130' + '31'*30 == private_2_byt.to_hex() == private_2_hex.to_hex()
+    assert is_equivalent_to(PrivateKey, private_2_byt, private_2_hex)
+    assert is_equivalent_to(PrivateKey, private_2_hex, private_2_byt)
+    assert b'10' + b'1'*30 == PrivateKey.to_bytes(private_2_byt) == PrivateKey.to_bytes(private_2_hex)
+    assert '3130' + '31'*30 == PrivateKey.to_hex(private_2_byt) == PrivateKey.to_hex(private_2_hex)
 
     # regression key from bytes vs from hex, and vs raw key value
-    assert private_reg_byt.is_equivalent_to(private_reg_hex)
-    assert private_reg_hex.is_equivalent_to(private_reg_byt)
-    assert REG__PRIVATE_BYTES == private_reg_byt.to_bytes()
-    assert REG__PRIVATE_BYTES == private_reg_hex.to_bytes()
-    assert REG__PRIVATE_HEX == private_reg_byt.to_hex()
-    assert REG__PRIVATE_HEX == private_reg_hex.to_hex()
+    assert is_equivalent_to(PrivateKey, private_reg_byt, private_reg_hex)
+    assert is_equivalent_to(PrivateKey, private_reg_hex, private_reg_byt)
+    assert REG__PRIVATE_BYTES == PrivateKey.to_bytes(private_reg_byt)
+    assert REG__PRIVATE_BYTES == PrivateKey.to_bytes(private_reg_hex)
+    assert REG__PRIVATE_HEX == PrivateKey.to_hex(private_reg_byt)
+    assert REG__PRIVATE_HEX == PrivateKey.to_hex(private_reg_hex)
 
 
-    # Test the behavior when is_equivalent_to is provided a bad argument.
+    # Test the behavior when, is provided a bad argument.
     for bad_argument in ['1', 1, '1'*32, REG__PRIVATE_BYTES, b'1'*31, b'1'*33]:
         with pytest.raises(TypeError):
-            private_reg_byt.is_equivalent_to(bad_argument)
+            is_equivalent_to(PrivateKey, private_reg_byt, bad_argument)
 
 
 
@@ -391,7 +391,7 @@ def test_is_hex_key():
 
     public = PublicKey.from_bytes(pubkey_bytes)
     assert not is_hex_key(public)
-    assert is_hex_key(public.to_hex())
+    assert is_hex_key(PublicKey.to_hex(public))
 
 def test_checkformat_hex_string():
     # TODO ✅: Add other tests.

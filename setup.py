@@ -6,7 +6,7 @@ import conda_content_trust
 
 requirements = [
     'six',
-    'cryptography',
+    'cryptography>=41',
     # securesystemslib is optional: pip install conda-authentication-resources[gpgsigning]
 ]
 
@@ -40,5 +40,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ]
 )

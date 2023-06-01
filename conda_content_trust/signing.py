@@ -17,30 +17,36 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # std libs
 import binascii
-import copy # for deepcopy
-import json # for json.dump
+import copy  # for deepcopy
+import json  # for json.dump
 
 # Dependency-provided libraries
-#import cryptography
-#import cryptography.exceptions
-#import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
-#import cryptography.hazmat.primitives.serialization as serialization
-#import cryptography.hazmat.primitives.hashes
-#import cryptography.hazmat.backends
+# import cryptography
+# import cryptography.exceptions
+# import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
+# import cryptography.hazmat.primitives.serialization as serialization
+# import cryptography.hazmat.primitives.hashes
+# import cryptography.hazmat.backends
 
 
 # conda-content-trust modules
 from .common import (
-        SUPPORTED_SERIALIZABLE_TYPES, canonserialize,
-        load_metadata_from_file, write_metadata_to_file,
-        PublicKey, PrivateKey,
-        checkformat_string, checkformat_key, checkformat_hex_key,
-        checkformat_signable, checkformat_signature,
-        #is_hex_string, is_hex_signature, is_hex_key,
-        #checkformat_natural_int, checkformat_expiration_distance,
-        #checkformat_hex_key, checkformat_list_of_hex_keys,
-        #checkformat_utc_isoformat,
-        )
+    SUPPORTED_SERIALIZABLE_TYPES,
+    canonserialize,
+    load_metadata_from_file,
+    write_metadata_to_file,
+    PublicKey,
+    PrivateKey,
+    checkformat_string,
+    checkformat_hex_key,
+    checkformat_signable,
+    checkformat_signature,
+    # is_hex_string, is_hex_signature, is_hex_key,
+    # checkformat_natural_int, checkformat_expiration_distance,
+    # checkformat_hex_key, checkformat_list_of_hex_keys,
+    # checkformat_utc_isoformat,
+    public_to_hex,
+)
 
 
 def serialize_and_sign(obj, private_key):
@@ -68,10 +74,9 @@ def serialize_and_sign(obj, private_key):
 
     signature_as_bytes = private_key.sign(serialized)
 
-    signature_as_hexstr = binascii.hexlify(signature_as_bytes).decode('utf-8')
+    signature_as_hexstr = binascii.hexlify(signature_as_bytes).decode("utf-8")
 
     return signature_as_hexstr
-
 
 
 def wrap_as_signable(obj):
@@ -92,9 +97,10 @@ def wrap_as_signable(obj):
     """
     if not type(obj) in SUPPORTED_SERIALIZABLE_TYPES:
         raise TypeError(
-                'wrap_dict_as_signable requires a JSON-serializable object, '
-                'but the given argument is of type ' + str(type(obj)) + ', '
-                'which is not supported by the json library functions.')
+            "wrap_dict_as_signable requires a JSON-serializable object, "
+            "but the given argument is of type " + str(type(obj)) + ", "
+            "which is not supported by the json library functions."
+        )
 
     # TODO: ✅ Later on, consider switching back to TUF-style
     #          signatures-as-a-list.  (Is there some reason it's saner?)
@@ -103,8 +109,7 @@ def wrap_as_signable(obj):
     #          this way in TUF, but we also don't depend on it being an ordered
     #          list anyway, so a dictionary is probably better.
 
-    return {'signatures': {}, 'signed': copy.deepcopy(obj)}
-
+    return {"signatures": {}, "signed": copy.deepcopy(obj)}
 
 
 def sign_signable(signable, private_key):
@@ -129,7 +134,6 @@ def sign_signable(signable, private_key):
     SUPPORTED_SERIALIZABLE_TYPES
     """
     # Argument checking
-    checkformat_key(private_key)
     checkformat_signable(signable)
     # if not is_a_signable(signable):
     #     raise TypeError(
@@ -138,15 +142,15 @@ def sign_signable(signable, private_key):
 
     # private_key = PrivateKey.from_hex(private_key_hex)
 
-    signature_as_hexstr = serialize_and_sign(signable['signed'], private_key)
+    signature_as_hexstr = serialize_and_sign(signable["signed"], private_key)
 
-    public_key_as_hexstr = private_key.public_key().to_hex()
+    public_key_as_hexstr = public_to_hex(private_key.public_key())
 
     # To fit a general format, we wrap it this way, instead of just using the
     # hexstring.  This is because OpenPGP signatures that we use for root
     # signatures look similar and have a few extra fields beyond the signature
     # value itself.
-    signature_dict = {'signature': signature_as_hexstr}
+    signature_dict = {"signature": signature_as_hexstr}
 
     checkformat_signature(signature_dict)
 
@@ -158,8 +162,7 @@ def sign_signable(signable, private_key):
     #           'signable.  Public key: ' + public_key + '.')
 
     # Add signature in-place, in the usual signature format.
-    signable['signatures'][public_key_as_hexstr] = signature_dict
-
+    signable["signatures"][public_key_as_hexstr] = signature_dict
 
 
 def sign_all_in_repodata(fname, private_key_hex):
@@ -179,7 +182,7 @@ def sign_all_in_repodata(fname, private_key_hex):
     # TODO ✅⚠️: Consider filename validation.  What does conda use for that?
 
     private = PrivateKey.from_hex(private_key_hex)
-    public_hex = private.public_key().to_hex()
+    public_hex = public_to_hex(private.public_key())
 
     # Loading the whole file at once instead of reading it as we go, because
     # it's less complex and this only needs to run repository-side.
@@ -189,7 +192,7 @@ def sign_all_in_repodata(fname, private_key_hex):
 
     # TODO ✅: Consider more validation for the gross structure expected of
     #            repodata.json
-    if not 'packages' in repodata:
+    if not "packages" in repodata:
         raise ValueError('Expected a "packages" entry in given repodata file.')
 
     # Add an empty 'signatures' dict to repodata.
@@ -198,9 +201,9 @@ def sign_all_in_repodata(fname, private_key_hex):
     # the artifact is not in the "packages" dict, but is in the "signatures"
     # dict for some reason.  What comes out of this process will be limited to
     # what we sign in this function.
-    repodata['signatures'] = {}
+    repodata["signatures"] = {}
 
-    for artifact_name, metadata in repodata['packages'].items():
+    for artifact_name, metadata in repodata["packages"].items():
         # TODO ✅: Further consider the significance of the artifact name
         #          itself not being part of the signed metadata.  The info used
         #          to generate the name (package name + version + build) is
@@ -213,19 +216,16 @@ def sign_all_in_repodata(fname, private_key_hex):
         # the hexstring.  This is because OpenPGP signatures that we use for
         # root signatures look similar and have a few extra fields beyond the
         # signature value itself.
-        signature_dict = {'signature': signature_hex}
+        signature_dict = {"signature": signature_hex}
 
         checkformat_signature(signature_dict)
 
-        repodata['signatures'][artifact_name] = {public_hex: signature_dict}
+        repodata["signatures"][artifact_name] = {public_hex: signature_dict}
 
     # Repeat for the .conda packages in 'packages.conda'.
-    for artifact_name, metadata in repodata.get('packages.conda', {}).items():
+    for artifact_name, metadata in repodata.get("packages.conda", {}).items():
         signature_hex = serialize_and_sign(metadata, private)
-        repodata['signatures'][artifact_name] = {
-                public_hex: {'signature': signature_hex}}
-
-
+        repodata["signatures"][artifact_name] = {public_hex: {"signature": signature_hex}}
 
     # Note: takes >0.5s on a macbook for large files
     write_metadata_to_file(repodata, fname)
