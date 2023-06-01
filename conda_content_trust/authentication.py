@@ -11,9 +11,7 @@ Function Manifest for this Module
     verify_root
     verify_delegation
 """
-from binascii import (
-    unhexlify,  # for Python2/3-compatible hex string <- -> bytes conversion
-)
+from binascii import unhexlify
 from struct import pack
 
 import cryptography.exceptions

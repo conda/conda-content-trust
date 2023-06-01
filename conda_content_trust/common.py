@@ -49,7 +49,7 @@ Exceptions:
         MetadataVerificationError
         UnknownRoleError
 """
-from binascii import unhexlify  # solely for hex string <-> bytes conversions
+from binascii import hexlify, unhexlify
 from datetime import datetime, timedelta
 from json import dumps, load
 from re import compile  # for UTC iso8601 date string checking
@@ -204,7 +204,7 @@ def is_equivalent_to(cls, k1, k2):
 
 
 def private_to_hex(key):
-    return binascii.hexlify(private_to_bytes(key)).decode("utf-8")
+    return hexlify(private_to_bytes(key)).decode("utf-8")
 
 
 def private_to_bytes(key):
@@ -266,7 +266,7 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
 
 
 def public_to_hex(key):
-    return binascii.hexlify(public_to_bytes(key)).decode("utf-8")
+    return hexlify(public_to_bytes(key)).decode("utf-8")
 
 
 def public_to_bytes(key):
