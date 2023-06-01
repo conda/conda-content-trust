@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
-""" tests.test_metadata_construction
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 (Mostly) unit tests for
 conda-content-trust/conda_content_trust/metadata_construction.py.
 
@@ -12,40 +11,29 @@ Run the tests this way:
    itself:
      - pytest
      - parameterize?
-
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
-import copy
 import os
 
-# external dependencies
 import pytest
-import cryptography.exceptions  # for InvalidSignature
+from cryptography.exceptions import InvalidSignature
 
-# this codebase
-from conda_content_trust.metadata_construction import *
-from conda_content_trust.common import (  # these aren't already imported by metadata_construction
-    keyfiles_to_bytes,
-    keyfiles_to_keys,
-    is_a_signable,
-    checkformat_delegating_metadata,
-    private_from_bytes,
-    public_from_bytes,
+from conda_content_trust.common import (
     PrivateKey,
     PublicKey,
+    checkformat_delegating_metadata,
+    is_a_signable,
     is_equivalent_to,
+    keyfiles_to_bytes,
+    keyfiles_to_keys,
+    private_from_bytes,
+    public_from_bytes,
 )
-from conda_content_trust.signing import wrap_as_signable, sign_signable
+from conda_content_trust.metadata_construction import *
+from conda_content_trust.signing import wrap_as_signable
 
 # Some REGRESSION test data.
 KEYPAIR_NAME = "keytest_old"
-PRIVATE_BYTES = (
-    b"\xc9\xc2\x06\r~\r\x93al&T\x84\x0bI\x83\xd0\x02!\xd8\xb6\xb6\x9c\x85\x01\x07\xdat\xb4!h\xf97"
-)
+PRIVATE_BYTES = b"\xc9\xc2\x06\r~\r\x93al&T\x84\x0bI\x83\xd0\x02!\xd8\xb6\xb6\x9c\x85\x01\x07\xdat\xb4!h\xf97"
 PUBLIC_BYTES = b"\x01=\xddqIb\x86m\x12\xba[\xae'?\x14\xd4\x8c\x89\xcf\x07s\xde\xe2\xdb\xf6\xd4V\x1eR\x1c\x83\xf7"
 PUBLIC_HEX = "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
 PKGMGR_PUBLIC_HEX = "f46b5a7caa43640744186564c098955147daa8bac4443887bc64d8bfee3d3569"
@@ -99,11 +87,15 @@ EXPECTED_UNSIGNED_ROOT = {
     "expiration": TEST_EXPIRY_DATE,
     "delegations": {
         "key_mgr": {
-            "pubkeys": ["013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"],
+            "pubkeys": [
+                "013ddd714962866d12ba5bae273f14d48c89cf0773dee2dbf6d4561e521c83f7"
+            ],
             "threshold": 1,
         },
         "root": {
-            "pubkeys": ["bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"],
+            "pubkeys": [
+                "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"
+            ],
             "threshold": 1,
         },
     },
@@ -178,7 +170,7 @@ def test_build_root_metadata():
     with pytest.raises(TypeError):
         root_md = build_root_metadata(
             root_pubkeys=[ROOT_PUBLIC_HEX],
-            root_threshold="this is not an integer",  #  <---
+            root_threshold="this is not an integer",
             root_version=1,
             root_expiration=TEST_EXPIRY_DATE,
             key_mgr_pubkeys=[PUBLIC_HEX],
@@ -241,13 +233,14 @@ def test_build_delegating_metadata():
 
 
 def test_gen_and_write_keys():
-
     # Make a new keypair.  Returns keys and writes keys to disk.
     # Then load it from disk and compare that to the return value.  Exercise
     # some of the functions redundantly.
     try:
         generated_private, generated_public = gen_and_write_keys("keytest_new")
-        loaded_new_private_bytes, loaded_new_public_bytes = keyfiles_to_bytes("keytest_new")
+        loaded_new_private_bytes, loaded_new_public_bytes = keyfiles_to_bytes(
+            "keytest_new"
+        )
         loaded_new_private, loaded_new_public = keyfiles_to_keys("keytest_new")
         assert is_equivalent_to(PrivateKey, generated_private, loaded_new_private)
         assert is_equivalent_to(PublicKey, generated_public, loaded_new_public)
@@ -260,7 +253,12 @@ def test_gen_and_write_keys():
 
     finally:
         # Clean files up.
-        for fname in ["keytest_new.pub", "keytest_new.pri", "keytest_old.pri", "keytest_old.pub"]:
+        for fname in [
+            "keytest_new.pub",
+            "keytest_new.pri",
+            "keytest_old.pri",
+            "keytest_old.pub",
+        ]:
             if os.path.exists(fname):
                 os.remove(fname)
 
@@ -295,6 +293,6 @@ def test_gen_keys():
     generated_public_1.verify(sig_from_1, b"1234")
     generated_public_2.verify(sig_from_2, b"1234")
 
-    with pytest.raises(cryptography.exceptions.InvalidSignature):
+    with pytest.raises(InvalidSignature):
         generated_public_1.verify(sig_from_2, b"1234")
         generated_public_1.verify(sig_from_1, b"5678")

@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
-""" conda_content_trust.metadata_construction
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 This module contains functions that construct metadata and generate signing
 keys.
 
@@ -14,36 +13,23 @@ Key Creation:
 Metadata Construction:
   build_delegating_metadata
   build_root_metadata         (wraps build_delegating_metadata)
-
 """
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
+from datetime import timedelta
 
-# std libs
-import datetime
-
-# dependencies
-from six import string_types
-
-# Default expiration distance for repodata_verify.json.
-REPODATA_VERIF_MD_EXPIRY_DISTANCE = datetime.timedelta(days=31)
-ROOT_MD_EXPIRY_DISTANCE = datetime.timedelta(days=365)
-
-# car modules
 from .common import (
+    SECURITY_METADATA_SPEC_VERSION,
     PrivateKey,
     PublicKey,
+    checkformat_delegations,
     checkformat_natural_int,
-    checkformat_list_of_hex_keys,
     checkformat_string,
     checkformat_utc_isoformat,
-    is_hex_hash,
-    checkformat_delegation,
-    checkformat_delegations,
-    is_delegations,
     iso8601_time_plus_delta,
-    SECURITY_METADATA_SPEC_VERSION,
 )
+
+# Default expiration distance for repodata_verify.json.
+REPODATA_VERIF_MD_EXPIRY_DISTANCE = timedelta(days=31)
+ROOT_MD_EXPIRY_DISTANCE = timedelta(days=365)
 
 
 def build_delegating_metadata(
@@ -93,7 +79,7 @@ def build_delegating_metadata(
     if delegations is None:
         delegations = {}
     if timestamp is None:
-        timestamp = iso8601_time_plus_delta(datetime.timedelta(0))  # now plus 0
+        timestamp = iso8601_time_plus_delta(timedelta(0))  # now plus 0
     if expiration is None:
         expiration = iso8601_time_plus_delta(ROOT_MD_EXPIRY_DISTANCE)
 
@@ -221,64 +207,6 @@ def gen_keys():
     return private, public
 
 
-## Moved to cli.py
-# def interactive_modify_metadata(metadata):
-#     """
-#     """
-
-#     # Update version if there is a version.
-#     # Update timestamp if there is a timestamp.
-#     #
-#     # Show metadata contents ('signed') -- pprint?
-#     #    indicate updated version/timestamp
-#     #
-#     # Changes phase:
-#     #    Prompt to
-#     #       (m) modify a value, (a) add a new entry, (d) delete an entry,
-#     #       (r) revert to original, (f) finish and sign ((move on to signing
-#     #       prompts))
-#     #
-#     # Signing phase:
-#     #   Show metadata again, ask if metadata looks right
-#     #   Show what keys the original was signed by and ask if those should be
-#     #     the keys used for the new version.
-#     #        ((Later: if root, vet against contents of new and old root versions))
-#     #   Prompt for key (raw key file, raw key data, or gpg key fingerprint)
-#     #   Sign using the given key (gpg if gpg, else normal signing mechanism).
-#     #   Write (making sure not to overwrite, and -- if root -- making sure to
-#     #     prepend "<version>." to root.json file.
-
-
-#     try:
-#         import pygments
-#         import pygments.lexers
-#         import pygments.formatters
-#         import json
-#     except ImportError():
-#         print(
-#                 'Unable to use interactive-modify-metadata mode: missing '
-#                 'optional dependency "pygments" (for JSON syntax '
-#                 'highlighting).  Please install pygments and try again.')
-#         raise
-
-#     done = False
-#     while not done:
-
-
-#     formatted_metadata = json.dumps(metadata, sort_keys=True, indent=4)
-
-#     colorful_json = pygments.highlight(
-#             formatted_metadata.encode('utf-8'),
-#             pygments.lexers.JsonLexer(),
-#             pygments.formatters.TerminalFormatter())
-#     print(colorful_json)
-
-
-#     ### Pull modified from debugging script
-#     ### Pull modified from debugging script
-#     ### Pull modified from debugging script
-
-
 # This function is not in use.  It's here for reference, in case it's useful
 # again in the future.
 # def build_repodata_verification_metadata(
@@ -315,7 +243,7 @@ def gen_keys():
 #         expiry = iso8601_time_plus_delta(REPODATA_VERIF_MD_EXPIRY_DISTANCE)
 
 #     if timestamp is None:
-#         timestamp = iso8601_time_plus_delta(datetime.timedelta(0))
+#         timestamp = iso8601_time_plus_delta(timedelta(0))
 
 #     # TODO: ✅ More argument validation: channel,
 #     checkformat_utc_isoformat(expiry)

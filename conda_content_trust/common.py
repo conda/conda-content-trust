@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-
-""" conda_content_trust.common
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 This module contains functions that provide format validation, serialization,
 and some key transformations for the pyca/cryptography library.  These are used
 across conda_content_trust modules.
@@ -50,18 +49,13 @@ Exceptions:
         MetadataVerificationError
         UnknownRoleError
 """
+from binascii import unhexlify  # solely for hex string <-> bytes conversions
+from datetime import datetime, timedelta
+from json import dumps, load
+from re import compile  # for UTC iso8601 date string checking
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import json
-import datetime
-import re  # for UTC iso8601 date string checking
-import binascii  # solely for hex string <-> bytes conversions
-
-from six import string_types
-from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 # specification version for the metadata produced by conda-content-trust
 # Details in the Conda Security Metadata Specification.  Note that this
@@ -89,7 +83,9 @@ SUPPORTED_DELEGATING_METADATA_TYPES = ["root", "key_mgr"]  # May be loosened lat
 #  compile the pattern once and use the same object for all checks.  For a
 #  pattern like this, it's probably a negligible difference, though, and
 #  it's conceivable that the compiler already optimizes this....)
-UTC_ISO8601_REGEX_PATTERN = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
+UTC_ISO8601_REGEX_PATTERN = compile(
+    "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+)
 
 
 class CCT_Error(Exception):
@@ -141,7 +137,7 @@ def canonserialize(obj):
     try:
         # TODO: In the future, assess whether or not to employ more typical
         #       practice of using no whitespace (instead of NLs and 2-indent).
-        json_string = json.dumps(obj, indent=2, sort_keys=True)
+        json_string = dumps(obj, indent=2, sort_keys=True)
     except TypeError:
         # TODO: ✅ Log or craft/use an appropriate exception class.
         raise
@@ -150,12 +146,11 @@ def canonserialize(obj):
 
 
 def load_metadata_from_file(fname):
-
     # TODO ✅: Argument validation for fname.  Consider adding "pathvalidate"
     #          as a dependency, and calling its sanitize_filename() here.
 
     with open(fname, "rb") as fobj:
-        metadata = json.load(fobj)
+        metadata = load(fobj)
 
     # TODO ✅: Consider validating what is read here, for everywhere.
 
@@ -184,14 +179,14 @@ class MixinKey:
     PrivateKey and PublicKey classes, specifically.  It provides some
     convenience functions.
     """
+
     @classmethod  # a class method for inheritors of this mix-in
     def from_hex(cls, key_value_in_hex):
-
         # from_private_bytes() and from_public_bytes() both check length (32),
         # but do not produce helpful errors if the argument provided it is not
         # the right type, so we'll do that here before calling them.
         checkformat_hex_key(key_value_in_hex)
-        key_value_in_bytes = binascii.unhexlify(key_value_in_hex)
+        key_value_in_bytes = unhexlify(key_value_in_hex)
         new_object = cls.from_bytes(key_value_in_bytes)
         checkformat_key(new_object)
         return new_object
@@ -213,7 +208,6 @@ def private_to_hex(key):
 
 
 def private_to_bytes(key):
-    """ """
     return key.private_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PrivateFormat.Raw,
@@ -251,6 +245,7 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         value for sign() is a length 64 bytes() object, a raw ed25519
         signature.
     """
+
     to_bytes = private_to_bytes
     from_bytes = private_from_bytes
     to_hex = private_to_hex
@@ -307,9 +302,11 @@ class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
 
     We preserve Ed25519PublicKey's verify() method unchanged.
     """
+
     to_bytes = public_to_bytes
     from_bytes = public_from_bytes
     to_hex = public_to_hex
+
 
 # No....  For now, I'll stick with the raw dictionary representations.
 # If function profusion makes it inconvenient for folks to use this library,
@@ -335,12 +332,12 @@ def is_hex_string(s):
 
 def checkformat_hex_string(s):
     """
-    Throws TypeError if s is not a string (string_types).
+    Throws TypeError if s is not a string.
     Throws ValueError if the given string is not a string of hexadecimal
     characters (upper-case not allowed to prevent redundancy).
     """
 
-    if not isinstance(s, string_types):
+    if not isinstance(s, str):
         raise TypeError("Expected a hex string; given value is not string typed.")
 
     for c in s:
@@ -461,12 +458,12 @@ def checkformat_natural_int(number):
 # This is not yet widely used.
 # TODO: ✅ See to it that anywhere we're checking for a string, we use this.
 def checkformat_string(s):
-    if not isinstance(s, string_types):
+    if not isinstance(s, str):
         raise TypeError("Expecting a string")
 
 
 def checkformat_expiration_distance(expiration_distance):
-    if not isinstance(expiration_distance, datetime.timedelta):
+    if not isinstance(expiration_distance, timedelta):
         raise TypeError(
             "Expiration distance must be a datetime.timedelta object. "
             "Instead received a " + +str(type(expiration_distance))
@@ -474,7 +471,6 @@ def checkformat_expiration_distance(expiration_distance):
 
 
 def checkformat_hex_key(k):
-
     checkformat_hex_string(k)
 
     if 64 != len(k):
@@ -489,7 +485,6 @@ def checkformat_hex_key(k):
 
 
 def checkformat_hex_hash(h):
-
     checkformat_hex_string(h)
 
     if 64 != len(h):
@@ -501,17 +496,19 @@ def checkformat_hex_hash(h):
         raise ValueError("Hex representations of hashes must use only lowercase.")
 
 
-def checkformat_list_of_hex_keys(l):
+def checkformat_list_of_hex_keys(value):
     """
     Note that this rejects any list of keys that includes any exact duplicates.
     """
-    if not isinstance(l, list):
-        raise TypeError("Expected a list of 64-character hex strings representing keys.")
+    if not isinstance(value, list):
+        raise TypeError(
+            "Expected a list of 64-character hex strings representing keys."
+        )
 
-    for key in l:
+    for key in value:
         checkformat_hex_key(key)
 
-    if len(set(l)) != len(l):
+    if len(set(value)) != len(value):
         raise ValueError(
             "The given list of keys in hex string form contains duplicates.  "
             "Duplicates are not permitted."
@@ -704,7 +701,9 @@ def checkformat_signature(signature_obj):
     """
     if not isinstance(signature_obj, dict):
         raise TypeError("Expected a signature object, of type dict.")
-    elif not ("signature" in signature_obj and is_hex_signature(signature_obj["signature"])):
+    elif not (
+        "signature" in signature_obj and is_hex_signature(signature_obj["signature"])
+    ):
         # Even the minimal required element is not correct, so...
         raise ValueError(
             "Expected a dictionary representing an ed25519 signature as a "
@@ -896,10 +895,16 @@ def checkformat_delegating_metadata(metadata):
 
     contents = metadata["signed"]
 
-    for entry in ["type", "metadata_spec_version", "delegations", "expiration"]:  # required fields
+    for entry in [  # required fields
+        "type",
+        "metadata_spec_version",
+        "delegations",
+        "expiration",
+    ]:
         if entry not in contents:
             raise ValueError(
-                'Expected a "' + str(entry) + '" entry in the given ' "delegating metadata."
+                'Expected a "' + str(entry) + '" entry in the given '
+                "delegating metadata."
             )
 
     checkformat_string(contents["type"])
@@ -921,7 +926,8 @@ def checkformat_delegating_metadata(metadata):
     # Timestamp and/or Version:
     if "timestamp" not in contents and "version" not in contents:
         raise ValueError(
-            'All metadata must include a "version" entry, or a ' '"timestamp" entry, or both.'
+            'All metadata must include a "version" entry, or a '
+            '"timestamp" entry, or both.'
         )
 
     if contents["type"] == "root" and "version" not in contents:
@@ -1053,7 +1059,7 @@ def keyfiles_to_keys(name):
 
 #     checkformat_hex_key(public_hex_string)
 
-#     return ed25519.Ed25519PublicKey.from_public_bytes(binascii.unhexlify(
+#     return ed25519.Ed25519PublicKey.from_public_bytes(unhexlify(
 #             public_hex_string))
 
 
@@ -1078,10 +1084,10 @@ def checkformat_key(key):
 # def bytes_to_hex_string():
 # def bytes_from_hex_string(hex):
 
-#     binascii.hexlify().
+#     hexlify().
 
 # def public_key_from_hex_string(public_hex_string):
-#     return ed25519.Ed25519PublicKey.from_public_bytes(binascii.unhexlify(public_hex_string))
+#     return ed25519.Ed25519PublicKey.from_public_bytes(unhexlify(public_hex_string))
 
 # def private_key_from_bytes(private_bytes):
 #     # from_private_bytes() checks length (32), but does not produce helpful
@@ -1106,7 +1112,7 @@ def iso8601_time_plus_delta(delta):
     """
     checkformat_expiration_distance(delta)
 
-    unix_expiry = datetime.datetime.utcnow().replace(microsecond=0) + delta
+    unix_expiry = datetime.utcnow().replace(microsecond=0) + delta
 
     return unix_expiry.isoformat() + "Z"
 
