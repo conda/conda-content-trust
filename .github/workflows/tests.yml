@@ -1,4 +1,4 @@
-name: CI
+name: Tests
 
 on:
   # NOTE: github.event context is push payload:
@@ -21,44 +21,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
-
-    runs-on: ${{ matrix.os }}
-
+  # test suite
+  tests:
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        runner: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.6", "3.7", "3.8", "3.9"]
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - name: Timestamp
+        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Cache conda
+        uses: actions/cache@v3
+        with:
+          path: ~/conda_pkgs_dir
+          key: ${{ runner.os }}-conda-${{ env.TIMESTAMP }}
+
+      - name: Setup minicodna
+        uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: false
           python-version: ${{ matrix.python-version }}
 
-      - name: Conda install dependencies
+      - name: Setup environment
         run: conda install conda-build anaconda-client pytest pytest-cov
 
-      - name: Conda build
+      - name: Build conda-content-trust
         run: conda build conda.recipe --no-test
 
-      - name: Conda install conda-content-trust locally
+      - name: Install conda-content-trust
         run: conda install --use-local conda-content-trust
 
-      - name: Conda info
-        run: conda info -a
-
-      - name: Conda info
-        run: conda info -a
+      - name: Show info
+        run: |
+          conda info -a
+          conda list --show-channel-urls
 
       - name: Run tests
-        run: conda run --no-capture-output pytest
+        run: pytest
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
-          name: Python ${{ matrix.python-version }}
+          flags: ${{ matrix.python-version }},${{ runner.os }}
