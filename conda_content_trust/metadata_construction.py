@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2019 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
@@ -18,15 +17,14 @@ Metadata Construction:
 from datetime import timedelta
 
 from .common import (
+    SECURITY_METADATA_SPEC_VERSION,
     PrivateKey,
+    checkformat_delegations,
     checkformat_natural_int,
     checkformat_string,
     checkformat_utc_isoformat,
-    checkformat_delegations,
     iso8601_time_plus_delta,
-    SECURITY_METADATA_SPEC_VERSION,
 )
-
 
 # Default expiration distance for repodata_verify.json.
 REPODATA_VERIF_MD_EXPIRY_DISTANCE = timedelta(days=31)
@@ -34,8 +32,8 @@ ROOT_MD_EXPIRY_DISTANCE = timedelta(days=365)
 
 
 def build_delegating_metadata(
-        metadata_type,
-        delegations=None, version=1, timestamp=None, expiration=None):
+    metadata_type, delegations=None, version=1, timestamp=None, expiration=None
+):
     """
     # ✅ TODO: Docstring
 
@@ -99,12 +97,12 @@ def build_delegating_metadata(
     checkformat_delegations(delegations)
 
     md = {
-        'type': metadata_type,
-        'version': version,
-        'metadata_spec_version': SECURITY_METADATA_SPEC_VERSION,
-        'timestamp': timestamp,
-        'expiration': expiration,
-        "delegations": delegations
+        "type": metadata_type,
+        "version": version,
+        "metadata_spec_version": SECURITY_METADATA_SPEC_VERSION,
+        "timestamp": timestamp,
+        "expiration": expiration,
+        "delegations": delegations,
     }
 
     # # This very redundant, but might be useful as defensive code.
@@ -113,12 +111,15 @@ def build_delegating_metadata(
     return md
 
 
-
 def build_root_metadata(
-        root_version,
-        root_pubkeys, root_threshold,
-        key_mgr_pubkeys, key_mgr_threshold,
-        root_timestamp=None, root_expiration=None):
+    root_version,
+    root_pubkeys,
+    root_threshold,
+    key_mgr_pubkeys,
+    key_mgr_threshold,
+    root_timestamp=None,
+    root_expiration=None,
+):
     """
     Wrapper for build_delegating_metadata().  Helpfully requires root to list
     itself and key_mgr in its delegations.
@@ -146,19 +147,19 @@ def build_root_metadata(
     #     channeler_threshold = max(1, len(channeler_pubkeys))
 
     delegations = {
-        'root':
-            {'pubkeys': root_pubkeys, 'threshold': root_threshold},
-        'key_mgr':
-            {'pubkeys': key_mgr_pubkeys, 'threshold': key_mgr_threshold}
+        "root": {"pubkeys": root_pubkeys, "threshold": root_threshold},
+        "key_mgr": {"pubkeys": key_mgr_pubkeys, "threshold": key_mgr_threshold},
     }
 
     root_md = build_delegating_metadata(
-            metadata_type='root', delegations=delegations,
-            version=root_version, timestamp=root_timestamp,
-            expiration=root_expiration)
+        metadata_type="root",
+        delegations=delegations,
+        version=root_version,
+        timestamp=root_timestamp,
+        expiration=root_expiration,
+    )
 
     return root_md
-
 
 
 def gen_and_write_keys(fname):
@@ -178,13 +179,12 @@ def gen_and_write_keys(fname):
     # Write the actual bytes of the key values to disk as requested.
     # Note that where the private key is concerned, we're just grabbing the
     # not-encrypted private key value.
-    with open(fname + '.pri', 'wb') as fobj:
-            fobj.write(private.to_bytes())
-    with open(fname + '.pub', 'wb') as fobj:
-            fobj.write(public.to_bytes())
+    with open(fname + ".pri", "wb") as fobj:
+        fobj.write(private.to_bytes())
+    with open(fname + ".pub", "wb") as fobj:
+        fobj.write(public.to_bytes())
 
     return private, public
-
 
 
 def gen_keys():
@@ -204,73 +204,6 @@ def gen_keys():
     public = private.public_key()
 
     return private, public
-
-
-
-
-## Moved to cli.py
-# def interactive_modify_metadata(metadata):
-#     """
-#     """
-
-#     # Update version if there is a version.
-#     # Update timestamp if there is a timestamp.
-#     #
-#     # Show metadata contents ('signed') -- pprint?
-#     #    indicate updated version/timestamp
-#     #
-#     # Changes phase:
-#     #    Prompt to
-#     #       (m) modify a value, (a) add a new entry, (d) delete an entry,
-#     #       (r) revert to original, (f) finish and sign ((move on to signing
-#     #       prompts))
-#     #
-#     # Signing phase:
-#     #   Show metadata again, ask if metadata looks right
-#     #   Show what keys the original was signed by and ask if those should be
-#     #     the keys used for the new version.
-#     #        ((Later: if root, vet against contents of new and old root versions))
-#     #   Prompt for key (raw key file, raw key data, or gpg key fingerprint)
-#     #   Sign using the given key (gpg if gpg, else normal signing mechanism).
-#     #   Write (making sure not to overwrite, and -- if root -- making sure to
-#     #     prepend "<version>." to root.json file.
-
-
-#     try:
-#         import pygments
-#         import pygments.lexers
-#         import pygments.formatters
-#         import json
-#     except ImportError():
-#         print(
-#                 'Unable to use interactive-modify-metadata mode: missing '
-#                 'optional dependency "pygments" (for JSON syntax '
-#                 'highlighting).  Please install pygments and try again.')
-#         raise
-
-#     done = False
-#     while not done:
-
-
-
-
-
-
-
-#     formatted_metadata = json.dumps(metadata, sort_keys=True, indent=4)
-
-#     colorful_json = pygments.highlight(
-#             formatted_metadata.encode('utf-8'),
-#             pygments.lexers.JsonLexer(),
-#             pygments.formatters.TerminalFormatter())
-#     print(colorful_json)
-
-
-
-#     ### Pull modified from debugging script
-#     ### Pull modified from debugging script
-#     ### Pull modified from debugging script
-
 
 
 # This function is not in use.  It's here for reference, in case it's useful
