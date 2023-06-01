@@ -1,27 +1,19 @@
 # -*- coding: utf-8 -*-
-
-""" tests.test_authentication
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 Unit tests for conda-content-trust/car/authentication.py
 as well as integration tests for the signing.py + authentication.py.
 
 Run the tests this way:
     pytest tests/test_authentication.py
-
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
 import copy
 import os
 
-# dependencies
 import pytest
 import cryptography.exceptions
 
-# this codebase
 from conda_content_trust.authentication import *
 from conda_content_trust.metadata_construction import (
         gen_keys, gen_and_write_keys, # for new-key tests

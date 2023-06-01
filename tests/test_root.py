@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
-""" tests.test_root
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 Some integration tests tests for conda-content-trust that focus on
 generation, signing, and verification of root metadata.  This tests GPG
 integration via securesystemslib if securesystemslib can be successfully
@@ -12,12 +12,7 @@ securesystemslib and GPG available on the system.
 
 Run the tests this way:
     pytest tests/test_root.py
-
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import copy
 import json
 

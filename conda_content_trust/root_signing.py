@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-
-""" conda_content_trust.root_signing
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 This module contains functions that sign data in an OpenPGP-compliant (i.e.
 GPG-friendly) way.  Root metadata may be signed in this manner.  Functions that
 perform simpler, direct signing using raw ed25519 keys are provided in
@@ -22,40 +23,26 @@ the API for this module:
 Note that there is a function in conda_content_trust.authentication that verifies these
 signatures without requiring securesystemslib.
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
-import json
-#import binascii  # for binascii.unhexlify / hexlify
-#import struct    # for struct.pack
-
-# dependencies
-# For ed25519 signing operations and hashing
-import cryptography.hazmat.primitives.asymmetric.ed25519# as ed25519
-import cryptography.hazmat.primitives.hashes# as pyca_crypto_hashes
-import cryptography.hazmat.backends# as pyca_crypto_backends
-import cryptography.exceptions# as pyca_crypto_exceptions
-
 # securesystemslib is an optional dependency, and required only for signing
 # root metadata via GPG.  Verification of those signatures, and signing other
 # metadata with raw ed25519 signatures, does not require securesystemslib.
 try:
-    import securesystemslib.gpg.functions as gpg_funcs
+    from securesystemslib.gpg import functions as gpg_funcs
     import securesystemslib.formats
     SSLIB_AVAILABLE = True
 except ImportError:
     SSLIB_AVAILABLE = False
 
-# this codebase
 from .common import (
-        canonserialize, load_metadata_from_file, write_metadata_to_file,
-        is_a_signable,
-        checkformat_gpg_fingerprint, checkformat_hex_key,
-        checkformat_gpg_signature, checkformat_byteslike,
-        PrivateKey, PublicKey, checkformat_key)
-
+    canonserialize,
+    load_metadata_from_file,
+    write_metadata_to_file,
+    is_a_signable,
+    checkformat_gpg_fingerprint,
+    checkformat_hex_key,
+    checkformat_byteslike,
+    checkformat_key,
+)
 
 
 def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):

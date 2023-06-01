@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
-
-""" tests.test_signing
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 Unit tests for conda-content-trust/conda_content_trust/signing.py
 
-
- NOTE that much of the signing module is currently tested in
+NOTE that much of the signing module is currently tested in
    test_authentication.py instead.  Some unit tests are missing.
-
 
 Run the tests this way:
     pytest tests/test_signing.py
-
 """
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import os, os.path
 import shutil
 import copy
@@ -136,8 +129,3 @@ def test_sign_all_in_repodata(request):
                 repodata_signed['signatures'][artifact_name][REG__PUBLIC_HEX]['signature'],
                 public,
                 canonserialize(repodata['packages'][artifact_name]))
-
-
-
-
-

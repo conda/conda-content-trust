@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 import os
 import json
 
@@ -39,18 +37,11 @@ ROOT_FNAME_V3 = 'demo/3.root.json' # Note that this will be overwritten.
 
 KEYMGR_FNAME = 'demo/key_mgr.json' # Note that this will be overwritten.
 
-# In Python2, input() performs evaluation and raw_input() does not.  In
-# Python3, input() does not perform evaluation and there is no raw_input().
-# So... use raw_input in Python2, and input in Python3.
-try:
-    _input_func = raw_input
-except NameError:
-    _input_func = input
 
 # Step by step demo or an uninterrupted run, based on PRESENT_SLOWLY.
 def input_func(s):
     if PRESENT_SLOWLY:
-        return _input_func(s)
+        return input(s)
     else:
         return print(s)
 

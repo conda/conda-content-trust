@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-
-""" tests.test_cli
-
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 Integration tests for conda-content-trust/conda_content_trust/cli.py.
 
 Run the tests this way:
     pytest tests/test_cli.py
-
 """
-
 import subprocess
 
 import conda_content_trust.cli
@@ -51,4 +49,3 @@ def test_that_all_calls_complete():
 
 # def test_():
 #   raise NotImplementedError()
-

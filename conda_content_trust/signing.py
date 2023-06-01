@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-
-""" conda_content_trust.signing
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""
 This module contains functions that sign data using ed25519 keys, via the
 pyca/cryptography library.  Functions that perform OpenPGP-compliant (e.g. GPG)
 signing are provided instead in root_signing.
@@ -9,38 +10,22 @@ Function Manifest for this Module:
     serialize_and_sign
     wrap_as_signable
     sign_signable
-
 """
+from binascii import hexlify
+from copy import deepcopy
 
-# Python2 Compatibility
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-# std libs
-import binascii
-import copy # for deepcopy
-import json # for json.dump
-
-# Dependency-provided libraries
-#import cryptography
-#import cryptography.exceptions
-#import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
-#import cryptography.hazmat.primitives.serialization as serialization
-#import cryptography.hazmat.primitives.hashes
-#import cryptography.hazmat.backends
-
-
-# conda-content-trust modules
 from .common import (
-        SUPPORTED_SERIALIZABLE_TYPES, canonserialize,
-        load_metadata_from_file, write_metadata_to_file,
-        PublicKey, PrivateKey,
-        checkformat_string, checkformat_key, checkformat_hex_key,
-        checkformat_signable, checkformat_signature,
-        #is_hex_string, is_hex_signature, is_hex_key,
-        #checkformat_natural_int, checkformat_expiration_distance,
-        #checkformat_hex_key, checkformat_list_of_hex_keys,
-        #checkformat_utc_isoformat,
-        )
+    SUPPORTED_SERIALIZABLE_TYPES,
+    canonserialize,
+    load_metadata_from_file,
+    write_metadata_to_file,
+    PrivateKey,
+    checkformat_string,
+    checkformat_key,
+    checkformat_hex_key,
+    checkformat_signable,
+    checkformat_signature,
+)
 
 
 def serialize_and_sign(obj, private_key):
@@ -68,7 +53,7 @@ def serialize_and_sign(obj, private_key):
 
     signature_as_bytes = private_key.sign(serialized)
 
-    signature_as_hexstr = binascii.hexlify(signature_as_bytes).decode('utf-8')
+    signature_as_hexstr = hexlify(signature_as_bytes).decode("utf-8")
 
     return signature_as_hexstr
 
@@ -103,8 +88,7 @@ def wrap_as_signable(obj):
     #          this way in TUF, but we also don't depend on it being an ordered
     #          list anyway, so a dictionary is probably better.
 
-    return {'signatures': {}, 'signed': copy.deepcopy(obj)}
-
+    return {"signatures": {}, "signed": deepcopy(obj)}
 
 
 def sign_signable(signable, private_key):
