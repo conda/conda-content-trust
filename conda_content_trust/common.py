@@ -59,7 +59,6 @@ import datetime
 import re  # for UTC iso8601 date string checking
 import binascii  # solely for hex string <-> bytes conversions
 
-from six import string_types
 import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
 import cryptography.hazmat.primitives.serialization as serialization
 
@@ -264,7 +263,7 @@ class MixinKey(object):
         # # Before the next two lines are run, this is the situation:
         # # > cls.__bases__
         # #    (<class 'conda_content_trust.common.MixinKey'>,
-        # #     <class 'cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey'>)
+        # #     <class 'ed25519.Ed25519PrivateKey'>)
         # # > new_object.__class__
         # #    <class 'cryptography.hazmat.backends.openssl.ed25519._Ed25519PrivateKey'>
         # cls.__bases__ += tuple()
@@ -294,12 +293,7 @@ class MixinKey(object):
         return new_object
 
 
-class PrivateKey(
-        MixinKey,
-        cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
-        # Note that inheritance class order should use the "true" base class
-        # last in Python.
-        ):
+class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
     """
     This class expands the class
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
@@ -327,8 +321,7 @@ class PrivateKey(
         checkformat_key(public)
         return public
 
-
-    @classmethod # a class method for inheritors of this mix-in
+    @classmethod  # a class method for inheritors of this mix-in
     def generate(cls):  # Overrides ed25519.Ed25519PrivateKey's class method
         """
         Wrap the superclass's key generation class function
@@ -346,16 +339,7 @@ class PrivateKey(
         return private
 
 
-
-
-class PublicKey(
-            MixinKey,
-            # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
-            #                 possible.  It's a private class.
-            cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
-        # Note that inheritance class order should use the "true" base class
-        # last in Python.
-            ):
+class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
     """
     This class expands the class
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
@@ -365,7 +349,6 @@ class PublicKey(
     """
 
 
-
 # No....  For now, I'll stick with the raw dictionary representations.
 # If function profusion makes it inconvenient for folks to use this library,
 # it MAY then be time to make signatures into class objects... but it's
@@ -373,8 +356,6 @@ class PublicKey(
 # class Signature():
 #     def __init__(self, ):
 #         self.is_gpg_sig = False
-
-
 
 
 # ✅ TODO: Consider a schema definitions module, e.g. PyPI project "schema"
@@ -390,10 +371,9 @@ def is_hex_string(s):
         return False
 
 
-
 def checkformat_hex_string(s):
     """
-    Throws TypeError if s is not a string (string_types).
+    Throws TypeError if s is not a string.
     Throws ValueError if the given string is not a string of hexadecimal
     characters (upper-case not allowed to prevent redundancy).
     """
