@@ -47,17 +47,12 @@ jobs:
       - name: Setup minicodna
         uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-update-conda: false
           python-version: ${{ matrix.python-version }}
 
       - name: Setup environment
-        run: conda install conda-build anaconda-client pytest pytest-cov
-
-      - name: Build conda-content-trust
-        run: conda build conda.recipe --no-test
-
-      - name: Install conda-content-trust
-        run: conda install --use-local conda-content-trust
+        run: |
+          conda install -q -y -c defaults \
+            --file ./tests/requirements.txt
 
       - name: Show info
         run: |
