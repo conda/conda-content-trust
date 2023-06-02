@@ -38,6 +38,7 @@ from .common import (
     checkformat_byteslike,
     checkformat_gpg_fingerprint,
     checkformat_hex_key,
+    checkformat_key,
     is_a_signable,
     load_metadata_from_file,
     write_metadata_to_file,
@@ -357,6 +358,8 @@ def _verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
             "verifygpg_sig_using_ssl requires the securesystemslib "
             "library, which appears to be unavailable."
         )
+
+    checkformat_key(key_value)
 
     # This function validates these two args in the process of formatting them.
     ssl_format_key = gpg_pubkey_in_ssl_format(gpg_key_fingerprint, key_value)

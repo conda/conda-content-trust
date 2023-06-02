@@ -179,7 +179,6 @@ class MixinKey:
     PrivateKey and PublicKey classes, specifically.  It provides some
     convenience functions.
     """
-
     @classmethod  # a class method for inheritors of this mix-in
     def from_hex(cls, key_value_in_hex):
         # from_private_bytes() and from_public_bytes() both check length (32),
@@ -191,45 +190,16 @@ class MixinKey:
         checkformat_key(new_object)
         return new_object
 
-
-def is_equivalent_to(cls, k1, k2):
-    """
-    Given Ed25519PrivateKey or Ed25519PublicKey objects, determines if the
-    underlying key data is identical.
-    """
-    checkformat_key(k2)
-    if type(k1) is not type(k2):
-        return False
-    return cls.to_bytes(k1) == cls.to_bytes(k2)
-
-
-def private_to_hex(key):
-    return hexlify(private_to_bytes(key)).decode("utf-8")
-
-
-def private_to_bytes(key):
-    return key.private_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PrivateFormat.Raw,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-
-
-def private_from_bytes(key_value_in_bytes):
-    """
-    Constructs an object of the class based on the given key value.
-    The "cryptography" library provides from_public_bytes() and
-    from_private_bytes() class methods for Ed25519PublicKey and
-    Ed25519PrivateKey classes in place of constructors.  We extend provide
-    a single API for those, and make the created objects objects of the
-    subclass using this mix-in.
-    """
-    # from_private_bytes() and from_public_bytes() both check length (32),
-    # but do not produce helpful errors if the argument provided it is not
-    # the right type, so we'll do that here before calling them.
-    checkformat_byteslike(key_value_in_bytes)
-
-    return PrivateKey.from_private_bytes(key_value_in_bytes)
+    @classmethod
+    def is_equivalent_to(cls, k1, k2):
+        """
+        Given Ed25519PrivateKey or Ed25519PublicKey objects, determines if the
+        underlying key data is identical.
+        """
+        checkformat_key(k2)
+        if type(k1) is not type(k2):
+            return False
+        return cls.to_bytes(k1) == cls.to_bytes(k2)
 
 
 class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
@@ -245,53 +215,41 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         value for sign() is a length 64 bytes() object, a raw ed25519
         signature.
     """
+    @classmethod
+    def to_hex(cls, key):
+        return hexlify(cls.to_bytes(key)).decode("utf-8")
 
-    to_bytes = private_to_bytes
-    from_bytes = private_from_bytes
-    to_hex = private_to_hex
+    @classmethod
+    def to_bytes(cls, key):
+        return key.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+
+    @classmethod
+    def from_bytes(cls, key_value_in_bytes):
+        """
+        Constructs an object of the class based on the given key value.
+        The "cryptography" library provides from_public_bytes() and
+        from_private_bytes() class methods for Ed25519PublicKey and
+        Ed25519PrivateKey classes in place of constructors.  We extend provide
+        a single API for those, and make the created objects objects of the
+        subclass using this mix-in.
+        """
+        # from_private_bytes() and from_public_bytes() both check length (32),
+        # but do not produce helpful errors if the argument provided it is not
+        # the right type, so we'll do that here before calling them.
+        checkformat_byteslike(key_value_in_bytes)
+        return super().from_private_bytes(key_value_in_bytes)
 
     def public_key(self):  # Overrides ed25519.Ed25519PrivateKey's method
         """
         Return the public key corresponding to this private key.
         """
-        # TODO: ✅❌⚠️💣  Confirm that this override works.  We MUST override
-        #                   the public_key() method.  If we just let the
-        #                   parent class's public_key() method be called, we'll
-        #                   get an object of the wrong type.
-        public = super().public_key()  # TODO: ✅ Python 2 compliance
-        # public.__class__ = PublicKey  # TODO: ✅ This should not be hardcoded?
-
+        public = super().public_key()
         checkformat_key(public)
         return public
-
-
-def public_to_hex(key):
-    return hexlify(public_to_bytes(key)).decode("utf-8")
-
-
-def public_to_bytes(key):
-    """
-    Pops out the nice, tidy bytes of a given ed25519 key object, public or
-    private.
-    """
-    return key.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-
-
-def public_from_bytes(key_value_in_bytes):
-    """
-    Constructs an object of the class based on the given key value.
-    The "cryptography" library provides from_public_bytes() and
-    from_private_bytes() class methods for Ed25519PublicKey and
-    Ed25519PrivateKey classes in place of constructors.  We extend provide
-    a single API for those, and make the created objects objects of the
-    subclass using this mix-in.
-    """
-    # from_private_bytes() and from_public_bytes() both check length (32),
-    # but do not produce helpful errors if the argument provided it is not
-    # the right type, so we'll do that here before calling them.
-    checkformat_byteslike(key_value_in_bytes)
-
-    return PublicKey.from_public_bytes(key_value_in_bytes)
 
 
 class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
@@ -302,11 +260,33 @@ class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
 
     We preserve Ed25519PublicKey's verify() method unchanged.
     """
+    @classmethod
+    def to_hex(cls, key):
+        return hexlify(cls.to_bytes(key)).decode("utf-8")
 
-    to_bytes = public_to_bytes
-    from_bytes = public_from_bytes
-    to_hex = public_to_hex
+    @classmethod
+    def to_bytes(cls, key):
+        """
+        Pops out the nice, tidy bytes of a given ed25519 key object, public or
+        private.
+        """
+        return key.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
 
+    @classmethod
+    def from_bytes(cls, key_value_in_bytes):
+        """
+        Constructs an object of the class based on the given key value.
+        The "cryptography" library provides from_public_bytes() and
+        from_private_bytes() class methods for Ed25519PublicKey and
+        Ed25519PrivateKey classes in place of constructors.  We extend provide
+        a single API for those, and make the created objects objects of the
+        subclass using this mix-in.
+        """
+        # from_private_bytes() and from_public_bytes() both check length (32),
+        # but do not produce helpful errors if the argument provided it is not
+        # the right type, so we'll do that here before calling them.
+        checkformat_byteslike(key_value_in_bytes)
+        return super().from_public_bytes(key_value_in_bytes)
 
 # No....  For now, I'll stick with the raw dictionary representations.
 # If function profusion makes it inconvenient for folks to use this library,
@@ -1013,8 +993,8 @@ def keyfiles_to_keys(name):
     """
     private_bytes, public_bytes = keyfiles_to_bytes(name)
 
-    private = private_from_bytes(private_bytes)
-    public = public_from_bytes(public_bytes)
+    private = PrivateKey.from_bytes(private_bytes)
+    public = PublicKey.from_bytes(public_bytes)
 
     return private, public
 
@@ -1095,7 +1075,7 @@ def checkformat_key(key):
 #     checkformat_byteslike(private_bytes)
 #     # if len(private_bytes) != 32:
 #     #     raise ValueError('Requires bytes-like object of length 32.')
-#     return ed25519.Ed25519PrivateKey.from_private_bytes(private_bytes)
+#     return ed25519.Ed25519PrivateKey.from_bytes(private_bytes)
 
 
 def iso8601_time_plus_delta(delta):

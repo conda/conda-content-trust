@@ -16,13 +16,14 @@ from copy import deepcopy
 from .common import (
     SUPPORTED_SERIALIZABLE_TYPES,
     PrivateKey,
+    PublicKey,
     canonserialize,
     checkformat_hex_key,
+    checkformat_key,
     checkformat_signable,
     checkformat_signature,
     checkformat_string,
     load_metadata_from_file,
-    public_to_hex,
     write_metadata_to_file,
 )
 
@@ -112,6 +113,7 @@ def sign_signable(signable, private_key):
     SUPPORTED_SERIALIZABLE_TYPES
     """
     # Argument checking
+    checkformat_key(private_key)
     checkformat_signable(signable)
     # if not is_a_signable(signable):
     #     raise TypeError(
@@ -122,7 +124,7 @@ def sign_signable(signable, private_key):
 
     signature_as_hexstr = serialize_and_sign(signable["signed"], private_key)
 
-    public_key_as_hexstr = public_to_hex(private_key.public_key())
+    public_key_as_hexstr = PublicKey.to_hex(private_key.public_key())
 
     # To fit a general format, we wrap it this way, instead of just using the
     # hexstring.  This is because OpenPGP signatures that we use for root
@@ -160,7 +162,7 @@ def sign_all_in_repodata(fname, private_key_hex):
     # TODO ✅⚠️: Consider filename validation.  What does conda use for that?
 
     private = PrivateKey.from_hex(private_key_hex)
-    public_hex = public_to_hex(private.public_key())
+    public_hex = PublicKey.to_hex(private.public_key())
 
     # Loading the whole file at once instead of reading it as we go, because
     # it's less complex and this only needs to run repository-side.

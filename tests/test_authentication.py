@@ -19,12 +19,8 @@ from conda_content_trust.common import (
     PrivateKey,
     PublicKey,
     SignatureError,
-    is_equivalent_to,
     keyfiles_to_bytes,
     keyfiles_to_keys,
-    private_from_bytes,
-    public_from_bytes,
-    public_to_hex,
 )
 from conda_content_trust.metadata_construction import (  # for new-key tests; build_repodata_verification_metadata
     gen_and_write_keys,
@@ -157,16 +153,14 @@ def test_wrap_sign_verify_signable():
     loaded_new_private_bytes, loaded_new_public_bytes = keyfiles_to_bytes("keytest_new")
     loaded_new_private, loaded_new_public = keyfiles_to_keys("keytest_new")
 
-    old_private = private_from_bytes(REG__PRIVATE_BYTES)
-    old_public = public_from_bytes(REG__PUBLIC_BYTES)
+    old_private = PrivateKey.from_bytes(REG__PRIVATE_BYTES)
+    old_public = PublicKey.from_bytes(REG__PUBLIC_BYTES)
 
-    assert is_equivalent_to(PrivateKey, generated_private, loaded_new_private)
-    assert is_equivalent_to(PublicKey, generated_public, loaded_new_public)
-    assert is_equivalent_to(
-        PrivateKey, loaded_new_private, private_from_bytes(loaded_new_private_bytes)
-    )
-    assert is_equivalent_to(
-        PublicKey, loaded_new_public, public_from_bytes(loaded_new_public_bytes)
+    assert PrivateKey.is_equivalent_to(generated_private, loaded_new_private)
+    assert PublicKey.is_equivalent_to(generated_public, loaded_new_public)
+    assert PrivateKey.is_equivalent_to(loaded_new_private, PrivateKey.from_bytes(loaded_new_private_bytes))
+    assert (
+        PublicKey.is_equivalent_to(loaded_new_public, PublicKey.from_bytes(loaded_new_public_bytes))
     )
 
     # Clean up a bit for the next tests.
@@ -191,7 +185,7 @@ def test_wrap_sign_verify_signable():
 
     verify_signable(
         signable=signable_d,
-        authorized_pub_keys=[public_to_hex(old_public)],
+        authorized_pub_keys=[PublicKey.to_hex(old_public)],
         threshold=1,
     )
 
@@ -199,7 +193,7 @@ def test_wrap_sign_verify_signable():
     try:
         verify_signable(
             signable=signable_d["signed"],
-            authorized_pub_keys=[public_to_hex(old_public)],
+            authorized_pub_keys=[PublicKey.to_hex(old_public)],
             threshold=1,
         )
     except TypeError:
@@ -213,7 +207,7 @@ def test_wrap_sign_verify_signable():
         modified_signable_d["signed"] = d_modified
         verify_signable(
             signable=modified_signable_d,
-            authorized_pub_keys=[public_to_hex(old_public)],
+            authorized_pub_keys=[PublicKey.to_hex(old_public)],
             threshold=1,
         )
     except SignatureError:
@@ -259,7 +253,7 @@ def test_wrap_sign_verify_signable():
 
 #     verify_signable(
 #             signable=signable_rd_v_md,
-#             authorized_pub_keys=[public_to_hex(old_public)],
+#             authorized_pub_keys=[PublicKey.to_hex(old_public)],
 #             threshold=1)
 
 #     # Expect failure this time due to non-matching signature.
@@ -273,7 +267,7 @@ def test_wrap_sign_verify_signable():
 
 #         verify_signable(
 #                 signable=modified_signable_rd_v_md,
-#                 authorized_pub_keys=[public_to_hex(old_public)],
+#                 authorized_pub_keys=[PublicKey.to_hex(old_public)],
 #                 threshold=1)
 #     except SignatureError:
 #         pass
@@ -310,7 +304,7 @@ def test_wrap_sign_verify_signable():
 #             "type": "repodata_verify"
 #           }
 #         },
-#         authorized_pub_keys=[public_to_hex(old_public)],
+#         authorized_pub_keys=[PublicKey.to_hex(old_public)],
 #         threshold=1)
 
 

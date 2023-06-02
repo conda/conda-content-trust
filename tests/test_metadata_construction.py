@@ -22,11 +22,8 @@ from conda_content_trust.common import (
     PublicKey,
     checkformat_delegating_metadata,
     is_a_signable,
-    is_equivalent_to,
     keyfiles_to_bytes,
     keyfiles_to_keys,
-    private_from_bytes,
-    public_from_bytes,
 )
 from conda_content_trust.metadata_construction import *
 from conda_content_trust.signing import wrap_as_signable
@@ -242,13 +239,13 @@ def test_gen_and_write_keys():
             "keytest_new"
         )
         loaded_new_private, loaded_new_public = keyfiles_to_keys("keytest_new")
-        assert is_equivalent_to(PrivateKey, generated_private, loaded_new_private)
-        assert is_equivalent_to(PublicKey, generated_public, loaded_new_public)
-        assert is_equivalent_to(
-            PrivateKey, loaded_new_private, private_from_bytes(loaded_new_private_bytes)
+        assert PrivateKey.is_equivalent_to(generated_private, loaded_new_private)
+        assert PublicKey.is_equivalent_to(generated_public, loaded_new_public)
+        assert (
+            PrivateKey.is_equivalent_to(loaded_new_private, PrivateKey.from_bytes(loaded_new_private_bytes))
         )
-        assert is_equivalent_to(
-            PublicKey, loaded_new_public, public_from_bytes(loaded_new_public_bytes)
+        assert (
+            PublicKey.is_equivalent_to(loaded_new_public, PublicKey.from_bytes(loaded_new_public_bytes))
         )
 
     finally:
@@ -283,9 +280,9 @@ def test_gen_keys():
     generated_private_1, generated_public_1 = gen_keys()
     generated_private_2, generated_public_2 = gen_keys()
 
-    assert not is_equivalent_to(PrivateKey, generated_private_1, generated_private_2)
-    assert not is_equivalent_to(PrivateKey, generated_private_1, generated_public_1)
-    assert not is_equivalent_to(PublicKey, generated_public_1, generated_public_2)
+    assert not PrivateKey.is_equivalent_to(generated_private_1, generated_private_2)
+    assert not PrivateKey.is_equivalent_to(generated_private_1, generated_public_1)
+    assert not PublicKey.is_equivalent_to(generated_public_1, generated_public_2)
 
     sig_from_1 = generated_private_1.sign(b"1234")
     sig_from_2 = generated_private_2.sign(b"1234")
