@@ -63,7 +63,7 @@ jobs:
           conda list --show-channel-urls
 
       - name: Run tests
-        run: pytest
+        run: pytest --cov=conda_content_trust
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
