@@ -179,16 +179,9 @@ class MixinKey:
     PrivateKey and PublicKey classes, specifically.  It provides some
     convenience functions.
     """
-    @classmethod  # a class method for inheritors of this mix-in
-    def from_hex(cls, key_value_in_hex):
-        # from_private_bytes() and from_public_bytes() both check length (32),
-        # but do not produce helpful errors if the argument provided it is not
-        # the right type, so we'll do that here before calling them.
-        checkformat_hex_key(key_value_in_hex)
-        key_value_in_bytes = unhexlify(key_value_in_hex)
-        new_object = cls.from_bytes(key_value_in_bytes)
-        checkformat_key(new_object)
-        return new_object
+    @classmethod
+    def to_hex(cls, key):
+        return hexlify(cls.to_bytes(key)).decode("utf-8")
 
     @classmethod
     def is_equivalent_to(cls, k1, k2):
@@ -200,6 +193,17 @@ class MixinKey:
         if type(k1) is not type(k2):
             return False
         return cls.to_bytes(k1) == cls.to_bytes(k2)
+
+    @classmethod  # a class method for inheritors of this mix-in
+    def from_hex(cls, key_value_in_hex):
+        # from_private_bytes() and from_public_bytes() both check length (32),
+        # but do not produce helpful errors if the argument provided it is not
+        # the right type, so we'll do that here before calling them.
+        checkformat_hex_key(key_value_in_hex)
+        key_value_in_bytes = unhexlify(key_value_in_hex)
+        new_object = cls.from_bytes(key_value_in_bytes)
+        checkformat_key(new_object)
+        return new_object
 
 
 class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
@@ -215,10 +219,6 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         value for sign() is a length 64 bytes() object, a raw ed25519
         signature.
     """
-    @classmethod
-    def to_hex(cls, key):
-        return hexlify(cls.to_bytes(key)).decode("utf-8")
-
     @classmethod
     def to_bytes(cls, key):
         return key.private_bytes(
@@ -260,10 +260,6 @@ class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
 
     We preserve Ed25519PublicKey's verify() method unchanged.
     """
-    @classmethod
-    def to_hex(cls, key):
-        return hexlify(cls.to_bytes(key)).decode("utf-8")
-
     @classmethod
     def to_bytes(cls, key):
         """
