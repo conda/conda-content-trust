@@ -54,7 +54,7 @@ jobs:
 
       - name: Setup environment
         run: |
-          conda install -q -y -c defaults \
+          conda install -q -y -c conda-forge \
             --file ./tests/requirements.txt
 
       - name: Show info

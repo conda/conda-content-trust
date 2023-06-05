@@ -1,5 +1,79 @@
+[build-system]
+requires = [
+  "hatchling >=1.12.2",
+  "hatch-vcs >=0.2.0",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "conda"
+description = "Signing and verification tools, geared toward the conda ecosystem."
+readme = "README.md"
+authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
+license = {file = "LICENSE"}
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy"
+]
+requires-python = ">=3.8"
+dependencies = [
+  "cryptography",
+]
+dynamic = ["version"]
+keywords = [
+    "conda-content-trust",
+    "conda-authentication-resources",
+    "conda",
+    "signing",
+    "secure",
+    "verify",
+    "authentication",
+    "key",
+    "compromise",
+]
+
+[project.optional-dependencies]
+# Note that the securesystemslib optional dependency is only required to
+# *produce* gpg-based signatures (instead of plain ed25519 sigs via
+# pyca/cryptography).  *Verification* of either signature type does NOT
+# require securesystemslib.
+# WARNING: DEPENDENCY ON SECURESYSTEMSLIB PINNED.
+gpgsigning = ["securesystemslib==0.13.1"]
+
+[project.urls]
+repository = "https://github.com/conda/conda-content-trust"
+changelog = "https://github.com/conda/conda-content-trust/blob/main/CHANGELOG.md"
+
+[project.scripts]
+conda-content-trust = "conda_content_trust.cli:cli"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "dirty-tag"
+
+[tool.hatch.build]
+include = ["conda_content_trust"]
+
+[tool.hatch.build.hooks.vcs]
+version-file = "conda/__init__.py"
+
 [tool.black]
 target-version = ['py38', 'py39', 'py310', 'py311']
 
 [tool.isort]
 profile = "black"
+
+[project.entry-points."conda"]
+conda-content-trust = "conda_content_trust.plugin"

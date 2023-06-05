@@ -12,7 +12,7 @@
 # pip-tools is used to generate and update this file, AND THEN it is reviewed
 # manually on a separate device at another time.
 #   Generation:
-#       pip-compile --generate-hashes --output-file=autocalced_requirements.txt
+#       pip-compile --generate-hashes --output-file=strict_requirements.txt
 #
 # These are the appropriate values as retrieved by Sebastien.  If pip flags a
 # discrepancy during installation, please stop and contact him.
