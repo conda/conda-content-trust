@@ -6,7 +6,7 @@ requires = [
 build-backend = "hatchling.build"
 
 [project]
-name = "conda"
+name = "conda-content-trust"
 description = "Signing and verification tools, geared toward the conda ecosystem."
 readme = "README.md"
 authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
@@ -67,7 +67,7 @@ local_scheme = "dirty-tag"
 include = ["conda_content_trust"]
 
 [tool.hatch.build.hooks.vcs]
-version-file = "conda_content_trust/__init__.py"
+version-file = "conda_content_trust/__version__.py"
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310', 'py311']
