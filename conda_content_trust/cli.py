@@ -24,11 +24,11 @@ from .common import (
 
 
 def cli(args=None):
-    p = ArgumentParser(
+    parser = ArgumentParser(
         description="Signing and verification tools for Conda",
         conflict_handler="resolve",
     )
-    p.add_argument(
+    parser.add_argument(
         "-V",
         "--version",
         action="version",
@@ -37,7 +37,7 @@ def cli(args=None):
     )
 
     # Create separate parsers for the subcommands.
-    sp = p.add_subparsers(title="subcommands", dest="subcommand_name")
+    sp = parser.add_subparsers(title="subcommands", dest="subcommand_name")
 
     # subcommand: sign-artifacts
 
@@ -161,7 +161,7 @@ def cli(args=None):
         "filename", help=("the filename of the file that will be signed")
     )
 
-    args = p.parse_args(args)
+    args = parser.parse_args(args)
 
     if args.subcommand_name == "gpg-sign":
         # TODO: Validate arguments.
@@ -284,7 +284,7 @@ def cli(args=None):
         return errorcode  # failure; exit code
 
     else:
-        print('No command provided.  Please use  "conda-content-trust -h" for help.')
+        parser.print_help()
 
 
 def interactive_modify_metadata(metadata):
