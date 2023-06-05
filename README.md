@@ -1,10 +1,10 @@
-[ci-tests-badge]: https://github.com/conda/conda-content-trust/actions/workflows/ci.yml/badge.svg
+[ci-tests-badge]: https://github.com/conda/conda-content-trust/actions/workflows/tests.yml/badge.svg
 [codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda-content-trust/main.svg?label=coverage
 [release-badge]: https://img.shields.io/github/release/conda/conda-content-trust.svg
 
 # Conda Content Trust: Signing and verification tools for Conda
 
-[![CI Tests (GitHub Actions)][ci-tests-badge]](https://github.com/conda/conda-content-trust/actions/workflows/ci.yml)
+[![Tests (GitHub Actions)][ci-tests-badge]](https://github.com/conda/conda-content-trust/actions/workflows/tests.yml)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda-content-trust/branch/main)
 [![latest release version][release-badge]](https://github.com/conda/conda-content-trust/releases)
 
