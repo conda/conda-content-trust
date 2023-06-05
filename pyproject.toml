@@ -67,7 +67,7 @@ local_scheme = "dirty-tag"
 include = ["conda_content_trust"]
 
 [tool.hatch.build.hooks.vcs]
-version-file = "conda/__init__.py"
+version-file = "conda_content_trust/__init__.py"
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310', 'py311']
