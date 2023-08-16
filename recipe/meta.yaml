@@ -1,29 +1,29 @@
-{% set data = load_setup_py_data() %}
-
 package:
   name: conda-content-trust
-  version: {{ data['version'] }}
+  version: {{ GIT_DESCRIBE_TAG }}+{{ GIT_BUILD_STR }}
 
 source:
-  path: ..
+  # git_url only captures committed code
+  git_url: ../
 
 build:
-  script: {{ PYTHON }} -m pip install --no-deps --ignore-installed -vv .
+  script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
   noarch: python
   entry_points:
-    {% for entry in data['entry_points']['console_scripts'] %}
-    - {{ entry.split('=')[0].strip() }} = {{ entry.split('=')[1].strip() }}
-    {% endfor %}
+    - conda-content-trust = conda_content_trust.cli:cli
 
 requirements:
+  build:
+    - git  # for source/git_url above
   host:
     - python
     - pip
+    - hatchling >=1.12.2
+    - hatch-vcs >=0.2.0
+    - wheel
   run:
     - python
-    {% for dep in data['install_requires'] %}
-    - {{ dep.lower() }}
-    {% endfor %}
+    - cryptography <41
 
 test:
   source_files:
@@ -51,7 +51,7 @@ about:
     encouraged to just use TUF whenever possible!)  This tool is general
     purpose. It is currently used in conda 4.10.1+ to verify package metadata
     signatures when they are available.
-  license: BSD 3-Clause
+  license: BSD-3-Clause
   license_file: LICENSE
   doc_url: https://github.com/conda/conda-content-trust
   dev_url: https://github.com/conda/conda-content-trust
