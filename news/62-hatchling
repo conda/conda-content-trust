@@ -1,0 +1,19 @@
+### Enhancements
+
+* Convert `setup.py`/`setuptools` build backend to `pyproject.toml`/`hatchling`. (#62)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
