@@ -48,7 +48,7 @@ keywords = [
 # pyca/cryptography).  *Verification* of either signature type does NOT
 # require securesystemslib.
 # WARNING: DEPENDENCY ON SECURESYSTEMSLIB PINNED.
-gpgsigning = ["securesystemslib==0.13.1"]
+gpgsigning = ["securesystemslib==0.28.0"]
 
 [project.urls]
 repository = "https://github.com/conda/conda-content-trust"
