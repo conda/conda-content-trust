@@ -1,6 +1,6 @@
 # conda-content-trust test dependencies
 # run as 'conda install -c defaults --file tests/requirements.txt'
-cryptography>41.0.0
+cryptography>=41.0.0
 pytest
 pytest-cov
 # securesystemslib ==0.13.1  # not available on defaults or conda-forge
