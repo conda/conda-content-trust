@@ -27,7 +27,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-  "cryptography <41",
+  "cryptography>=41",
 ]
 dynamic = ["version"]
 keywords = [

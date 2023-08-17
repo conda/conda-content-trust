@@ -21,7 +21,6 @@ from conda_content_trust.common import (
     PrivateKey,
     PublicKey,
     checkformat_delegating_metadata,
-    checkformat_key,
     is_a_signable,
     keyfiles_to_bytes,
     keyfiles_to_keys,
@@ -240,13 +239,13 @@ def test_gen_and_write_keys():
             "keytest_new"
         )
         loaded_new_private, loaded_new_public = keyfiles_to_keys("keytest_new")
-        assert generated_private.is_equivalent_to(loaded_new_private)
-        assert generated_public.is_equivalent_to(loaded_new_public)
-        assert loaded_new_private.is_equivalent_to(
-            PrivateKey.from_bytes(loaded_new_private_bytes)
+        assert PrivateKey.is_equivalent_to(generated_private, loaded_new_private)
+        assert PublicKey.is_equivalent_to(generated_public, loaded_new_public)
+        assert PrivateKey.is_equivalent_to(
+            loaded_new_private, PrivateKey.from_bytes(loaded_new_private_bytes)
         )
-        assert loaded_new_public.is_equivalent_to(
-            PublicKey.from_bytes(loaded_new_public_bytes)
+        assert PublicKey.is_equivalent_to(
+            loaded_new_public, PublicKey.from_bytes(loaded_new_public_bytes)
         )
 
     finally:
@@ -281,14 +280,9 @@ def test_gen_keys():
     generated_private_1, generated_public_1 = gen_keys()
     generated_private_2, generated_public_2 = gen_keys()
 
-    checkformat_key(generated_private_1)
-    checkformat_key(generated_public_1)
-    checkformat_key(generated_private_2)
-    checkformat_key(generated_public_2)
-
-    assert not generated_private_1.is_equivalent_to(generated_private_2)
-    assert not generated_private_1.is_equivalent_to(generated_public_1)
-    assert not generated_public_1.is_equivalent_to(generated_public_2)
+    assert not PrivateKey.is_equivalent_to(generated_private_1, generated_private_2)
+    assert not PrivateKey.is_equivalent_to(generated_private_1, generated_public_1)
+    assert not PublicKey.is_equivalent_to(generated_public_1, generated_public_2)
 
     sig_from_1 = generated_private_1.sign(b"1234")
     sig_from_2 = generated_private_2.sign(b"1234")
