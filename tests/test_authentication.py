@@ -156,13 +156,13 @@ def test_wrap_sign_verify_signable():
     old_private = PrivateKey.from_bytes(REG__PRIVATE_BYTES)
     old_public = PublicKey.from_bytes(REG__PUBLIC_BYTES)
 
-    assert generated_private.is_equivalent_to(loaded_new_private)
-    assert generated_public.is_equivalent_to(loaded_new_public)
-    assert loaded_new_private.is_equivalent_to(
-        PrivateKey.from_bytes(loaded_new_private_bytes)
+    assert PrivateKey.is_equivalent_to(generated_private, loaded_new_private)
+    assert PublicKey.is_equivalent_to(generated_public, loaded_new_public)
+    assert PrivateKey.is_equivalent_to(
+        loaded_new_private, PrivateKey.from_bytes(loaded_new_private_bytes)
     )
-    assert loaded_new_public.is_equivalent_to(
-        PublicKey.from_bytes(loaded_new_public_bytes)
+    assert PublicKey.is_equivalent_to(
+        loaded_new_public, PublicKey.from_bytes(loaded_new_public_bytes)
     )
 
     # Clean up a bit for the next tests.
@@ -186,14 +186,16 @@ def test_wrap_sign_verify_signable():
     assert is_a_signable(signable_d)
 
     verify_signable(
-        signable=signable_d, authorized_pub_keys=[old_public.to_hex()], threshold=1
+        signable=signable_d,
+        authorized_pub_keys=[PublicKey.to_hex(old_public)],
+        threshold=1,
     )
 
     # Expect failure this time due to bad format.
     try:
         verify_signable(
             signable=signable_d["signed"],
-            authorized_pub_keys=[old_public.to_hex()],
+            authorized_pub_keys=[PublicKey.to_hex(old_public)],
             threshold=1,
         )
     except TypeError:
@@ -207,7 +209,7 @@ def test_wrap_sign_verify_signable():
         modified_signable_d["signed"] = d_modified
         verify_signable(
             signable=modified_signable_d,
-            authorized_pub_keys=[old_public.to_hex()],
+            authorized_pub_keys=[PublicKey.to_hex(old_public)],
             threshold=1,
         )
     except SignatureError:
@@ -253,7 +255,7 @@ def test_wrap_sign_verify_signable():
 
 #     verify_signable(
 #             signable=signable_rd_v_md,
-#             authorized_pub_keys=[old_public.to_hex()],
+#             authorized_pub_keys=[PublicKey.to_hex(old_public)],
 #             threshold=1)
 
 #     # Expect failure this time due to non-matching signature.
@@ -267,7 +269,7 @@ def test_wrap_sign_verify_signable():
 
 #         verify_signable(
 #                 signable=modified_signable_rd_v_md,
-#                 authorized_pub_keys=[old_public.to_hex()],
+#                 authorized_pub_keys=[PublicKey.to_hex(old_public)],
 #                 threshold=1)
 #     except SignatureError:
 #         pass
@@ -304,7 +306,7 @@ def test_wrap_sign_verify_signable():
 #             "type": "repodata_verify"
 #           }
 #         },
-#         authorized_pub_keys=[old_public.to_hex()],
+#         authorized_pub_keys=[PublicKey.to_hex(old_public)],
 #         threshold=1)
 
 

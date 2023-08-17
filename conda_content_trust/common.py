@@ -49,15 +49,13 @@ Exceptions:
         MetadataVerificationError
         UnknownRoleError
 """
-from binascii import hexlify, unhexlify  # solely for hex string <-> bytes conversions
+from binascii import hexlify, unhexlify
 from datetime import datetime, timedelta
 from json import dumps, load
 from re import compile  # for UTC iso8601 date string checking
 
-import cryptography.hazmat.backends.openssl.ed25519
-import cryptography.hazmat.primitives.asymmetric.ed25519 as ed25519
-import cryptography.hazmat.primitives.hashes
-import cryptography.hazmat.primitives.serialization as serialization
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 # specification version for the metadata produced by conda-content-trust
 # Details in the Conda Security Metadata Specification.  Note that this
@@ -182,101 +180,20 @@ class MixinKey:
     convenience functions.
     """
 
-    def to_bytes(self):
-        """
-        Pops out the nice, tidy bytes of a given ed25519 key object, public or
-        private.
-        """
-        if isinstance(self, ed25519.Ed25519PrivateKey):
-            return self.private_bytes(
-                encoding=serialization.Encoding.Raw,
-                format=serialization.PrivateFormat.Raw,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
-        elif isinstance(self, ed25519.Ed25519PublicKey):
-            return self.public_bytes(
-                serialization.Encoding.Raw, serialization.PublicFormat.Raw
-            )
-        else:
-            assert False, (
-                "Code error: this should not be possible.  This mix-in "
-                "should only be used by classes inheriting from the "
-                '"cryptography" library ed25519 key classes.'
-            )
+    @classmethod
+    def to_hex(cls, key):
+        return hexlify(cls.to_bytes(key)).decode("utf-8")
 
-    def to_hex(self):
-        """
-        Represents the underlying ed25519 key value as a hex string, 64
-        characters long, representing 32 bytes of data.
-        """
-        return hexlify(self.to_bytes()).decode("utf-8")
-
-    def is_equivalent_to(self, k2):
+    @classmethod
+    def is_equivalent_to(cls, k1, k2):
         """
         Given Ed25519PrivateKey or Ed25519PublicKey objects, determines if the
         underlying key data is identical.
         """
         checkformat_key(k2)
-        return self.to_bytes() == k2.to_bytes()
-
-    @classmethod  # a class method for inheritors of this mix-in
-    def from_bytes(cls, key_value_in_bytes):
-        """
-        Constructs an object of the class based on the given key value.
-        The "cryptography" library provides from_public_bytes() and
-        from_private_bytes() class methods for Ed25519PublicKey and
-        Ed25519PrivateKey classes in place of constructors.  We extend provide
-        a single API for those, and make the created objects objects of the
-        subclass using this mix-in.
-        """
-        # from_private_bytes() and from_public_bytes() both check length (32),
-        # but do not produce helpful errors if the argument provided it is not
-        # the right type, so we'll do that here before calling them.
-        checkformat_byteslike(key_value_in_bytes)
-
-        if issubclass(cls, ed25519.Ed25519PrivateKey):
-            new_object = cls.from_private_bytes(key_value_in_bytes)
-
-        elif issubclass(cls, ed25519.Ed25519PublicKey):
-            new_object = cls.from_public_bytes(key_value_in_bytes)
-
-        else:
-            assert False, (
-                "Code error: this should not be possible.  This mix-in "
-                "should only be used by classes inheriting from the "
-                '"cryptography" library ed25519 key classes.'
-            )
-
-        # Fixed:
-        # # TODO: ✅❌⚠️💣 Changing this here is uncouth.  It MUST BE SET AT
-        # #               CLASS DEFINITION time.  Change this!
-        # # Note that this mro modification mess is required in some form or
-        # # another because ed25519.Ed25519PrivateKey and Ed25519PublicKey
-        # # use metaclassing (in a way that I don't think is useful, btw).
-        # # This line is poking cls.__bases__.  It would appear to do nothing,
-        # # since we're extending a tuple with nothing, but it *actually* causes
-        # # the class's MRO (method resolution order) to be recalculated.
-        # # Before this line is run, it does not include PrivateKey (this class),
-        # # and after this line is run, it will include PrivateKey.  This should
-        # # probably be done with some manner of metaclass decorator instead.
-        # #
-        # # Before the next two lines are run, this is the situation:
-        # # > cls.__bases__
-        # #    (<class 'conda_content_trust.common.MixinKey'>,
-        # #     <class 'cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey'>)
-        # # > new_object.__class__
-        # #    <class 'cryptography.hazmat.backends.openssl.ed25519._Ed25519PrivateKey'>
-        # cls.__bases__ += tuple()
-
-        new_object.__class__ = cls
-
-        assert isinstance(new_object, cls)
-        assert isinstance(new_object, ed25519.Ed25519PrivateKey) or isinstance(
-            new_object, ed25519.Ed25519PublicKey
-        )
-
-        checkformat_key(new_object)
-        return new_object
+        if type(k1) is not type(k2):
+            return False
+        return cls.to_bytes(k1) == cls.to_bytes(k2)
 
     @classmethod  # a class method for inheritors of this mix-in
     def from_hex(cls, key_value_in_hex):
@@ -284,42 +201,13 @@ class MixinKey:
         # but do not produce helpful errors if the argument provided it is not
         # the right type, so we'll do that here before calling them.
         checkformat_hex_key(key_value_in_hex)
-
         key_value_in_bytes = unhexlify(key_value_in_hex)
-
         new_object = cls.from_bytes(key_value_in_bytes)
-
         checkformat_key(new_object)
         return new_object
 
-        # if   issubclass(cls, ed25519.Ed25519PrivateKey):
-        #     return cls.from_private_bytes(unhexlify(key_value_in_hex))
 
-        # elif issubclass(cls, ed25519.Ed25519PublicKey):
-        #     return cls.from_public_bytes(unhexlify(key_value_in_hex))
-
-        # else:
-        #     assert False, (
-        #             'Code error: this should not be possible.  This mix-in '
-        #             'should only be used by classes inheriting from the '
-        #             '"cryptography" library ed25519 key classes.')
-
-        # new_object.__class__ = cls
-        # assert isinstance(new_object, cls)
-        # assert (
-        #         isinstance(new_object, Ed25519PrivateKey)
-        #         or isinstance(new_object, Ed25519PublicKey))
-
-
-class PrivateKey(
-    MixinKey,
-    # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
-    #                 possible.  It's a private class.
-    cryptography.hazmat.backends.openssl.ed25519._Ed25519PrivateKey,  # DANGER
-    cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
-    # Note that inheritance class order should use the "true" base class
-    # last in Python.
-):
+class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
     """
     This class expands the class
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey
@@ -333,47 +221,40 @@ class PrivateKey(
         signature.
     """
 
+    @classmethod
+    def to_bytes(cls, key):
+        return key.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+
+    @classmethod
+    def from_bytes(cls, key_value_in_bytes):
+        """
+        Constructs an object of the class based on the given key value.
+        The "cryptography" library provides from_public_bytes() and
+        from_private_bytes() class methods for Ed25519PublicKey and
+        Ed25519PrivateKey classes in place of constructors.  We extend provide
+        a single API for those, and make the created objects objects of the
+        subclass using this mix-in.
+        """
+        # from_private_bytes() and from_public_bytes() both check length (32),
+        # but do not produce helpful errors if the argument provided it is not
+        # the right type, so we'll do that here before calling them.
+        checkformat_byteslike(key_value_in_bytes)
+        return super().from_private_bytes(key_value_in_bytes)
+
     def public_key(self):  # Overrides ed25519.Ed25519PrivateKey's method
         """
         Return the public key corresponding to this private key.
         """
-        # TODO: ✅❌⚠️💣  Confirm that this override works.  We MUST override
-        #                   the public_key() method.  If we just let the
-        #                   parent class's public_key() method be called, we'll
-        #                   get an object of the wrong type.
-        public = super().public_key()  # TODO: ✅ Python 2 compliance
-        public.__class__ = PublicKey  # TODO: ✅ This should not be hardcoded?
-
+        public = super().public_key()
         checkformat_key(public)
         return public
 
-    @classmethod  # a class method for inheritors of this mix-in
-    def generate(cls):  # Overrides ed25519.Ed25519PrivateKey's class method
-        """
-        Wrap the superclass's key generation class function
-        (ed25519.Ed25519PrivateKey.generate()), in order to make sure the
-        generated key has the PrivateKey subclass.
-        """
-        # TODO: ✅❌⚠️💣  Confirm that this override works.  We MUST override
-        #                   the generate() class method.  If we just let the
-        #                   parent class's generate() method be called, we'll
-        #                   get an object of the wrong type.
-        private = super().generate()  # TODO: ✅ Python 2 compliance
-        private.__class__ = PrivateKey  # TODO: ✅ Should this be hardcoded?
 
-        checkformat_key(private)
-        return private
-
-
-class PublicKey(
-    MixinKey,
-    # TODO: ✅❌⚠️💣 Find a way around leaving this next line here if
-    #                 possible.  It's a private class.
-    cryptography.hazmat.backends.openssl.ed25519._Ed25519PublicKey,  # DANGER
-    cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
-    # Note that inheritance class order should use the "true" base class
-    # last in Python.
-):
+class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
     """
     This class expands the class
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey
@@ -381,6 +262,32 @@ class PublicKey(
 
     We preserve Ed25519PublicKey's verify() method unchanged.
     """
+
+    @classmethod
+    def to_bytes(cls, key):
+        """
+        Pops out the nice, tidy bytes of a given ed25519 key object, public or
+        private.
+        """
+        return key.public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw
+        )
+
+    @classmethod
+    def from_bytes(cls, key_value_in_bytes):
+        """
+        Constructs an object of the class based on the given key value.
+        The "cryptography" library provides from_public_bytes() and
+        from_private_bytes() class methods for Ed25519PublicKey and
+        Ed25519PrivateKey classes in place of constructors.  We extend provide
+        a single API for those, and make the created objects objects of the
+        subclass using this mix-in.
+        """
+        # from_private_bytes() and from_public_bytes() both check length (32),
+        # but do not produce helpful errors if the argument provided it is not
+        # the right type, so we'll do that here before calling them.
+        checkformat_byteslike(key_value_in_bytes)
+        return super().from_public_bytes(key_value_in_bytes)
 
 
 # No....  For now, I'll stick with the raw dictionary representations.
@@ -1155,23 +1062,6 @@ def checkformat_key(key):
         )
 
 
-# This function has been replaced by method to_hex() in classes PublicKey and
-# PrivateKey (see class MixinKey).
-# def key_to_hex_string(key):
-#     """
-#     Converts ed25519 keys from the "cryptography" library into hex string
-#     representations of their underlying values.
-
-#     Expects an object of type
-#     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey or
-#     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey.
-
-#     Returns (hex) strings.
-#     """
-#     checkformat_key(key)
-#     return hexlify(key.public_bytes()).decode('utf-8')
-
-
 # def signature
 # def bytes_to_hex_string():
 # def bytes_from_hex_string(hex):
@@ -1187,17 +1077,7 @@ def checkformat_key(key):
 #     checkformat_byteslike(private_bytes)
 #     # if len(private_bytes) != 32:
 #     #     raise ValueError('Requires bytes-like object of length 32.')
-#     return ed25519.Ed25519PrivateKey.from_private_bytes(private_bytes)
-
-
-# This function is replaced by method is_equivalent_to() in classes PublicKey
-# and PrivateKey (see class MixinKey).
-# def keys_are_equivalent(k1, k2):
-#     """
-#     Given Ed25519PrivateKey or Ed25519PublicKey objects, determines if the
-#     underlying key data is identical.
-#     """
-#     return k1.to_bytes() == k2.to_bytes()
+#     return ed25519.Ed25519PrivateKey.from_bytes(private_bytes)
 
 
 def iso8601_time_plus_delta(delta):

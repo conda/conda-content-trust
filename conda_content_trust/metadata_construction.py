@@ -19,6 +19,7 @@ from datetime import timedelta
 from .common import (
     SECURITY_METADATA_SPEC_VERSION,
     PrivateKey,
+    PublicKey,
     checkformat_delegations,
     checkformat_natural_int,
     checkformat_string,
@@ -180,9 +181,9 @@ def gen_and_write_keys(fname):
     # Note that where the private key is concerned, we're just grabbing the
     # not-encrypted private key value.
     with open(fname + ".pri", "wb") as fobj:
-        fobj.write(private.to_bytes())
+        fobj.write(PrivateKey.to_bytes(private))
     with open(fname + ".pub", "wb") as fobj:
-        fobj.write(public.to_bytes())
+        fobj.write(PublicKey.to_bytes(public))
 
     return private, public
 

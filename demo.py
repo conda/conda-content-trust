@@ -86,9 +86,6 @@ def main():
 
 def demo_create_and_sign_key_mgr():
     prikey_keymgr = cct_common.PrivateKey.from_hex(KEYMGR_PRIVATE_HEX)
-    # pubkey_keymgr = cct_common.PublicKey.from_bytes(KEYMGR_PUBLIC_BYTES)
-    # print('public test key for keymgr: ' + pubkey_keymgr.to_hex())
-    # print('private test key for keymgr: ' + prikey_keymgr.to_hex())
 
     key_mgr = cct_metadata_construction.build_delegating_metadata(
         metadata_type="key_mgr",  # 'root' or 'key_mgr'
