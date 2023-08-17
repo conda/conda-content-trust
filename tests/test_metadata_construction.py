@@ -241,11 +241,11 @@ def test_gen_and_write_keys():
         loaded_new_private, loaded_new_public = keyfiles_to_keys("keytest_new")
         assert PrivateKey.is_equivalent_to(generated_private, loaded_new_private)
         assert PublicKey.is_equivalent_to(generated_public, loaded_new_public)
-        assert (
-            PrivateKey.is_equivalent_to(loaded_new_private, PrivateKey.from_bytes(loaded_new_private_bytes))
+        assert PrivateKey.is_equivalent_to(
+            loaded_new_private, PrivateKey.from_bytes(loaded_new_private_bytes)
         )
-        assert (
-            PublicKey.is_equivalent_to(loaded_new_public, PublicKey.from_bytes(loaded_new_public_bytes))
+        assert PublicKey.is_equivalent_to(
+            loaded_new_public, PublicKey.from_bytes(loaded_new_public_bytes)
         )
 
     finally:

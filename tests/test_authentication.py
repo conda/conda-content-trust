@@ -158,9 +158,11 @@ def test_wrap_sign_verify_signable():
 
     assert PrivateKey.is_equivalent_to(generated_private, loaded_new_private)
     assert PublicKey.is_equivalent_to(generated_public, loaded_new_public)
-    assert PrivateKey.is_equivalent_to(loaded_new_private, PrivateKey.from_bytes(loaded_new_private_bytes))
-    assert (
-        PublicKey.is_equivalent_to(loaded_new_public, PublicKey.from_bytes(loaded_new_public_bytes))
+    assert PrivateKey.is_equivalent_to(
+        loaded_new_private, PrivateKey.from_bytes(loaded_new_private_bytes)
+    )
+    assert PublicKey.is_equivalent_to(
+        loaded_new_public, PublicKey.from_bytes(loaded_new_public_bytes)
     )
 
     # Clean up a bit for the next tests.

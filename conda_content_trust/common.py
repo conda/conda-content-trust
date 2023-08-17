@@ -179,6 +179,7 @@ class MixinKey:
     PrivateKey and PublicKey classes, specifically.  It provides some
     convenience functions.
     """
+
     @classmethod
     def to_hex(cls, key):
         return hexlify(cls.to_bytes(key)).decode("utf-8")
@@ -219,6 +220,7 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         value for sign() is a length 64 bytes() object, a raw ed25519
         signature.
     """
+
     @classmethod
     def to_bytes(cls, key):
         return key.private_bytes(
@@ -260,13 +262,16 @@ class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
 
     We preserve Ed25519PublicKey's verify() method unchanged.
     """
+
     @classmethod
     def to_bytes(cls, key):
         """
         Pops out the nice, tidy bytes of a given ed25519 key object, public or
         private.
         """
-        return key.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+        return key.public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw
+        )
 
     @classmethod
     def from_bytes(cls, key_value_in_bytes):
@@ -283,6 +288,7 @@ class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
         # the right type, so we'll do that here before calling them.
         checkformat_byteslike(key_value_in_bytes)
         return super().from_public_bytes(key_value_in_bytes)
+
 
 # No....  For now, I'll stick with the raw dictionary representations.
 # If function profusion makes it inconvenient for folks to use this library,
