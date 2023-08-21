@@ -70,7 +70,8 @@ REG__EXPECTED_REGSIGNED_REPODATA_VERIFY = {
         "osx-64/repodata_from_packages.json": "8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2",
     },
 }
-REG__REPODATA_SAMPLE_FNAME = "tests/repodata_sample.json"
+REG__REPODATA_SAMPLE_FNAME = "tests/testdata/repodata_sample.json"
+REG__REPODATA_NO_PACKAGES_FNAME = "tests/testdata/repodata_no_packages.json"
 REG__REPODATA_SAMPLE_TEMP_FNAME = "tests/repodata_sample_temp.json"
 
 
@@ -84,10 +85,16 @@ REG__REPODATA_SAMPLE_TEMP_FNAME = "tests/repodata_sample_temp.json"
 #             '⚠️ These tests are currently implemented in '
 #             'test_authentication.py instead.'))
 
-# def test_wrap_as_signable():
-#     raise(NotImplementedError(
-#             '⚠️ This function is tested in multiple modules, but '
-#             'a unit test should be constructed from those tests.'))
+
+def test_wrap_as_signable_default():
+    obj = {"foo": "bar"}
+    signed = wrap_as_signable(obj)
+    assert signed == {"signatures": {}, "signed": obj}
+
+
+def test_wrap_as_signable_error():
+    with pytest.raises(TypeError):
+        wrap_as_signable(object())
 
 
 def remove_sample_tempfile():
@@ -140,7 +147,9 @@ def test_sign_all_in_repodata(request):
 
     # Make sure there is one signature entry for every artifact entry, and no
     # mystery entries.
-    assert repodata["packages"].keys() == repodata_signed["signatures"].keys()
+    assert set(repodata["packages"].keys()) | set(
+        repodata["packages.conda"].keys()
+    ) == set(repodata_signed["signatures"].keys())
 
     for artifact_name in repodata["packages"]:
         # There's a signature "by" this key listed for every artifact.
@@ -157,3 +166,20 @@ def test_sign_all_in_repodata(request):
 def test_wrap_unserializable():
     with pytest.raises(TypeError):
         wrap_as_signable(object())
+
+
+def test_sign_all_in_repodata_no_packages(request):
+    request.addfinalizer(remove_sample_tempfile)
+
+    # Make a test copy of the repodata sample, since we're going to
+    # update it.
+    if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
+        os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
+    shutil.copy(REG__REPODATA_NO_PACKAGES_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
+
+    # grab data and use it to compare to what we produce in a bit
+
+    repodata = load_metadata_from_file(REG__REPODATA_NO_PACKAGES_FNAME)
+
+    with pytest.raises(ValueError):
+        sign_all_in_repodata(REG__REPODATA_SAMPLE_TEMP_FNAME, REG__PRIVATE_HEX)
