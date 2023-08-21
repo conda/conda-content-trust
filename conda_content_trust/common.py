@@ -468,6 +468,12 @@ def checkformat_gpg_fingerprint(fingerprint):
             "GPG fingerprint (40 hex characters)."
         )
 
+    # ⚠️ Yes, the following is a redundant test.  Please leave it here in case
+    #    code changes elsewhere.
+    # Prevent multiple possible representations of keys.  There are security
+    # implications.  For example, we cannot permit two signatures from the
+    # same key -- with the key represented differently -- to count as two
+    # signatures from distinct keys.
     # local hex test. isalnum() checks for no whitespace.
     bytes.fromhex(fingerprint)
     if not fingerprint.isalnum() or fingerprint.lower() != fingerprint:
