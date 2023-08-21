@@ -45,6 +45,13 @@ from .common import (
 )
 
 
+def _check_sslib_available():
+    if not SSLIB_AVAILABLE:
+        raise ImportError(
+            "The securesystemslib library is required, which appears to be unavailable."
+        )
+
+
 def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     """
     <Purpose>
@@ -160,12 +167,7 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
         While that is not ideal, it is difficult enough simply to find a SHA256
         collision that this is acceptable.
     """
-    if not SSLIB_AVAILABLE:
-        # TODO✅: Consider a missing-optional-dependency exception class.
-        raise Exception(
-            "sign_via_gpg requires the securesystemslib library, which "
-            "appears to be unavailable."
-        )
+    _check_sslib_available()
 
     # Argument validation
     checkformat_gpg_fingerprint(gpg_key_fingerprint)
@@ -220,17 +222,10 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     return sig
 
 
-# TODO✅: Rename this to sign_root_metadata_via_gpg and rename
-#         the old sign_root_metadata_via_gpg to sign_root_metadata_file_via_gpg
 def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
     # Signs root_signable in place, returns nothing.
 
-    if not SSLIB_AVAILABLE:
-        # TODO✅: Consider a missing-optional-dependency exception class.
-        raise Exception(
-            "sign_root_metadata_via_gpg requires the securesystemslib library, which "
-            "appears to be unavailable."
-        )
+    _check_sslib_available()
 
     # Make sure it's the right format.
     if not is_a_signable(root_signable):
@@ -239,6 +234,7 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
             + str(root_md_fname)
             + " failed the check."
         )
+
     # TODO: Add root-specific checks.
 
     # Canonicalize and serialize the data, putting it in the form we expect to
@@ -289,7 +285,6 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
 
 def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     """
-    # TODO✅: Proper docstring:
     # This is a higher-level function than sign_via_gpg, including code that
     # deals with the filesystem.  It is not actually limited to root metadata,
     # and SHOULD BE RENAMED.
@@ -323,12 +318,7 @@ def fetch_keyval_from_gpg(fingerprint):
             94a3eed0806c1f107754a446fdad11b82dd40e8c
             etc.
     """
-    if not SSLIB_AVAILABLE:
-        # TODO✅: Consider a missing-optional-dependency exception class.
-        raise Exception(
-            "fetch_keyval_from_gpg requires the securesystemslib library, which "
-            "appears to be unavailable."
-        )
+    _check_sslib_available()
 
     fingerprint = (
         fingerprint.lower().replace(" ", "").replace("\xa0", "")
@@ -339,7 +329,6 @@ def fetch_keyval_from_gpg(fingerprint):
     key_parameters = gpg_funcs.export_pubkey(fingerprint)
 
     return key_parameters["keyval"]["public"]["q"]
-
 
 def _verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
     """
@@ -352,13 +341,7 @@ def _verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
     arguments in a manner ssl will like (i.e. conforming to
     securesystemslib.formats.GPG_SIGNATURE_SCHEMA).
     """
-    if not SSLIB_AVAILABLE:
-        # TODO✅: Consider a missing-optional-dependency exception class.
-        raise Exception(
-            "verifygpg_sig_using_ssl requires the securesystemslib "
-            "library, which appears to be unavailable."
-        )
-
+    _check_sslib_available()
     checkformat_key(key_value)
 
     # This function validates these two args in the process of formatting them.
@@ -407,6 +390,7 @@ def _gpg_pubkey_in_ssl_format(fingerprint, q):
         }
     }
     """
+    _check_sslib_available()
     checkformat_gpg_fingerprint(fingerprint)
     checkformat_hex_key(q)
 
