@@ -15,10 +15,14 @@ import os.path
 import shutil
 
 import pytest
+from conda_content_trust.authentication import verify_signature
 
-from conda_content_trust.authentication import *
-from conda_content_trust.common import *
-from conda_content_trust.signing import *
+from conda_content_trust.common import (
+    PublicKey,
+    canonserialize,
+    load_metadata_from_file,
+)
+from conda_content_trust.signing import sign_all_in_repodata, wrap_as_signable
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = "keytest_old"
