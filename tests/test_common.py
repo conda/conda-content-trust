@@ -400,10 +400,7 @@ def test_checkformat_hex_string():
     checkformat_hex_string(SAMPLE_KEYVAL)
 
 
-# def test_checkformat_hex_key():
-#     raise NotImplementedError()
-
-# def test_checkformat_list_of_hex_keys():
+# test_checkformat_list_of_hex_keys():
 #     raise NotImplementedError()
 
 # def test_checkformat_byteslike():
