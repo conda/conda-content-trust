@@ -332,6 +332,27 @@
       "version": "1.4.4"
     }
   },
+  "packages.conda": {
+        "zstd-1.3.7-h0b5b093_0.conda": {
+      "build": "h0b5b093_0",
+      "build_number": 0,
+      "depends": [
+        "libgcc-ng >=7.3.0",
+        "libstdcxx-ng >=7.3.0",
+        "xz >=5.2.4,<6.0a0",
+        "zlib >=1.2.11,<1.3.0a0"
+      ],
+      "license": "BSD 3-Clause",
+      "license_family": "BSD",
+      "md5": "9789e38cd4216c52f7d740625c49de79",
+      "name": "zstd",
+      "sha256": "8b676d98d30542a7ee550ee3b5f0cab6d5eb012d125dcc4b985eaf66d95d1e90",
+      "size": 410326,
+      "subdir": "linux-64",
+      "timestamp": 1541459808645,
+      "version": "1.3.7"
+    }
+  },
   "removed": [
     "conda-package-handling-1.5.0-py27h7b6447c_0.conda",
     "conda-package-handling-1.5.0-py27h7b6447c_0.tar.bz2",
