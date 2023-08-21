@@ -14,8 +14,13 @@ from pathlib import Path
 
 import cryptography.exceptions
 import pytest
+from conda_content_trust.authentication import (
+    verify_delegation,
+    verify_root,
+    verify_signable,
+    verify_signature,
+)
 
-from conda_content_trust.authentication import *
 from conda_content_trust.common import (
     MetadataVerificationError,
     PrivateKey,
@@ -547,4 +552,3 @@ def test_verify_signable_coverage():
     # gpg and signature that doesn't look like a gpg signature
     with pytest.raises(SignatureError, match="from at least"):
         verify_signable(signable_d, [HEX_KEY], 1, gpg=True)
-
