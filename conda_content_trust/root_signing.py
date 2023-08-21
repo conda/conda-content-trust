@@ -329,24 +329,3 @@ def fetch_keyval_from_gpg(fingerprint):
     key_parameters = gpg_funcs.export_pubkey(fingerprint)
 
     return key_parameters["keyval"]["public"]["q"]
-
-
-# def _gpgsig_to_sslgpgsig(gpg_sig):
-#
-#     conda_content_trust.common.checkformat_gpg_signature(gpg_sig)
-#
-#     return {
-#             'keyid': copy.deepcopy(gpg_sig['key_fingerprint']),
-#             'other_headers': copy.deepcopy(gpg_sig[other_headers]),
-#             'signature': copy.deepcopy(gpg_sig['signature'])}
-
-
-# def _sslgpgsig_to_gpgsig(ssl_gpg_sig):
-#
-#     securesystemslib.formats.GPG_SIGNATURE_SCHEMA.check_match(ssl_gpg_sig)
-#
-#     return {
-#             'key_fingerprint': copy.deepcopy(ssl_gpg_sig['keyid']),
-#             'other_headers': copy.deepcopy(ssl_gpg_sig[other_headers]),
-#             'signature': copy.depcopy(ssl_gpg_sig['signature'])
-#     }
