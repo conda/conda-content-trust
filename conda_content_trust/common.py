@@ -17,7 +17,6 @@ Formats and Validation:
   x  is_hex_string
   x  is_hex_signature
   r  is_hex_key
-     is_hex_hash
   r  checkformat_hex_key
      checkformat_hex_hash
   r  checkformat_list_of_hex_keys
@@ -31,9 +30,7 @@ Formats and Validation:
   x  checkformat_gpg_signature
      is_gpg_signature
      checkformat_any_signature
-     is_delegation
      checkformat_delegation
-     is_delegations
      checkformat_delegations
      checkformat_delegating_metadata
   x  iso8601_time_plus_delta
@@ -245,13 +242,6 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         checkformat_byteslike(key_value_in_bytes)
         return super().from_private_bytes(key_value_in_bytes)
 
-    def public_key(self):  # Overrides ed25519.Ed25519PrivateKey's method
-        """
-        Return the public key corresponding to this private key.
-        """
-        public = super().public_key()
-        checkformat_key(public)
-        return public
 
 
 class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
@@ -375,19 +365,6 @@ def is_hex_key(key):
         return True
     except (TypeError, ValueError):
         return False
-
-
-def is_hex_hash(h):
-    """
-    Returns True if h is a hex string with no uppercase characters, no
-    spaces, no '0x' prefix(es), etc., and is 64 hexadecimal characters (the
-    correct length for a sha256 or sha512256 hash, 32 bytes of raw data
-    represented as 64 hexadecimal characters).
-    Else, returns False.
-
-    Indistinguishable from is_hex_key.
-    """
-    return is_hex_key(h)
 
 
 def is_a_signable(dictionary):
@@ -546,40 +523,6 @@ def checkformat_gpg_fingerprint(fingerprint):
         raise ValueError(
             "Hex representations of GPG key fingerprints should use only " "lowercase."
         )
-
-
-def checkformat_sslgpg_signature(signature_obj):
-    """
-    Raises a TypeError if the given object is not a dictionary representing a
-    signature in a format like that produced by
-    securesystemslib.gpg.functions.create_signature(), conforming to
-    securesystemslib.formats.GPG_SIGNATURE_SCHEMA.
-
-    We will generally use a slightly different format in order to include the
-    raw ed25519 public key value.
-    This is the format we
-    expect for Root signatures.
-
-    If the given object matches the format, returns silently.
-    """
-    if not (
-        isinstance(signature_obj, dict)
-        and "keyid" in signature_obj
-        and "other_headers" in signature_obj
-        and "signature" in signature_obj
-        and len(signature_obj) == 3
-        and is_hex_signature(signature_obj["signature"])
-        # TODO ✅: Determine if we can constrain "other_headers" beyond
-        #          limiting it to a hex string.  (No length constraint is
-        #          provided here, for example.)
-        and is_hex_string(signature_obj["other_headers"])
-    ):
-        raise TypeError(
-            "Expected a dictionary representing a GPG signature in the "
-            "securesystemslib.formats.GPG_SIGNATURE_SCHEMA format."
-        )
-
-    checkformat_gpg_fingerprint(signature_obj["keyid"])
 
 
 def is_gpg_signature(signature_obj):
@@ -766,14 +709,6 @@ def checkformat_delegation(delegation):
     checkformat_natural_int(delegation["threshold"])
 
 
-def is_a_delegation(delegation):
-    try:
-        checkformat_delegation(delegation)
-        return True
-    except (ValueError, TypeError):
-        return False
-
-
 def checkformat_delegations(delegations):
     """
     A dictionary specifying a delegation for any number of role names.
@@ -795,14 +730,6 @@ def checkformat_delegations(delegations):
     for index in delegations:
         checkformat_string(index)
         checkformat_delegation(delegations[index])
-
-
-def is_delegations(delegations):
-    try:
-        checkformat_delegations(delegations)
-        return True
-    except (ValueError, TypeError):
-        return False
 
 
 def checkformat_delegating_metadata(metadata):
