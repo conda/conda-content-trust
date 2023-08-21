@@ -26,6 +26,9 @@ from conda_content_trust.common import (
     PrivateKey,
     PublicKey,
     SignatureError,
+    UnknownRoleError,
+    is_a_signable,
+    is_hex_key,
     keyfiles_to_bytes,
     keyfiles_to_keys,
 )
@@ -34,8 +37,7 @@ from conda_content_trust.metadata_construction import (  # for new-key tests; bu
     gen_keys,
 )
 from conda_content_trust.signing import sign_signable, wrap_as_signable
-
-from .test_common import *
+from tests.test_common import SAMPLE_SIGNED_ROOT_MD
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = "keytest_old"

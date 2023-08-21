@@ -6,11 +6,33 @@
 Run the tests this way:
     pytest tests/test_common.py
 """
+import json
 import os
+from datetime import timedelta
 
 import pytest
 
-from conda_content_trust.common import *
+from conda_content_trust.common import (
+    PrivateKey,
+    PublicKey,
+    canonserialize,
+    checkformat_byteslike,
+    checkformat_delegating_metadata,
+    checkformat_delegation,
+    checkformat_delegations,
+    checkformat_expiration_distance,
+    checkformat_gpg_signature,
+    checkformat_hex_key,
+    checkformat_hex_string,
+    checkformat_signature,
+    checkformat_string,
+    ed25519,
+    is_a_signature,
+    is_gpg_signature,
+    is_hex_key,
+    keyfiles_to_bytes,
+    keyfiles_to_keys,
+)
 
 # A 40-hex-character GPG public key fingerprint
 SAMPLE_FINGERPRINT = "f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589"
@@ -409,7 +431,7 @@ def test_is_hex_key():
     assert not is_hex_key("1g" * 32)
     assert not is_hex_key(b"1g" * 32)
 
-    pubkey_bytes = unhexlify(SAMPLE_KEYVAL)
+    pubkey_bytes = bytes.fromhex(SAMPLE_KEYVAL)
     assert not is_hex_key(pubkey_bytes)
 
     public = PublicKey.from_bytes(pubkey_bytes)
@@ -477,12 +499,16 @@ def test_checkformat_delegation():
     # TODO ✅: Add other tests.
     with pytest.raises(TypeError):
         checkformat_delegation(1)
+
     with pytest.raises(ValueError):
         checkformat_delegation({})
+
     with pytest.raises(ValueError):
         checkformat_delegation({"threshold": 0, "pubkeys": ["01" * 32]})
+
     with pytest.raises(ValueError):
         checkformat_delegation({"threshold": 1.5, "pubkeys": ["01" * 32]})
+
     checkformat_delegation({"threshold": 1, "pubkeys": ["01" * 32]})
 
     with pytest.raises(ValueError):
@@ -490,6 +516,21 @@ def test_checkformat_delegation():
 
     with pytest.raises(ValueError):
         checkformat_delegation({"threshold": 1, "pubkeys": ["01" * 31]})
+
+
+def test_checkformat_delegations():
+    """
+    Test the plural delegations check.
+    """
+    # coverage
+    with pytest.raises(TypeError):
+        checkformat_delegations(object())
+
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    with pytest.raises(ValueError):  # not the delegations dict
+        checkformat_delegations(sample_signed)
+
+    checkformat_delegations(sample_signed["signed"]["delegations"])
 
 
 def test_checkformat_delegating_metadata():
