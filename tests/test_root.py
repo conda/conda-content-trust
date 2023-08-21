@@ -144,7 +144,7 @@ def test_root_gen_sign_verify():
     # root key, threshold 1, version 1.
     rmd = metadata_construction.build_root_metadata(
         root_version=1,
-        root_pubkeys=[SAMPLE_FINGERPRINT], # used to be SAMPLE_KEYVAL
+        root_pubkeys=[SAMPLE_KEYVAL],
         root_threshold=1,
         key_mgr_pubkeys=[],
         key_mgr_threshold=1,
@@ -219,18 +219,6 @@ def test_verify_existing_root_md():
     # TODO ✅: Add a v2 of root to this test, and verify static v2 via v1 as
     #          well.  Also add failure modes (verifying valid v2 using v0
     #          expectations.)
-
-
-def test_gpg_pubkey_in_ssl_format():
-    if not SSLIB_AVAILABLE:
-        pytest.skip("Securesystemslib not available, skipping test")
-
-    # Verify with GPG
-    gpg_verdict = root_signing._gpg_pubkey_in_ssl_format(
-        SAMPLE_FINGERPRINT, SAMPLE_KEYVAL
-    )
-
-    assert gpg_verdict
 
 
 def test_sign_root_metadata_via_gpg():

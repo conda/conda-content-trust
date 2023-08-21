@@ -14,11 +14,6 @@ Function Manifest for this Module:
     sign_root_metadata_via_gpg    # requires securesystemslib
     fetch_keyval_from_gpg         # requires securesystemslib
 
-These two functions are provided only for testing purpose and are not part of
-the API for this module:
-    _gpg_pubkey_in_ssl_format
-    _verify_gpg_sig_using_ssl     # requires securesystemslib
-
 Note that there is a function in conda_content_trust.authentication that verifies these
 signatures without requiring securesystemslib.
 """
@@ -215,10 +210,10 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
 
     # Make sure it's the right format.
     if not is_a_signable(root_signable):
-        raise TypeError(
-            "Expected a signable dictionary; the given file "
-            + str(root_md_fname)
-            + " failed the check."
+        raise Exception(
+            "The root metadata to be signed is not in the expected format.  "
+            "It should be a dict with a 'signed' key whose value is a dict "
+            "with a 'type' key whose value is 'root'."
         )
 
     # TODO: Add root-specific checks.
