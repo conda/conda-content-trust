@@ -460,8 +460,12 @@ def test_verify_root():
         root_v1_edited["signed"]["delegations"]["root"]["threshold"] += 1
         verify_root(root_v1_edited, TEST_ROOT_MD_V2)
 
-    # Reset.
-    root_v1_edited["signed"]["delegations"]["root"]["threshold"] -= 1
+    root_v2_edited["signed"]["type"] = "key_mgr"
+    with pytest.raises(
+        ValueError,
+        match='Expected two instances of root metadata.',
+    ):
+        verify_root(TEST_ROOT_MD_V1, root_v2_edited)
 
 
 # def test_verify_delegation():
