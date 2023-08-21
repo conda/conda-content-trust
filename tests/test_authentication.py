@@ -8,7 +8,9 @@ Run the tests this way:
     pytest tests/test_authentication.py
 """
 import copy
+import json
 import os
+from pathlib import Path
 
 import cryptography.exceptions
 import pytest
@@ -27,6 +29,8 @@ from conda_content_trust.metadata_construction import (  # for new-key tests; bu
     gen_keys,
 )
 from conda_content_trust.signing import sign_signable, wrap_as_signable
+
+from .test_common import *
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = "keytest_old"
@@ -474,5 +478,30 @@ def test_verify_delegation_coverage():
     """
     with pytest.raises(TypeError, match="string"):
         verify_delegation(42, False, False)
+
     with pytest.raises(TypeError, match="boolean"):
         verify_delegation("delegation", False, False, gpg=42)  # type: ignore
+
+    with pytest.raises(UnknownRoleError):
+        verify_delegation("root", SAMPLE_SIGNED_ROOT_MD, SAMPLE_SIGNED_ROOT_MD)
+
+
+@pytest.mark.parametrize(
+    "trusted,untrusted",
+    [
+        ["tests/testdata/1.root.json", "tests/testdata/2.root.json"],
+    ],
+)
+def test_verify_delegation_coverage_2(trusted: str, untrusted: str):
+    untrusted_json = json.loads(Path(untrusted).read_text())
+    trusted_json = json.loads(Path(trusted).read_text())
+
+    # make invalid
+    del untrusted_json["signed"]["type"]
+    with pytest.raises(SignatureError):
+        verify_delegation("root", untrusted_json, trusted_json)
+
+    # make mismatch
+    untrusted_json["signed"]["type"] = "key_mgr"
+    with pytest.raises(MetadataVerificationError):
+        verify_delegation("root", untrusted_json, trusted_json)
