@@ -16,6 +16,7 @@ from conda_content_trust.common import (
     PrivateKey,
     PublicKey,
     canonserialize,
+    checkformat_any_signature,
     checkformat_byteslike,
     checkformat_delegating_metadata,
     checkformat_delegation,
@@ -24,10 +25,12 @@ from conda_content_trust.common import (
     checkformat_gpg_signature,
     checkformat_hex_key,
     checkformat_hex_string,
+    checkformat_list_of_hex_keys,
     checkformat_signature,
     checkformat_string,
     ed25519,
     is_a_signature,
+    is_gpg_fingerprint,
     is_gpg_signature,
     is_hex_key,
     keyfiles_to_bytes,
@@ -456,8 +459,18 @@ def test_checkformat_hex_key():
         checkformat_hex_key("deadbeef" * 7)
 
 
-# def test_checkformat_list_of_hex_keys():
-#     raise NotImplementedError()
+def test_checkformat_list_of_hex_keys():
+    checkformat_list_of_hex_keys([])
+    checkformat_list_of_hex_keys(["deadbeef" * 8])
+    # not keys; not list; duplicates:
+    for not_list_of_hex_keys in (
+        ["deadbeef" * 7],
+        ["deadbeef" * 9],
+        object(),
+        ["deadbeef" * 8] * 2,
+    ):
+        with pytest.raises((TypeError, ValueError)):
+            checkformat_list_of_hex_keys(not_list_of_hex_keys)
 
 
 def test_checkformat_byteslike():
@@ -488,11 +501,23 @@ def test_checkformat_expiration_distance():
 # def test_checkformat_utc_isoformat():
 #     raise NotImplementedError()
 
-# def test_checkformat_gpg_fingerprint():
-#     raise NotImplementedError()
 
-# def test_checkformat_gpg_signature():
-#     raise NotImplementedError()
+def test_is_gpg_fingerprint():
+    assert is_gpg_fingerprint(SAMPLE_FINGERPRINT)
+    # not hex
+    assert not is_gpg_fingerprint(SAMPLE_FINGERPRINT + "x")
+    # hex but wrong length
+    assert not is_gpg_fingerprint(SAMPLE_FINGERPRINT + "a")
+
+
+def test_checkformat_gpg_signature():
+    with pytest.raises(ValueError, match="must include"):
+        checkformat_gpg_signature({})
+
+    with pytest.raises(ValueError, match="hex string"):
+        checkformat_gpg_signature(
+            {"other_headers": "not a hex string", "signature": ""}
+        )
 
 
 def test_checkformat_delegation():
@@ -584,6 +609,18 @@ def test_checkformat_delegating_metadata():
         ValueError, match="Root metadata must specify its version number."
     ):
         checkformat_delegating_metadata(sample_signed)
+
+    # valid, timestamp, type is not root, no version
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    sample_signed["signed"]["type"] = "key_mgr"
+    del sample_signed["signed"]["version"]
+    sample_signed["signed"]["timestamp"] = "1999-12-31T23:59:59Z"
+    checkformat_delegating_metadata(sample_signed)
+
+
+def test_checkformat_any_signature():
+    with pytest.raises(ValueError):
+        checkformat_any_signature("not any signature")
 
 
 # def test_iso8601_time_plus_delta():

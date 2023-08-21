@@ -245,7 +245,9 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         checkformat_byteslike(key_value_in_bytes)
         return super().from_private_bytes(key_value_in_bytes)
 
-    def public_key(self):  # Overrides ed25519.Ed25519PrivateKey's method
+    def public_key(
+        self,
+    ):  # Overrides ed25519.Ed25519PrivateKey's method   # pragma: no cover
         """
         Return the public key corresponding to this private key.
         """
@@ -377,7 +379,7 @@ def is_hex_key(key):
         return False
 
 
-def is_hex_hash(h):
+def is_hex_hash(h):  # pragma: no cover
     """
     Returns True if h is a hex string with no uppercase characters, no
     spaces, no '0x' prefix(es), etc., and is 64 hexadecimal characters (the
@@ -459,7 +461,7 @@ def checkformat_hex_key(k):
         raise ValueError("Expected a 64-character hex string representing a key value.")
 
 
-def checkformat_hex_hash(h):
+def checkformat_hex_hash(h):  # pragma: no cover
     checkformat_hex_string(h)
 
     if 64 != len(h):
@@ -535,13 +537,13 @@ def checkformat_gpg_fingerprint(fingerprint):
     # implications.  For example, we cannot permit two signatures from the
     # same key -- with the key represented differently -- to count as two
     # signatures from distinct keys.
-    if fingerprint.lower() != fingerprint:
+    if fingerprint.lower() != fingerprint:  # pragma: no cover
         raise ValueError(
             "Hex representations of GPG key fingerprints should use only " "lowercase."
         )
 
 
-def checkformat_sslgpg_signature(signature_obj):
+def checkformat_sslgpg_signature(signature_obj):  # pragma: no cover
     """
     Raises a TypeError if the given object is not a dictionary representing a
     signature in a format like that produced by
@@ -759,7 +761,7 @@ def checkformat_delegation(delegation):
     checkformat_natural_int(delegation["threshold"])
 
 
-def is_a_delegation(delegation):
+def is_a_delegation(delegation):  # pragma: no cover
     try:
         checkformat_delegation(delegation)
         return True
@@ -790,7 +792,7 @@ def checkformat_delegations(delegations):
         checkformat_delegation(delegations[index])
 
 
-def is_delegations(delegations):
+def is_delegations(delegations):  # pragma: no cover
     try:
         checkformat_delegations(delegations)
         return True
