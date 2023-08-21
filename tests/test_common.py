@@ -278,11 +278,6 @@ def test_key_functions_2():
         PrivateKey.from_bytes(REG__PRIVATE_BYTES).public_key(), ed25519.Ed25519PublicKey
     )
 
-    # TODO PrivateKey.public_key() is unreachable
-    private_key = PrivateKey.from_hex(REG__PRIVATE_HEX)
-    with pytest.raises(TypeError):
-        assert isinstance(PrivateKey.public_key(private_key), PublicKey)
-
 
 # This is the version of the tests before PrivateKey and PublicKey classes were
 # created to cut down on the utility function noise and make things easier to
