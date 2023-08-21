@@ -448,7 +448,7 @@ def checkformat_expiration_distance(expiration_distance):
     if not isinstance(expiration_distance, timedelta):
         raise TypeError(
             "Expiration distance must be a datetime.timedelta object. "
-            "Instead received a " + +str(type(expiration_distance))
+            "Instead received a " + str(type(expiration_distance))
         )
 
 
@@ -457,13 +457,6 @@ def checkformat_hex_key(k):
 
     if 64 != len(k):
         raise ValueError("Expected a 64-character hex string representing a key value.")
-
-    # Prevent multiple possible representations of keys.  There are security
-    # implications.  For example, we cannot permit two signatures from the
-    # same key -- with the key represented differently -- to count as two
-    # signatures from distinct keys.
-    if k.lower() != k:
-        raise ValueError("Hex representations of keys must use only lowercase.")
 
 
 def checkformat_hex_hash(h):

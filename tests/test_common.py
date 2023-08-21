@@ -425,8 +425,14 @@ def test_checkformat_hex_string():
     checkformat_hex_string(SAMPLE_KEYVAL)
 
 
-# def test_checkformat_hex_key():
-#     raise NotImplementedError()
+def test_checkformat_hex_key():
+    checkformat_hex_key("deadbeef" * 8)
+    with pytest.raises(ValueError, match="upper-case"):
+        # lowercase only
+        checkformat_hex_key("DEADBEEF" * 8)
+    with pytest.raises(ValueError, match="64"):
+        checkformat_hex_key("deadbeef" * 7)
+
 
 # def test_checkformat_list_of_hex_keys():
 #     raise NotImplementedError()
@@ -437,8 +443,13 @@ def test_checkformat_hex_string():
 # def test_checkformat_natural_int():
 #     raise NotImplementedError()
 
-# def test_checkformat_expiration_distance():
-#     raise NotImplementedError()
+def test_checkformat_expiration_distance():
+    """
+    Coverage.
+    """
+    checkformat_expiration_distance(timedelta())
+    with pytest.raises(TypeError):
+        checkformat_expiration_distance(object())
 
 # def test_checkformat_utc_isoformat():
 #     raise NotImplementedError()
