@@ -14,6 +14,8 @@ import os
 import os.path
 import shutil
 
+import pytest
+
 from conda_content_trust.authentication import *
 from conda_content_trust.common import *
 from conda_content_trust.signing import *
@@ -93,6 +95,24 @@ def remove_sample_tempfile():
         os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
 
 
+def test_sign_all_invalid_repodata(tmp_path):
+    invalid_repodata = tmp_path / "invalid_repodata.json"
+    invalid_repodata.write_text("{}")
+
+    public = PublicKey.from_hex(REG__PUBLIC_HEX)
+
+    # Make a test copy of the repodata sample, since we're going to
+    # update it.
+    if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
+        os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
+    shutil.copy(REG__REPODATA_SAMPLE_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
+
+    with pytest.raises(
+        ValueError, match='Expected a "packages" entry in given repodata file.'
+    ):
+        sign_all_in_repodata(str(invalid_repodata), REG__PRIVATE_HEX)
+
+
 def test_sign_all_in_repodata(request):
     request.addfinalizer(remove_sample_tempfile)
 
@@ -132,3 +152,8 @@ def test_sign_all_in_repodata(request):
             public,
             canonserialize(repodata["packages"][artifact_name]),
         )
+
+
+def test_wrap_unserializable():
+    with pytest.raises(TypeError):
+        wrap_as_signable(object())
