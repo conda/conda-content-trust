@@ -330,35 +330,6 @@ def fetch_keyval_from_gpg(fingerprint):
 
     return key_parameters["keyval"]["public"]["q"]
 
-def _verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
-    """
-    THIS IS PROVIDED ONLY FOR TESTING PURPOSES.
-    We will verify signatures using our own code in conda_content_trust.authentication, not
-    by using the securesystemslib.gpg.functions.verify_signature call that
-    sits here.
-
-    Wraps securesystemslib.gpg.functions.verify_signature.  to format the
-    arguments in a manner ssl will like (i.e. conforming to
-    securesystemslib.formats.GPG_SIGNATURE_SCHEMA).
-    """
-    _check_sslib_available()
-    checkformat_key(key_value)
-
-    # This function validates these two args in the process of formatting them.
-    ssl_format_key = gpg_pubkey_in_ssl_format(gpg_key_fingerprint, key_value)
-
-    securesystemslib.formats.GPG_SIGNATURE_SCHEMA.check_match(signature)
-    securesystemslib.formats._GPG_ED25519_PUBKEY_SCHEMA.check_match(ssl_format_key)
-
-    # TODO: ✅ Validate sig (ssl-format gpg sig dict) and content (bytes).
-
-    # Note: if we change the signature format to deviate from what ssl uses,
-    #       then we need to correct it here if we're going to use ssl.
-
-    validity = gpg_funcs.verify_signature(signature, ssl_format_key, data)
-
-    return validity
-
 
 def _gpg_pubkey_in_ssl_format(fingerprint, q):
     """
