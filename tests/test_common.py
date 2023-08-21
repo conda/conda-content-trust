@@ -440,8 +440,8 @@ def test_is_hex_key():
 def test_checkformat_hex_string():
     # TODO ✅: Add other tests.
     with pytest.raises(ValueError):
-        checkformat_hex_string("A")  # single case is important
-    checkformat_hex_string("a")
+        checkformat_hex_string("AA")  # single case is important
+    checkformat_hex_string("aa")
     checkformat_hex_string(SAMPLE_KEYVAL)
 
 
