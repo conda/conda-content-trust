@@ -463,13 +463,16 @@ def test_verify_root():
     root_v2_edited["signed"]["type"] = "key_mgr"
     with pytest.raises(
         ValueError,
-        match='Expected two instances of root metadata.',
+        match="Expected two instances of root metadata.",
     ):
         verify_root(TEST_ROOT_MD_V1, root_v2_edited)
 
 
-# def test_verify_delegation():
-#     """
-#     Tests conda_content_trust.authentication.verify_delegation
-#     """
-#     raise NotImplementedError('verify_delegation requires unit tests.')
+def test_verify_delegation_coverage():
+    """
+    Coverage tests for conda_content_trust.authentication.verify_delegation
+    """
+    with pytest.raises(TypeError, match="string"):
+        verify_delegation(42, False, False)
+    with pytest.raises(TypeError, match="boolean"):
+        verify_delegation("delegation", False, False, gpg=42)  # type: ignore
