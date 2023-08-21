@@ -399,6 +399,7 @@ def test_checkformat_hex_string():
     checkformat_hex_string("a")
     checkformat_hex_string(SAMPLE_KEYVAL)
 
+
 # test_checkformat_list_of_hex_keys():
 #     raise NotImplementedError()
 

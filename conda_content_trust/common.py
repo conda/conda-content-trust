@@ -243,7 +243,6 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         return super().from_private_bytes(key_value_in_bytes)
 
 
-
 class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
     """
     This class expands the class
