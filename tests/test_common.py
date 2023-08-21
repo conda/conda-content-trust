@@ -437,11 +437,22 @@ def test_checkformat_hex_key():
 # def test_checkformat_list_of_hex_keys():
 #     raise NotImplementedError()
 
-# def test_checkformat_byteslike():
-#     raise NotImplementedError()
+
+def test_checkformat_byteslike():
+    checkformat_byteslike(b"")
+    with pytest.raises(TypeError):
+        checkformat_byteslike(object())
+
+
+def test_checkformat_string():
+    checkformat_string("")
+    with pytest.raises(TypeError):
+        checkformat_string(object())
+
 
 # def test_checkformat_natural_int():
 #     raise NotImplementedError()
+
 
 def test_checkformat_expiration_distance():
     """
@@ -450,6 +461,7 @@ def test_checkformat_expiration_distance():
     checkformat_expiration_distance(timedelta())
     with pytest.raises(TypeError):
         checkformat_expiration_distance(object())
+
 
 # def test_checkformat_utc_isoformat():
 #     raise NotImplementedError()
