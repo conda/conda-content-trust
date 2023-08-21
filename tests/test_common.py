@@ -549,6 +549,42 @@ def test_checkformat_delegating_metadata():
         with pytest.raises((TypeError, ValueError)):
             checkformat_delegating_metadata(badval)
 
+    # valid
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    checkformat_delegating_metadata(sample_signed)
+
+    # invalid
+    sample_signed["signed"]["type"] = "bad type"
+    with pytest.raises(ValueError, match="supported"):
+        checkformat_delegating_metadata(sample_signed)
+
+    # invalid 2 bad timestamp
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    sample_signed["signed"]["timestamp"] = "not a timestamp"
+    with pytest.raises(TypeError, match="ISO8601"):
+        checkformat_delegating_metadata(sample_signed)
+
+    # invalid 3 bad version
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    sample_signed["signed"]["version"] = "not an integer"
+    with pytest.raises(ValueError, match="integer"):
+        checkformat_delegating_metadata(sample_signed)
+
+    # invalid 4 no version or timestamp
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    del sample_signed["signed"]["version"]
+    with pytest.raises(ValueError, match="All metadata"):
+        checkformat_delegating_metadata(sample_signed)
+
+    # invalid 5 timestamp, type is root, no version
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    del sample_signed["signed"]["version"]
+    sample_signed["signed"]["timestamp"] = "2023-08-21"
+    with pytest.raises(
+        ValueError, match="Root metadata must specify its version number."
+    ):
+        checkformat_delegating_metadata(sample_signed)
+
 
 # def test_iso8601_time_plus_delta():
 #     raise NotImplementedError()
