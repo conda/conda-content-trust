@@ -229,6 +229,22 @@ def test_build_delegating_metadata():
     checkformat_delegating_metadata(key_mgr)
 
 
+def test_build_delegating_metadata_coverage():
+    # See also test_build_root_metadata.
+
+    key_mgr = build_delegating_metadata(
+        metadata_type="key_mgr",  # 'root' or 'key_mgr'
+        delegations=None,
+        version=1,
+        # timestamp   default: now
+        # expiration  default: now plus root expiration default duration
+    )
+
+    key_mgr = wrap_as_signable(key_mgr)
+
+    checkformat_delegating_metadata(key_mgr)
+
+
 def test_gen_and_write_keys():
     # Make a new keypair.  Returns keys and writes keys to disk.
     # Then load it from disk and compare that to the return value.  Exercise
