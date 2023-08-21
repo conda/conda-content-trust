@@ -18,7 +18,6 @@ Formats and Validation:
   x  is_hex_signature
   r  is_hex_key
   r  checkformat_hex_key
-     checkformat_hex_hash
   r  checkformat_list_of_hex_keys
   x  is_a_signable
   x  checkformat_byteslike
