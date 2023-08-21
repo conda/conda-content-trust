@@ -503,6 +503,8 @@ def test_is_gpg_fingerprint():
     assert not is_gpg_fingerprint(SAMPLE_FINGERPRINT + "x")
     # hex but wrong length
     assert not is_gpg_fingerprint(SAMPLE_FINGERPRINT + "a")
+    # now uppercase allowed
+    assert not is_gpg_fingerprint(SAMPLE_FINGERPRINT.upper())
 
 
 def test_checkformat_gpg_signature():
