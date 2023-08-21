@@ -26,7 +26,7 @@ signatures without requiring securesystemslib.
 # root metadata via GPG.  Verification of those signatures, and signing other
 # metadata with raw ed25519 signatures, does not require securesystemslib.
 try:
-    import securesystemslib.formats
+    import securesystemslib.formats  # noqa: F401
     from securesystemslib.gpg import functions as gpg_funcs
 
     SSLIB_AVAILABLE = True
@@ -37,8 +37,6 @@ from .common import (
     canonserialize,
     checkformat_byteslike,
     checkformat_gpg_fingerprint,
-    checkformat_hex_key,
-    checkformat_key,
     is_a_signable,
     load_metadata_from_file,
     write_metadata_to_file,
@@ -173,19 +171,7 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     checkformat_gpg_fingerprint(gpg_key_fingerprint)
     checkformat_byteslike(data_to_sign)
 
-    # try:
-    #     full_gpg_pubkey = gpg_funcs.export_pubkey(gpg_key_fingerprint)
-    # except securesystemslib.gpg.exceptions.KeyNotFoundError as e:
-    #     raise Exception( # TODO✅: Consider an appropriate error class.
-    #             'The GPG application reported that it is not aware of a key '
-    #             'with the fingerprint provided ("' + str(gpg_key_fingerprint) +
-    #             '").  You may need to import the given key.')
-
     sig = gpg_funcs.create_signature(data_to_sign, gpg_key_fingerprint)
-
-    # # 💣💥 Debug only.
-    # # 💣💥 Debug only.
-    # assert gpg_funcs.verify_signature(sig, full_gpg_pubkey, data_to_sign)
 
     # securesystemslib.gpg makes use of the GPG key fingerprint.  We don't
     # care about that as much -- we want to use the raw ed25519 public key
@@ -206,7 +192,7 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     #   {'gpg_key_fingerprint': <gpg key fingerprint>,
     #    'other_headers': <extra data mandated in OpenPGP signatures>,
     #    'signature': <actual ed25519 signature, 64 bytes as 128 hex chars>}
-    #
+
     # sig['key'] = keyval  # q, the 32-byte raw ed25519 public key value, expressed as 64 hex characters
 
     # The OpenPGP Fingerprint of the OpenPGP key used to sign.  This is not
@@ -242,7 +228,6 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
     # again once the signatures have been added.
     data_to_sign = canonserialize(root_signable["signed"])
 
-    # sig_dict, pgp_pubkey = sign_via_gpg(data_to_sign, gpg_key_fingerprint)
     sig_dict = sign_via_gpg(data_to_sign, gpg_key_fingerprint)
 
     # sig_dict looks like this:
@@ -270,13 +255,6 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
     # public_key_as_hexstr = binascii.hexlify(key_to_bytes(
     #         private_key.public_key())).decode('utf-8')
 
-    # TODO: ✅⚠️ Log a warning in whatever conda's style is (or conda-build):
-    #
-    # if public_key_as_hexstr in signable['signatures']:
-    #   warn(    # replace: log, 'warnings' module, print statement, whatever
-    #           'Overwriting existing signature by the same key on given '
-    #           'signable.  Public key: ' + public_key + '.')
-
     # Add signature in-place.
     root_signable["signatures"][raw_pubkey] = sig_dict
 
@@ -289,7 +267,6 @@ def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     # deals with the filesystem.  It is not actually limited to root metadata,
     # and SHOULD BE RENAMED.
     """
-
     # Read in json
     root_signable = load_metadata_from_file(root_md_fname)
 

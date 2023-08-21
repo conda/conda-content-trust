@@ -15,7 +15,7 @@ Run the tests this way:
 import os
 import pytest
 
-from conda_content_trust.root_signing import (checkformat_gpg_fingerprint, sign_root_metadata_via_gpg)
+from conda_content_trust.root_signing import (sign_root_metadata_via_gpg)
 
 # securesystemslib is an optional dependency, and required only for signing
 # root metadata via GPG.  Verification of those signatures, and signing other
@@ -203,7 +203,6 @@ def test_verify_existing_root_md():
 
     # Verify using verify_gpg_signature.
     authentication.verify_gpg_signature(
-        # authentication.verify_gpg_signature(
         SAMPLE_GPG_SIG,
         SAMPLE_KEYVAL,
         canonical_signed_portion,
