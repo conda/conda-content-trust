@@ -181,9 +181,5 @@ def test_sign_all_in_repodata_no_packages(request):
         os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
     shutil.copy(REG__REPODATA_NO_PACKAGES_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
 
-    # grab data and use it to compare to what we produce in a bit
-
-    repodata = load_metadata_from_file(REG__REPODATA_NO_PACKAGES_FNAME)
-
     with pytest.raises(ValueError):
         sign_all_in_repodata(REG__REPODATA_SAMPLE_TEMP_FNAME, REG__PRIVATE_HEX)
