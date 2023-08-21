@@ -442,18 +442,6 @@ def checkformat_hex_key(k):
         raise ValueError("Hex representations of keys must use only lowercase.")
 
 
-def checkformat_hex_hash(h):
-    checkformat_hex_string(h)
-
-    if 64 != len(h):
-        raise ValueError("Expected a 64-character hex string representing a hash.")
-
-    # Prevent multiple possible representations.  There are security
-    # implications.
-    if h.lower() != h:
-        raise ValueError("Hex representations of hashes must use only lowercase.")
-
-
 def checkformat_list_of_hex_keys(value):
     """
     Note that this rejects any list of keys that includes any exact duplicates.
