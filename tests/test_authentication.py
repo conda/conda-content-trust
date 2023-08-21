@@ -14,13 +14,13 @@ from pathlib import Path
 
 import cryptography.exceptions
 import pytest
+
 from conda_content_trust.authentication import (
     verify_delegation,
     verify_root,
     verify_signable,
     verify_signature,
 )
-
 from conda_content_trust.common import (
     MetadataVerificationError,
     PrivateKey,

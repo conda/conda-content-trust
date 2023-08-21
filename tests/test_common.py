@@ -244,7 +244,9 @@ def test_key_functions_2():
     assert not isinstance(PrivateKey.from_hex(REG__PRIVATE_HEX), PrivateKey)
 
     # it's always an Ed25519PublicKey, not our subclass
-    assert isinstance(PrivateKey.from_bytes(REG__PRIVATE_BYTES), ed25519.Ed25519PrivateKey)
+    assert isinstance(
+        PrivateKey.from_bytes(REG__PRIVATE_BYTES), ed25519.Ed25519PrivateKey
+    )
 
     # coverage
     assert isinstance(
@@ -255,6 +257,7 @@ def test_key_functions_2():
     private_key = PrivateKey.from_hex(REG__PRIVATE_HEX)
     with pytest.raises(TypeError):
         assert isinstance(PrivateKey.public_key(private_key), PublicKey)
+
 
 # This is the version of the tests before PrivateKey and PublicKey classes were
 # created to cut down on the utility function noise and make things easier to

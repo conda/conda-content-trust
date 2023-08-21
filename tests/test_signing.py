@@ -15,8 +15,8 @@ import os.path
 import shutil
 
 import pytest
-from conda_content_trust.authentication import verify_signature
 
+from conda_content_trust.authentication import verify_signature
 from conda_content_trust.common import (
     PublicKey,
     canonserialize,
