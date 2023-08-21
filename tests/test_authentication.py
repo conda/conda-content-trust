@@ -493,8 +493,16 @@ def test_verify_delegation_coverage():
     ],
 )
 def test_verify_delegation_coverage_2(trusted: str, untrusted: str):
+    """
+    Additional coverage tests for conda_content_trust.authentication.verify_delegation
+    """
     untrusted_json = json.loads(Path(untrusted).read_text())
     trusted_json = json.loads(Path(trusted).read_text())
+
+    # these don't validate even as-is, but they do help us get far enough to
+    # 100% this function.
+    with pytest.raises(SignatureError):
+        verify_delegation("root", untrusted_json, trusted_json)
 
     # make invalid
     del untrusted_json["signed"]["type"]
@@ -505,3 +513,38 @@ def test_verify_delegation_coverage_2(trusted: str, untrusted: str):
     untrusted_json["signed"]["type"] = "key_mgr"
     with pytest.raises(MetadataVerificationError):
         verify_delegation("root", untrusted_json, trusted_json)
+
+
+def test_verify_signable_coverage():
+    """
+    Test not-signable items.
+    """
+    with pytest.raises(TypeError, match="verify_signable"):
+        verify_signable({}, ["not a hex string"], 1)
+
+    d = {"foo": "bar", "1": 2}
+    signable_d = wrap_as_signable(d)
+
+    HEX_KEY = "deadbeef" * 8
+    assert is_hex_key(HEX_KEY)
+
+    with pytest.raises(TypeError, match="authorized_pub_keys"):
+        verify_signable(signable_d, [HEX_KEY, "not a hex string"], 1)
+
+    with pytest.raises(TypeError, match="threshold"):
+        verify_signable(signable_d, [HEX_KEY], 0)
+
+    # add bad signatures
+    signable_d["signatures"]["foo"] = "bar"
+    with pytest.raises(SignatureError, match="from at least"):
+        verify_signable(signable_d, [HEX_KEY], 1)
+
+    # add bad signatures 2
+    signable_d["signatures"][HEX_KEY] = "quux"
+    with pytest.raises(SignatureError, match="from at least"):
+        verify_signable(signable_d, [HEX_KEY], 1)
+
+    # gpg and signature that doesn't look like a gpg signature
+    with pytest.raises(SignatureError, match="from at least"):
+        verify_signable(signable_d, [HEX_KEY], 1, gpg=True)
+

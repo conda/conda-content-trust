@@ -233,6 +233,11 @@ def test_key_functions():
         with pytest.raises(TypeError):
             PrivateKey.is_equivalent_to(private_reg_byt, bad_argument)
 
+    # coverage; could we delete this method as unused?s
+    assert isinstance(
+        PrivateKey.from_bytes(REG__PRIVATE_BYTES).public_key(), ed25519.Ed25519PublicKey
+    )
+
 
 # This is the version of the tests before PrivateKey and PublicKey classes were
 # created to cut down on the utility function noise and make things easier to
