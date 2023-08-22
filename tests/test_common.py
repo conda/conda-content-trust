@@ -29,10 +29,10 @@ from conda_content_trust.common import (
     checkformat_signature,
     checkformat_string,
     ed25519,
-    is_a_signature,
     is_gpg_fingerprint,
     is_gpg_signature,
     is_hex_key,
+    is_signature,
     keyfiles_to_bytes,
     keyfiles_to_keys,
 )
@@ -375,7 +375,7 @@ def test_is_gpg_signature():
         checkformat_gpg_signature(sig)
         checkformat_signature(sig)
         assert is_gpg_signature(sig)
-        assert is_a_signature(sig)
+        assert is_signature(sig)
 
     def expect_failure(sig, exception_class):
         with pytest.raises(exception_class):
@@ -383,7 +383,7 @@ def test_is_gpg_signature():
         with pytest.raises(exception_class):
             checkformat_signature(sig)
         assert not is_gpg_signature(sig)
-        assert not is_a_signature(sig)
+        assert not is_signature(sig)
 
     gpg_sig = {
         "other_headers": "04001608001d162104f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd58905025defd3d3",

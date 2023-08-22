@@ -541,7 +541,7 @@ def checkformat_gpg_signature(signature_obj):
         checkformat_gpg_fingerprint(signature_obj["see_also"])
 
 
-def is_a_signature(signature_obj):
+def is_signature(signature_obj):
     """
     Returns True if signature_obj is a dictionary representing an ed25519
     signature, either in the conda-content-trust normal format, or
@@ -612,19 +612,6 @@ def checkformat_signature(signature_obj):
             "signature object (neither simple ed25519 sig nor OpenPGP "
             "ed25519 sig)."
         )
-
-
-def is_signature(s):
-    """
-    True if the given value is a dictionary containing a 'signature' entry
-    with value set to a hex string of length 128 (representing an ed25519
-    signature).
-    """
-    try:
-        checkformat_signature(s)
-        return True
-    except (TypeError, ValueError):
-        return False
 
 
 def checkformat_delegation(delegation):
@@ -811,7 +798,7 @@ def checkformat_delegating_metadata(metadata):
 
 
 def checkformat_any_signature(sig):
-    if not is_a_signature(sig) and not is_gpg_signature(sig):
+    if not is_signature(sig) and not is_gpg_signature(sig):
         raise ValueError(
             "Expected either a hex string representing a raw ed25519 "
             "signature (see checkformat_signature) or a dictionary "
