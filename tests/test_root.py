@@ -14,9 +14,10 @@ Run the tests this way:
 """
 import copy
 import os
+
 import pytest
 
-from conda_content_trust.root_signing import (sign_root_metadata_via_gpg)
+from conda_content_trust.root_signing import sign_root_metadata_via_gpg
 
 # securesystemslib is an optional dependency, and required only for signing
 # root metadata via GPG.  Verification of those signatures, and signing other
@@ -222,20 +223,22 @@ def test_verify_existing_root_md():
 )
 def test_sign_root_metadata_via_gpg():
     tests_dir = os.path.dirname(os.path.abspath(__file__))
-    root_metadata = os.path.join(tests_dir, 'testdata/repodata_short_signed_sample.json')
-    signing_key = 'ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234'
+    root_metadata = os.path.join(
+        tests_dir, "testdata/repodata_short_signed_sample.json"
+    )
+    signing_key = "ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234"
 
     signed_metadata = sign_root_metadata_via_gpg(root_metadata, signing_key)
 
     # Verify signature was added
-    assert 'signatures' in signed_metadata
-    assert len(signed_metadata['signatures']) == 1
+    assert "signatures" in signed_metadata
+    assert len(signed_metadata["signatures"]) == 1
 
     # Verify correct key was used
-    assert signed_metadata['signatures'][0]['keyid'] == signing_key
+    assert signed_metadata["signatures"][0]["keyid"] == signing_key
 
     # Verify original metadata is unchanged
-    assert signed_metadata['packages'] == root_metadata['packages']
+    assert signed_metadata["packages"] == root_metadata["packages"]
 
 
 @pytest.mark.skipif(
