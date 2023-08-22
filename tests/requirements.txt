@@ -6,3 +6,4 @@ pytest-cov
 pytest-mock
 conda>23.7
 conda-forge::securesystemslib
+setuptools_scm
