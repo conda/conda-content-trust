@@ -8,17 +8,27 @@ Run the tests this way:
     pytest tests/test_authentication.py
 """
 import copy
+import json
 import os
+from pathlib import Path
 
 import cryptography.exceptions
 import pytest
 
-from conda_content_trust.authentication import *
+from conda_content_trust.authentication import (
+    verify_delegation,
+    verify_root,
+    verify_signable,
+    verify_signature,
+)
 from conda_content_trust.common import (
     MetadataVerificationError,
     PrivateKey,
     PublicKey,
     SignatureError,
+    UnknownRoleError,
+    is_a_signable,
+    is_hex_key,
     keyfiles_to_bytes,
     keyfiles_to_keys,
 )
@@ -27,6 +37,7 @@ from conda_content_trust.metadata_construction import (  # for new-key tests; bu
     gen_keys,
 )
 from conda_content_trust.signing import sign_signable, wrap_as_signable
+from tests.test_common import SAMPLE_SIGNED_ROOT_MD
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = "keytest_old"
@@ -460,12 +471,86 @@ def test_verify_root():
         root_v1_edited["signed"]["delegations"]["root"]["threshold"] += 1
         verify_root(root_v1_edited, TEST_ROOT_MD_V2)
 
-    # Reset.
-    root_v1_edited["signed"]["delegations"]["root"]["threshold"] -= 1
+    root_v2_edited["signed"]["type"] = "key_mgr"
+    with pytest.raises(
+        ValueError,
+        match="Expected two instances of root metadata.",
+    ):
+        verify_root(TEST_ROOT_MD_V1, root_v2_edited)
 
 
-# def test_verify_delegation():
-#     """
-#     Tests conda_content_trust.authentication.verify_delegation
-#     """
-#     raise NotImplementedError('verify_delegation requires unit tests.')
+def test_verify_delegation_coverage():
+    """
+    Coverage tests for conda_content_trust.authentication.verify_delegation
+    """
+    with pytest.raises(TypeError, match="string"):
+        verify_delegation(42, False, False)
+
+    with pytest.raises(TypeError, match="boolean"):
+        verify_delegation("delegation", False, False, gpg=42)  # type: ignore
+
+    with pytest.raises(UnknownRoleError):
+        verify_delegation("root", SAMPLE_SIGNED_ROOT_MD, SAMPLE_SIGNED_ROOT_MD)
+
+
+@pytest.mark.parametrize(
+    "trusted,untrusted",
+    [
+        ["tests/testdata/1.root.json", "tests/testdata/2.root.json"],
+    ],
+)
+def test_verify_delegation_coverage_2(trusted: str, untrusted: str):
+    """
+    Additional coverage tests for conda_content_trust.authentication.verify_delegation
+    """
+    untrusted_json = json.loads(Path(untrusted).read_text())
+    trusted_json = json.loads(Path(trusted).read_text())
+
+    # these don't validate even as-is, but they do help us get far enough to
+    # 100% this function.
+    with pytest.raises(SignatureError):
+        verify_delegation("root", untrusted_json, trusted_json)
+
+    # make invalid
+    del untrusted_json["signed"]["type"]
+    with pytest.raises(SignatureError):
+        verify_delegation("root", untrusted_json, trusted_json)
+
+    # make mismatch
+    untrusted_json["signed"]["type"] = "key_mgr"
+    with pytest.raises(MetadataVerificationError):
+        verify_delegation("root", untrusted_json, trusted_json)
+
+
+def test_verify_signable_coverage():
+    """
+    Test not-signable items.
+    """
+    with pytest.raises(TypeError, match="verify_signable"):
+        verify_signable({}, ["not a hex string"], 1)
+
+    d = {"foo": "bar", "1": 2}
+    signable_d = wrap_as_signable(d)
+
+    HEX_KEY = "deadbeef" * 8
+    assert is_hex_key(HEX_KEY)
+
+    with pytest.raises(TypeError, match="authorized_pub_keys"):
+        verify_signable(signable_d, [HEX_KEY, "not a hex string"], 1)
+
+    with pytest.raises(TypeError, match="threshold"):
+        verify_signable(signable_d, [HEX_KEY], 0)
+
+    # add bad signatures
+    signable_d["signatures"]["foo"] = "bar"
+    with pytest.raises(SignatureError, match="from at least"):
+        verify_signable(signable_d, [HEX_KEY], 1)
+
+    # add bad signatures 2
+    signable_d["signatures"][HEX_KEY] = "quux"
+    with pytest.raises(SignatureError, match="from at least"):
+        verify_signable(signable_d, [HEX_KEY], 1)
+
+    # gpg and signature that doesn't look like a gpg signature
+    with pytest.raises(SignatureError, match="from at least"):
+        verify_signable(signable_d, [HEX_KEY], 1, gpg=True)

@@ -16,9 +16,13 @@ import shutil
 
 import pytest
 
-from conda_content_trust.authentication import *
-from conda_content_trust.common import *
-from conda_content_trust.signing import *
+from conda_content_trust.authentication import verify_signature
+from conda_content_trust.common import (
+    PublicKey,
+    canonserialize,
+    load_metadata_from_file,
+)
+from conda_content_trust.signing import sign_all_in_repodata, wrap_as_signable
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = "keytest_old"
@@ -102,6 +106,24 @@ def remove_sample_tempfile():
         os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
 
 
+def test_sign_all_invalid_repodata(tmp_path):
+    invalid_repodata = tmp_path / "invalid_repodata.json"
+    invalid_repodata.write_text("{}")
+
+    public = PublicKey.from_hex(REG__PUBLIC_HEX)
+
+    # Make a test copy of the repodata sample, since we're going to
+    # update it.
+    if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
+        os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
+    shutil.copy(REG__REPODATA_SAMPLE_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
+
+    with pytest.raises(
+        ValueError, match='Expected a "packages" entry in given repodata file.'
+    ):
+        sign_all_in_repodata(str(invalid_repodata), REG__PRIVATE_HEX)
+
+
 def test_sign_all_in_repodata(request):
     request.addfinalizer(remove_sample_tempfile)
 
@@ -145,6 +167,11 @@ def test_sign_all_in_repodata(request):
         )
 
 
+def test_wrap_unserializable():
+    with pytest.raises(TypeError):
+        wrap_as_signable(object())
+
+
 def test_sign_all_in_repodata_no_packages(request):
     request.addfinalizer(remove_sample_tempfile)
 
@@ -153,10 +180,6 @@ def test_sign_all_in_repodata_no_packages(request):
     if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
         os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
     shutil.copy(REG__REPODATA_NO_PACKAGES_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
-
-    # grab data and use it to compare to what we produce in a bit
-
-    repodata = load_metadata_from_file(REG__REPODATA_NO_PACKAGES_FNAME)
 
     with pytest.raises(ValueError):
         sign_all_in_repodata(REG__REPODATA_SAMPLE_TEMP_FNAME, REG__PRIVATE_HEX)
