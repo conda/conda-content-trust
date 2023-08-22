@@ -274,7 +274,7 @@ def test_sign_root_metadata_via_gpg(tmp_path):
     assert SAMPLE_FINGERPRINT.lower() in list(signed_metadata["signatures"].items())[0][1]["other_headers"]
 
     # Verify original metadata is unchanged
-    assert signed_metadata["packages"] == data["packages"]
+    assert signed_metadata["signed"]["packages"] == data["packages"]
 
 
 def test_gpg_pubkey_in_ssl_format():
