@@ -50,7 +50,6 @@ from __future__ import annotations
 from binascii import hexlify, unhexlify
 from datetime import datetime, timedelta
 from json import dumps, load
-from re import compile  # for UTC iso8601 date string checking
 from typing import Annotated, Any, Protocol
 
 from cryptography.hazmat.primitives import serialization
@@ -77,14 +76,6 @@ SUPPORTED_SERIALIZABLE_TYPES = [dict, list, tuple, str, int, float, bool, type(N
 
 # These are the permissible strings in the "type" field of delegating metadata.
 SUPPORTED_DELEGATING_METADATA_TYPES = ["root", "key_mgr"]  # May be loosened later.
-
-# (I think the regular expression checks for datetime strings run faster if we
-#  compile the pattern once and use the same object for all checks.  For a
-#  pattern like this, it's probably a negligible difference, though, and
-#  it's conceivable that the compiler already optimizes this....)
-UTC_ISO8601_REGEX_PATTERN = compile(
-    "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
-)
 
 
 class CCT_Error(Exception):
@@ -415,12 +406,14 @@ def checkformat_string(string: Any) -> str:
     return string
 
 
-def checkformat_expiration_distance(expiration_distance):
+def checkformat_expiration_distance(expiration_distance: Any) -> timedelta:
     if not isinstance(expiration_distance, timedelta):
         raise TypeError(
             "Expiration distance must be a datetime.timedelta object. "
             "Instead received a " + str(type(expiration_distance))
         )
+
+    return expiration_distance
 
 
 HexKey = Annotated[HexString, "len() == 64"]
@@ -456,18 +449,18 @@ def checkformat_list_of_hex_keys(list_of_hex_keys: Any) -> list[HexKey]:
     return list_of_hex_keys
 
 
-def checkformat_utc_isoformat(s):
-    # e.g. '1999-12-31T23:59:59Z'
-    # TODO: ✅ Python2/3-compatible string check
-
-    # Note that ^ and $ use is redundant with use of fullmatch here (defensive
-    # coding).  See also notes for UTC_ISO8601_REGEX_PATTERN above.
-    if UTC_ISO8601_REGEX_PATTERN.fullmatch(s) is None:
+def checkformat_utc_isoformat(date_string: Any) -> str:
+    try:
+        datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        # ValueError: date_string does not match format '%Y-%m-%dT%H:%M:%SZ'
         raise TypeError(
             "The provided string appears not to be a datetime string "
             "formatted as an ISO8601 UTC-specific datetime (e.g. "
-            '"1999-12-31T23:59:59Z".'
-        )
+            '"1999-12-31T23:59:59Z").'
+        ) from None
+
+    return date_string
 
 
 def is_gpg_fingerprint(fingerprint):
