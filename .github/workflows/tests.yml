@@ -58,7 +58,8 @@ jobs:
       - name: Setup environment
         run: |
           conda install -q -y -c defaults \
-            --file ./tests/requirements.txt
+            --file ./tests/requirements.txt \
+            conda-forge::securesystemslib
 
       - name: Show info
         run: |
