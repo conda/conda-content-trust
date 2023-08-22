@@ -38,7 +38,6 @@ from .common import (
     checkformat_byteslike,
     checkformat_gpg_fingerprint,
     checkformat_hex_key,
-    checkformat_key,
     is_a_signable,
     load_metadata_from_file,
     write_metadata_to_file,
