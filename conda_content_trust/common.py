@@ -874,21 +874,21 @@ def keyfiles_to_keys(name):
     return private, public
 
 
-def checkformat_key(key):
+def checkformat_key(key: Any) -> ed25519.Ed25519PublicKey | ed25519.Ed25519PrivateKey:
     """
     Enforces expectation that argument is an object of type
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey or
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey.
     """
-    if not isinstance(key, ed25519.Ed25519PublicKey) and not isinstance(
-        key, ed25519.Ed25519PrivateKey
-    ):
+    if not isinstance(key, (ed25519.Ed25519PublicKey, ed25519.Ed25519PrivateKey)):
         raise TypeError(
             "Expected an Ed25519PublicKey or Ed25519PrivateKey object "
             'from the "cryptography" library.  Received object of type '
             + str(type(key))
             + " instead."
         )
+
+    return key
 
 
 def iso8601_time_plus_delta(delta):
