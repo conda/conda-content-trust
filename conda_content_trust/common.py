@@ -463,26 +463,29 @@ def checkformat_utc_isoformat(date_string: Any) -> str:
     return date_string
 
 
-def is_gpg_fingerprint(fingerprint):
+def is_gpg_fingerprint(gpg_fingerprint: Any) -> bool:
     """
     True if the given value is a hex string of length 40 (representing a
     20-byte SHA-1 value, which is what OpenPGP/GPG uses as a key fingerprint).
     """
     try:
-        checkformat_gpg_fingerprint(fingerprint)
+        checkformat_gpg_fingerprint(gpg_fingerprint)
         return True
     except (TypeError, ValueError):
         return False
 
 
-def checkformat_gpg_fingerprint(fingerprint):
+GPGFingerprint = Annotated[HexKey, "len()==40"]
+
+
+def checkformat_gpg_fingerprint(gpg_fingerprint: Any) -> GPGFingerprint:
     """
     See is_gpg_fingerprint.  Raises a TypeError if is_gpg_fingerprint is not
     True.
     """
-    if len(fingerprint) != 40:
+    if len(gpg_fingerprint) != 40:
         raise ValueError(
-            'The given value, "' + str(fingerprint) + '", is not a full '
+            'The given value, "' + str(gpg_fingerprint) + '", is not a full '
             "GPG fingerprint (40 hex characters)."
         )
 
@@ -493,11 +496,13 @@ def checkformat_gpg_fingerprint(fingerprint):
     # same key -- with the key represented differently -- to count as two
     # signatures from distinct keys.
     # local hex test. isalnum() checks for no whitespace.
-    bytes.fromhex(fingerprint)
-    if not fingerprint.isalnum() or fingerprint.lower() != fingerprint:
+    bytes.fromhex(gpg_fingerprint)
+    if not gpg_fingerprint.isalnum() or gpg_fingerprint.lower() != gpg_fingerprint:
         raise ValueError(
             "Expected a hex string; non-hexadecimal or upper-case character found."
         )
+
+    return gpg_fingerprint
 
 
 def is_gpg_signature(gpg_signature: Any) -> bool:
