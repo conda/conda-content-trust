@@ -27,8 +27,8 @@ from conda_content_trust.common import (
     PublicKey,
     SignatureError,
     UnknownRoleError,
-    is_a_signable,
     is_hex_key,
+    is_signable,
     keyfiles_to_bytes,
     keyfiles_to_keys,
 )
@@ -192,9 +192,9 @@ def test_wrap_sign_verify_signable():
     d = {"foo": "bar", "1": 2}
     d_modified = {"foo": "DOOM", "1": 2}
     signable_d = wrap_as_signable(d)
-    assert is_a_signable(signable_d)
+    assert is_signable(signable_d)
     sign_signable(signable_d, old_private)
-    assert is_a_signable(signable_d)
+    assert is_signable(signable_d)
 
     verify_signable(
         signable=signable_d,

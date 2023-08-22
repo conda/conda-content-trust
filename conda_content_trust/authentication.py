@@ -28,10 +28,10 @@ from .common import (
     checkformat_gpg_signature,
     checkformat_hex_key,
     checkformat_signable,
-    is_a_signable,
     is_gpg_signature,
     is_hex_key,
     is_hex_signature,
+    is_signable,
     is_signature,
 )
 
@@ -342,7 +342,7 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
     #       we'll mostly have the hex strings on hand, but....
 
     # Argument validation
-    if not is_a_signable(signable):
+    if not is_signable(signable):
         raise TypeError(
             "verify_signable expects a signable dictionary.  "
             "Given argument failed the test."

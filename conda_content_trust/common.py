@@ -19,7 +19,7 @@ Formats and Validation:
   r  is_hex_key
   r  checkformat_hex_key
   r  checkformat_list_of_hex_keys
-  x  is_a_signable
+  x  is_signable
   x  checkformat_byteslike
   x  checkformat_natural_int
   x  checkformat_expiration_distance
@@ -343,7 +343,7 @@ def is_hex_key(key):
         return False
 
 
-def is_a_signable(dictionary):
+def is_signable(dictionary):
     """
     Returns True if the given dictionary is a signable dictionary as produced
     by wrap_as_signable.  Note that there MUST be no additional elements beyond
@@ -368,7 +368,7 @@ def is_a_signable(dictionary):
 # TODO: ✅ Consolidate: switch to use of this wherever is_a_signable is called
 #          and then an error is raised if the result is False.
 def checkformat_signable(dictionary):
-    if not is_a_signable(dictionary):
+    if not is_signable(dictionary):
         raise TypeError(
             "Expected a signable dictionary, but the given argument "
             "does not match expectations for a signable dictionary "
