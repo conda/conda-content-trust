@@ -320,7 +320,7 @@ def checkformat_hex_string(hex_string: Any) -> HexString:
     return hex_string
 
 
-def is_hex_signature(sig):
+def is_hex_signature(hex_signature: Any) -> bool:
     """
     Returns True if key is a hex string with no uppercase characters, no
     spaces, no '0x' prefix(es), etc., and is 128 hexadecimal characters (the
@@ -328,7 +328,7 @@ def is_hex_signature(sig):
     as 128 hexadecimal characters).
     Else, returns False.
     """
-    if is_hex_string(sig) and len(sig) == 128:
+    if is_hex_string(hex_signature) and len(hex_signature) == 128:
         return True
 
     return False
@@ -488,17 +488,20 @@ def checkformat_gpg_fingerprint(fingerprint):
         )
 
 
-def is_gpg_signature(signature_obj):
+def is_gpg_signature(gpg_signature: Any) -> bool:
     # TODO: ✅ docstring based on docstring from checkformat_gpg_signature
 
     try:
-        checkformat_gpg_signature(signature_obj)
+        checkformat_gpg_signature(gpg_signature)
         return True
     except (ValueError, TypeError):
         return False
 
 
-def checkformat_gpg_signature(signature_obj):
+GPGSignature = dict
+
+
+def checkformat_gpg_signature(gpg_signature: Any) -> GPGSignature:
     """
     Raises a TypeError if the given object is not a dictionary representing a
     signature in a format that we expect.
@@ -512,13 +515,13 @@ def checkformat_gpg_signature(signature_obj):
 
     If the given object matches the format, returns silently.
     """
-    if not isinstance(signature_obj, dict):
+    if not isinstance(gpg_signature, dict):
         raise TypeError(
             "OpenPGP signatures objects must be dictionaries.  Received "
-            "type " + str(type(signature_obj)) + " instead."
+            "type " + str(type(gpg_signature)) + " instead."
         )
 
-    if sorted(list(signature_obj.keys())) not in [
+    if sorted(list(gpg_signature.keys())) not in [
         ["other_headers", "signature"],
         ["other_headers", "see_also", "signature"],
     ]:
@@ -528,7 +531,7 @@ def checkformat_gpg_signature(signature_obj):
             "other entries are permitted."
         )
 
-    if not is_hex_string(signature_obj["other_headers"]):
+    if not is_hex_string(gpg_signature["other_headers"]):
         raise ValueError(
             '"other_headers" entry in OpenPGP signature object must be a ' "hex string."
         )
@@ -536,18 +539,20 @@ def checkformat_gpg_signature(signature_obj):
         #          limiting it to a hex string.  (No length constraint is
         #          provided here, for example.)
 
-    if not is_hex_signature(signature_obj["signature"]):
+    if not is_hex_signature(gpg_signature["signature"]):
         raise ValueError(
             '"signature" entry in OpenPGP signature obj must be a hex '
             "string representing an ed25519 signature, 128 hex characters "
             "representing 64 bytes of data."
         )
 
-    if "see_also" in signature_obj:
-        checkformat_gpg_fingerprint(signature_obj["see_also"])
+    if "see_also" in gpg_signature:
+        checkformat_gpg_fingerprint(gpg_signature["see_also"])
+
+    return gpg_signature
 
 
-def is_signature(signature_obj):
+def is_signature(signature: Any) -> bool:
     """
     Returns True if signature_obj is a dictionary representing an ed25519
     signature, either in the conda-content-trust normal format, or
@@ -556,13 +561,16 @@ def is_signature(signature_obj):
     See conda_content_trust.common.checkformat_signature() docstring for more details.
     """
     try:
-        checkformat_signature(signature_obj)
+        checkformat_signature(signature)
         return True
     except (TypeError, ValueError):
         return False
 
 
-def checkformat_signature(signature_obj):
+Signature = dict
+
+
+def checkformat_signature(signature: Any) -> Signature:
     """
     Raises a TypeError if the given object is not a dictionary.
     Raises a ValueError if the given object is a dictionary, but is not in
@@ -587,11 +595,9 @@ def checkformat_signature(signature_obj):
           'other_headers': 'deadbeef'*??,
           'see_also': 'deadbeef'*10}}      # listing an OpenPGP key fingerprint
     """
-    if not isinstance(signature_obj, dict):
+    if not isinstance(signature, dict):
         raise TypeError("Expected a signature object, of type dict.")
-    elif not (
-        "signature" in signature_obj and is_hex_signature(signature_obj["signature"])
-    ):
+    elif not ("signature" in signature and is_hex_signature(signature["signature"])):
         # Even the minimal required element is not correct, so...
         raise ValueError(
             "Expected a dictionary representing an ed25519 signature as a "
@@ -601,16 +607,16 @@ def checkformat_signature(signature_obj):
         )
 
     # simple ed25519 signature, not an OpenPGP signature
-    elif len(signature_obj) == 1:
+    elif len(signature) == 1:
         # If this is a simple ed25519 signature, and not an OpenPGP/GPG
         # signature, then we're all set, since 'signature' is included and
         # has a reasonable value.
-        return
+        return signature
 
     # Permit an OpenPGP (GPG / RFC 4880) signature noted as defined in
     # function is_gpg_signature.
-    elif is_gpg_signature(signature_obj):
-        return
+    elif is_gpg_signature(signature):
+        return signature
 
     else:
         raise ValueError(
@@ -803,14 +809,16 @@ def checkformat_delegating_metadata(metadata):
     #          themselves in the foot.
 
 
-def checkformat_any_signature(sig):
-    if not is_signature(sig) and not is_gpg_signature(sig):
+def checkformat_any_signature(signature: Any) -> Signature | GPGSignature:
+    if not is_signature(signature) and not is_gpg_signature(signature):
         raise ValueError(
             "Expected either a hex string representing a raw ed25519 "
             "signature (see checkformat_signature) or a dictionary "
             "representing an OpenPGP/GPG signature "
             "(see checkformat_gpg_signature)."
         )
+
+    return signature
 
 
 def keyfiles_to_bytes(name):
