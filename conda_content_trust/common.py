@@ -45,11 +45,13 @@ Exceptions:
         MetadataVerificationError
         UnknownRoleError
 """
+from __future__ import annotations
+
 from binascii import hexlify, unhexlify
 from datetime import datetime, timedelta
 from json import dumps, load
 from re import compile  # for UTC iso8601 date string checking
-from typing import Any
+from typing import Annotated, Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -334,7 +336,7 @@ def is_hex_signature(hex_signature: Any) -> bool:
     return False
 
 
-def is_hex_key(key):
+def is_hex_key(hex_key: Any) -> bool:
     """
     Returns True if key is a hex string with no uppercase characters, no
     spaces, no '0x' prefix(es), etc., and is 64 hexadecimal characters (the
@@ -343,7 +345,7 @@ def is_hex_key(key):
     Else, returns False.
     """
     try:
-        checkformat_hex_key(key)
+        checkformat_hex_key(hex_key)
         return True
     except (TypeError, ValueError):
         return False
@@ -411,30 +413,37 @@ def checkformat_expiration_distance(expiration_distance):
         )
 
 
-def checkformat_hex_key(k):
-    checkformat_hex_string(k)
+HexKey = Annotated[HexString, "len() == 64"]
 
-    if 64 != len(k):
+
+def checkformat_hex_key(hex_key: Any) -> HexKey:
+    checkformat_hex_string(hex_key)
+
+    if 64 != len(hex_key):
         raise ValueError("Expected a 64-character hex string representing a key value.")
 
+    return hex_key
 
-def checkformat_list_of_hex_keys(value):
+
+def checkformat_list_of_hex_keys(list_of_hex_keys: Any) -> list[HexKey]:
     """
     Note that this rejects any list of keys that includes any exact duplicates.
     """
-    if not isinstance(value, list):
+    if not isinstance(list_of_hex_keys, list):
         raise TypeError(
             "Expected a list of 64-character hex strings representing keys."
         )
 
-    for key in value:
-        checkformat_hex_key(key)
+    for hex_key in list_of_hex_keys:
+        checkformat_hex_key(hex_key)
 
-    if len(set(value)) != len(value):
+    if len(set(list_of_hex_keys)) != len(list_of_hex_keys):
         raise ValueError(
             "The given list of keys in hex string form contains duplicates.  "
             "Duplicates are not permitted."
         )
+
+    return list_of_hex_keys
 
 
 def checkformat_utc_isoformat(s):
