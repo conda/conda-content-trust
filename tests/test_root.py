@@ -17,8 +17,6 @@ import json
 
 import pytest
 
-from conda_content_trust.root_signing import sign_root_metadata_via_gpg
-
 # securesystemslib is an optional dependency, and required only for signing
 # root metadata via GPG.  Verification of those signatures, and signing other
 # metadata with raw ed25519 signatures, does not require securesystemslib.
@@ -271,7 +269,10 @@ def test_sign_root_metadata_via_gpg(tmp_path):
 
     # Verify correct key was used
     # TODO this doesn't look anything like the comments' idea of what signed dictionaries are.
-    assert SAMPLE_FINGERPRINT.lower() in list(signed_metadata["signatures"].items())[0][1]["other_headers"]
+    assert (
+        SAMPLE_FINGERPRINT.lower()
+        in list(signed_metadata["signatures"].items())[0][1]["other_headers"]
+    )
 
     # Verify original metadata is unchanged
     assert signed_metadata["signed"]["packages"] == data["packages"]
