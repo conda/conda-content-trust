@@ -60,6 +60,7 @@ jobs:
           conda install -q -y -c defaults \
             --file ./tests/requirements.txt \
             conda-forge::securesystemslib
+          gpg --import tests/testdata/test_key_*
 
       - name: Show info
         run: |
