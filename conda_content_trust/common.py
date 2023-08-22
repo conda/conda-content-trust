@@ -398,10 +398,12 @@ def checkformat_byteslike(byteslike: Any) -> BytesLike:
     return byteslike
 
 
-def checkformat_natural_int(number):
+def checkformat_natural_int(natural_int: Any) -> Annotated[int, ">= 1"]:
     # Technically a TypeError or ValueError, depending, but meh.
-    if int(number) != number or number < 1:
+    if int(natural_int) != natural_int or natural_int < 1:
         raise ValueError("Expected an integer >= 1.")
+
+    return natural_int
 
 
 # This is not yet widely used.
