@@ -49,6 +49,7 @@ from binascii import hexlify, unhexlify
 from datetime import datetime, timedelta
 from json import dumps, load
 from re import compile  # for UTC iso8601 date string checking
+from typing import Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -288,30 +289,35 @@ class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
 
 
 # ✅ TODO: Consider a schema definitions module, e.g. PyPI project "schema"
-def is_hex_string(s):
+def is_hex_string(hex_string: Any) -> bool:
     """
     Returns True if hex is a hex string with no uppercase characters, no spaces,
     etc.  Else, False.
     """
     try:
-        checkformat_hex_string(s)
+        checkformat_hex_string(hex_string)
         return True
     except (ValueError, TypeError):
         return False
 
 
-def checkformat_hex_string(s):
+HexString = str
+
+
+def checkformat_hex_string(hex_string: Any) -> HexString:
     """
     Throws TypeError if s is not a string.
     Throws ValueError if the given string is not a string of hexadecimal
     characters (upper-case not allowed to prevent redundancy).
     """
-    bytes.fromhex(s)
+    bytes.fromhex(hex_string)
     # isalnum() checks for no whitespace which bytes.fromhex() would allow.
-    if not s.isalnum() or s.lower() != s:
+    if not hex_string.isalnum() or hex_string.lower() != hex_string:
         raise ValueError(
             "Expected a hex string; non-hexadecimal or upper-case character found."
         )
+
+    return hex_string
 
 
 def is_hex_signature(sig):
