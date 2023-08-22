@@ -13,6 +13,7 @@ Run the tests this way:
     pytest tests/test_root.py
 """
 import copy
+import json
 
 import pytest
 
@@ -118,6 +119,7 @@ def test_gpg_signing_with_unknown_fingerprint():
     #         testing suite we're using provides.
     try:
         gpg_sig = root_signing.sign_via_gpg(b"1234", SAMPLE_UNKNOWN_FINGERPRINT)
+        assert gpg_sig  # minimal "not empty" check
     except securesystemslib.gpg.exceptions.CommandError as e:
         # TODO✅: This is a clumsy check.  It's a shame we don't get better
         #         than CommandError(), but this will do for now.
@@ -163,6 +165,11 @@ def test_root_gen_sign_verify():
     #         SAMPLE_FINGERPRINT)
 
     gpg_sig = root_signing.sign_via_gpg(canonical_signed_portion, SAMPLE_FINGERPRINT)
+
+    gpg_sig_with_fingerprint = root_signing.sign_via_gpg(
+        canonical_signed_portion, SAMPLE_FINGERPRINT, include_fingerprint=True
+    )
+    assert "see_also" in gpg_sig_with_fingerprint
 
     signed_rmd = copy.deepcopy(rmd)
 
@@ -259,3 +266,41 @@ def test_verify_existing_root_md():
     # TODO ✅: Add a v2 of root to this test, and verify static v2 via v1 as
     #          well.  Also add failure modes (verifying valid v2 using v0
     #          expectations.)
+
+
+def test_no_sslib(mocker):
+    """
+    Coverage for "we don't have sslib" exceptions.
+    """
+    mocker.patch("conda_content_trust.root_signing.SSLIB_AVAILABLE", False)
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.sign_via_gpg(None, None)  # type: ignore
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.sign_root_metadata_dict_via_gpg(None, None)  # type: ignore
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.fetch_keyval_from_gpg(None)  # type: ignore
+
+
+def test_sign_root_metadata_dict_via_gpg():
+    with pytest.raises(TypeError, match="signable"):
+        root_signing.sign_root_metadata_dict_via_gpg({}, "")
+
+    signable = signing.wrap_as_signable({})
+    root_signing.sign_root_metadata_dict_via_gpg(signable, SAMPLE_FINGERPRINT)
+
+
+def test_sign_root_metadata_via_gpg(tmp_path):
+    md_path = tmp_path / "metadata.json"
+    signable = signing.wrap_as_signable({})
+    md_path.write_text(json.dumps(signable))
+    root_signing.sign_root_metadata_via_gpg(md_path, SAMPLE_FINGERPRINT)
+    signed = json.loads(md_path.read_text())
+    assert signed != signable  # at least it was updated?
+
+
+def test_gpg_pubkey_in_ssl_format():
+    sample_pubkey = "0f" * 32
+    pubkey_formatted = root_signing._gpg_pubkey_in_ssl_format(
+        SAMPLE_FINGERPRINT, sample_pubkey
+    )
+    assert pubkey_formatted["keyval"]["public"]["q"] == sample_pubkey
