@@ -12,6 +12,7 @@ securesystemslib and GPG available on the system.
 Run the tests this way:
     pytest tests/test_root.py
 """
+import copy
 import os
 import pytest
 
@@ -87,14 +88,11 @@ SAMPLE_SIGNED_ROOT_MD = {
 }
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG key retrieval or signing without securesystemslib and GPG.",
+)
 def test_gpg_key_retrieval_with_unknown_fingerprint():
-    if not SSLIB_AVAILABLE:
-        pytest.skip(
-            "--TEST SKIPPED⚠️ : Unable to use GPG key retrieval or "
-            "signing without securesystemslib and GPG."
-        )
-        return
-
     # TODO✅: Adjust this to use whatever assertRaises() functionality the
     #         testing suite we're using provides.
 
@@ -107,14 +105,11 @@ def test_gpg_key_retrieval_with_unknown_fingerprint():
     )
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG key retrieval or signing without securesystemslib and GPG.",
+)
 def test_gpg_signing_with_unknown_fingerprint():
-    if not SSLIB_AVAILABLE:
-        pytest.skip(
-            "--TEST SKIPPED⚠️ : Unable to use GPG key retrieval or "
-            "signing without securesystemslib and GPG."
-        )
-        return
-
     # TODO✅: Adjust this to use whatever assertRaises() functionality the
     #         testing suite we're using provides.
     try:
@@ -132,14 +127,11 @@ def test_gpg_signing_with_unknown_fingerprint():
     )
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG key retrieval or signing without securesystemslib and GPG.",
+)
 def test_root_gen_sign_verify():
-    if not SSLIB_AVAILABLE:
-        pytest.skip(
-            "--TEST SKIPPED⚠️ : Unable to use GPG key retrieval or "
-            "signing without securesystemslib and GPG."
-        )
-        return
-
     # Build a basic root metadata file with empty key_mgr delegation and one
     # root key, threshold 1, version 1.
     rmd = metadata_construction.build_root_metadata(
@@ -149,14 +141,17 @@ def test_root_gen_sign_verify():
         key_mgr_pubkeys=[],
         key_mgr_threshold=1,
     )
+
     rmd = signing.wrap_as_signable(rmd)
+    signed_portion = rmd["signed"]
+    canonical_signed_portion = common.canonserialize(signed_portion)
+    gpg_sig = root_signing.sign_via_gpg(canonical_signed_portion, SAMPLE_FINGERPRINT)
+    signed_rmd = copy.deepcopy(rmd)
+    signed_rmd["signatures"][SAMPLE_KEYVAL] = gpg_sig
 
-    # Sign it with the GPG key.
-    root_signing.sign_root_metadata_dict_via_gpg(rmd, SAMPLE_FINGERPRINT)
-
-    # Verify the signature.
-    root_signing.sign_via_gpg(rmd)
-    securesystemslib.gpg.functions.verify_signature(rmd)
+    authentication.verify_gpg_signature(
+        gpg_sig, SAMPLE_KEYVAL, canonical_signed_portion
+    )
 
 
 def test_verify_existing_root_md():
@@ -221,14 +216,11 @@ def test_verify_existing_root_md():
     #          expectations.)
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG key retrieval or signing without securesystemslib and GPG.",
+)
 def test_sign_root_metadata_via_gpg():
-    if not SSLIB_AVAILABLE:
-        pytest.skip(
-            "--TEST SKIPPED⚠️ : Unable to use GPG key retrieval or "
-            "signing without securesystemslib and GPG."
-        )
-        return
-
     tests_dir = os.path.dirname(os.path.abspath(__file__))
     root_metadata = os.path.join(tests_dir, 'testdata/repodata_short_signed_sample.json')
     signing_key = 'ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234'
@@ -246,10 +238,11 @@ def test_sign_root_metadata_via_gpg():
     assert signed_metadata['packages'] == root_metadata['packages']
 
 
+@pytest.mark.skipif(
+    SSLIB_AVAILABLE,
+    reason="Securesystemslib is available, skipping test.",
+)
 def test_check_sslib_available():
-    if SSLIB_AVAILABLE:
-        pytest.skip("Securesystemslib is available, skipping test")
-
     # Verify that the function returns False when securesystemslib is not available
     # root_signing.SSLIB_AVAILABLE = False
     with pytest.raises(ImportError):
