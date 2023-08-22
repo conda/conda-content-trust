@@ -643,7 +643,10 @@ def checkformat_signature(signature: Any) -> Signature:
         )
 
 
-def checkformat_delegation(delegation):
+Delegation = dict
+
+
+def checkformat_delegation(delegation: Any) -> Delegation:
     """
     A dictionary specifying public key values and threshold of keys
     e.g.
@@ -663,10 +666,8 @@ def checkformat_delegation(delegation):
             '"pubkeys" and "threshold" elements.'
         )
     elif not (
-        len(delegation) == 2
-        and "threshold" in delegation
+        set(delegation) == {"threshold", "pubkeys"}
         and delegation["threshold"] >= 1
-        and "pubkeys" in delegation
         and isinstance(delegation["pubkeys"], list)
         and all([is_hex_key(k) for k in delegation["pubkeys"]])
     ):
@@ -681,8 +682,10 @@ def checkformat_delegation(delegation):
     checkformat_list_of_hex_keys(delegation["pubkeys"])
     checkformat_natural_int(delegation["threshold"])
 
+    return delegation
 
-def checkformat_delegations(delegations):
+
+def checkformat_delegations(delegations: Any) -> dict[str, Delegation]:
     """
     A dictionary specifying a delegation for any number of role names.
     Index: rolename.  Value: delegation (see checkformat_delegation).
@@ -704,8 +707,13 @@ def checkformat_delegations(delegations):
         checkformat_string(index)
         checkformat_delegation(delegations[index])
 
+    return delegations
 
-def checkformat_delegating_metadata(metadata):
+
+DelegatingMetadata = Signable
+
+
+def checkformat_delegating_metadata(metadata: Any) -> DelegatingMetadata:
     """
     Validates argument "metadata" as delegating metadata.  Passes if it is,
     raises a TypeError or ValueError if it is not.
