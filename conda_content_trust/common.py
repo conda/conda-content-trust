@@ -351,7 +351,7 @@ def is_hex_key(hex_key: Any) -> bool:
         return False
 
 
-def is_signable(dictionary):
+def is_signable(signable: Any) -> bool:
     """
     Returns True if the given dictionary is a signable dictionary as produced
     by wrap_as_signable.  Note that there MUST be no additional elements beyond
@@ -359,24 +359,21 @@ def is_signable(dictionary):
     outside the signed portion of the data should be the signatures; what's
     outside of 'signed' is under attacker control.)
     """
-    if (
-        isinstance(dictionary, dict)
-        and "signatures" in dictionary
-        and "signed" in dictionary
-        and isinstance(dictionary["signatures"], dict)  # , list)
-        and type(dictionary["signed"]) in SUPPORTED_SERIALIZABLE_TYPES
-        and len(dictionary) == 2
-    ):
-        return True
+    return (
+        isinstance(signable, dict)
+        and set(signable) == {"signatures", "signed"}
+        and isinstance(signable["signatures"], dict)
+        and type(signable["signed"]) in SUPPORTED_SERIALIZABLE_TYPES
+    )
 
-    else:
-        return False
+
+Signable = dict
 
 
 # TODO: ✅ Consolidate: switch to use of this wherever is_a_signable is called
 #          and then an error is raised if the result is False.
-def checkformat_signable(dictionary):
-    if not is_signable(dictionary):
+def checkformat_signable(signable: Any) -> Signable:
+    if not is_signable(signable):
         raise TypeError(
             "Expected a signable dictionary, but the given argument "
             "does not match expectations for a signable dictionary "
@@ -385,6 +382,8 @@ def checkformat_signable(dictionary):
             'and the value for key "signed" is a supported serializable '
             "type (" + str(SUPPORTED_SERIALIZABLE_TYPES) + ")"
         )
+
+    return signable
 
 
 def checkformat_byteslike(obj):
