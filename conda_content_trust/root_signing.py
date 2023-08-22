@@ -210,11 +210,7 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
 
     # Make sure it's the right format.
     if not is_a_signable(root_signable):
-        raise Exception(
-            "The root metadata to be signed is not in the expected format.  "
-            "It should be a dict with a 'signed' key whose value is a dict "
-            "with a 'type' key whose value is 'root'."
-        )
+        raise TypeError("Expected a signable dictionary.")
 
     # TODO: Add root-specific checks.
 
