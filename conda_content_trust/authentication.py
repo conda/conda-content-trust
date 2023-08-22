@@ -393,14 +393,6 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
             )
             continue
 
-        if not gpg and not is_signature(signature):
-            # TODO: ✅ Make this a warning instead.
-            print(
-                'Ignoring "signature" that does not look like a hex '
-                "signature value: " + str(signature)
-            )
-            continue
-
         if gpg and not is_gpg_signature(signature):
             # TODO: ✅ Make this a warning instead.
             print(
@@ -419,15 +411,15 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
             continue
 
         if not gpg:  # normal ed25519 signatures using pyca/cryptography
-            public = PublicKey.from_hex(pubkey_hex)
-
             if not is_signature(signature):
-                # TODO: ✅ Make this a warning or log statement instead.
+                # TODO: ✅ Make this a warning instead.
                 print(
-                    'Ignoring "signature" that does not look like a raw '
-                    "ed25519 signature value."
+                    'Ignoring "signature" that does not look like a hex '
+                    "signature value: " + str(signature)
                 )
                 continue
+
+            public = PublicKey.from_hex(pubkey_hex)
 
             try:
                 verify_signature(signature["signature"], public, signed_data)

@@ -306,34 +306,12 @@ def checkformat_hex_string(s):
     Throws ValueError if the given string is not a string of hexadecimal
     characters (upper-case not allowed to prevent redundancy).
     """
-
-    if not isinstance(s, str):
-        raise TypeError("Expected a hex string; given value is not string typed.")
-
-    for c in s:
-        if c not in [
-            "0",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-            "8",
-            "9",
-            "0",
-            "a",
-            "b",
-            "c",
-            "d",
-            "e",
-            "f",
-        ]:
-            raise ValueError(
-                "Expected a hex string; non-hexadecimal or upper-case "
-                'character found: "' + str(c) + '".'
-            )
+    bytes.fromhex(s)
+    # isalnum() checks for no whitespace which bytes.fromhex() would allow.
+    if not s.isalnum() or s.lower() != s:
+        raise ValueError(
+            "Expected a hex string; non-hexadecimal or upper-case character found."
+        )
 
 
 def is_hex_signature(sig):
@@ -423,7 +401,7 @@ def checkformat_expiration_distance(expiration_distance):
     if not isinstance(expiration_distance, timedelta):
         raise TypeError(
             "Expiration distance must be a datetime.timedelta object. "
-            "Instead received a " + +str(type(expiration_distance))
+            "Instead received a " + str(type(expiration_distance))
         )
 
 
@@ -432,13 +410,6 @@ def checkformat_hex_key(k):
 
     if 64 != len(k):
         raise ValueError("Expected a 64-character hex string representing a key value.")
-
-    # Prevent multiple possible representations of keys.  There are security
-    # implications.  For example, we cannot permit two signatures from the
-    # same key -- with the key represented differently -- to count as two
-    # signatures from distinct keys.
-    if k.lower() != k:
-        raise ValueError("Hex representations of keys must use only lowercase.")
 
 
 def checkformat_list_of_hex_keys(value):
@@ -491,8 +462,6 @@ def checkformat_gpg_fingerprint(fingerprint):
     See is_gpg_fingerprint.  Raises a TypeError if is_gpg_fingerprint is not
     True.
     """
-    checkformat_hex_string(fingerprint)
-
     if len(fingerprint) != 40:
         raise ValueError(
             'The given value, "' + str(fingerprint) + '", is not a full '
@@ -505,9 +474,11 @@ def checkformat_gpg_fingerprint(fingerprint):
     # implications.  For example, we cannot permit two signatures from the
     # same key -- with the key represented differently -- to count as two
     # signatures from distinct keys.
-    if fingerprint.lower() != fingerprint:
+    # local hex test. isalnum() checks for no whitespace.
+    bytes.fromhex(fingerprint)
+    if not fingerprint.isalnum() or fingerprint.lower() != fingerprint:
         raise ValueError(
-            "Hex representations of GPG key fingerprints should use only " "lowercase."
+            "Expected a hex string; non-hexadecimal or upper-case character found."
         )
 
 

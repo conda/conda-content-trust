@@ -6,11 +6,36 @@
 Run the tests this way:
     pytest tests/test_common.py
 """
+import json
 import os
+from datetime import timedelta
 
 import pytest
 
-from conda_content_trust.common import *
+from conda_content_trust.common import (
+    PrivateKey,
+    PublicKey,
+    canonserialize,
+    checkformat_any_signature,
+    checkformat_byteslike,
+    checkformat_delegating_metadata,
+    checkformat_delegation,
+    checkformat_delegations,
+    checkformat_expiration_distance,
+    checkformat_gpg_signature,
+    checkformat_hex_key,
+    checkformat_hex_string,
+    checkformat_list_of_hex_keys,
+    checkformat_signature,
+    checkformat_string,
+    ed25519,
+    is_a_signature,
+    is_gpg_fingerprint,
+    is_gpg_signature,
+    is_hex_key,
+    keyfiles_to_bytes,
+    keyfiles_to_keys,
+)
 
 # A 40-hex-character GPG public key fingerprint
 SAMPLE_FINGERPRINT = "f075dd2f6f4cb3bd76134bbb81b6ca16ef9cd589"
@@ -234,6 +259,26 @@ def test_key_functions():
             PrivateKey.is_equivalent_to(private_reg_byt, bad_argument)
 
 
+def test_key_functions_2():
+    """
+    Additional test coverage.
+    """
+
+    # TODO ! surprising. Is this a bug?
+    assert not isinstance(PrivateKey.from_bytes(REG__PRIVATE_BYTES), PrivateKey)
+    assert not isinstance(PrivateKey.from_hex(REG__PRIVATE_HEX), PrivateKey)
+
+    # it's always an Ed25519PublicKey, not our subclass
+    assert isinstance(
+        PrivateKey.from_bytes(REG__PRIVATE_BYTES), ed25519.Ed25519PrivateKey
+    )
+
+    # coverage
+    assert isinstance(
+        PrivateKey.from_bytes(REG__PRIVATE_BYTES).public_key(), ed25519.Ed25519PublicKey
+    )
+
+
 # This is the version of the tests before PrivateKey and PublicKey classes were
 # created to cut down on the utility function noise and make things easier to
 # work with.
@@ -384,7 +429,7 @@ def test_is_hex_key():
     assert not is_hex_key("1g" * 32)
     assert not is_hex_key(b"1g" * 32)
 
-    pubkey_bytes = unhexlify(SAMPLE_KEYVAL)
+    pubkey_bytes = bytes.fromhex(SAMPLE_KEYVAL)
     assert not is_hex_key(pubkey_bytes)
 
     public = PublicKey.from_bytes(pubkey_bytes)
@@ -395,43 +440,97 @@ def test_is_hex_key():
 def test_checkformat_hex_string():
     # TODO ✅: Add other tests.
     with pytest.raises(ValueError):
-        checkformat_hex_string("A")  # single case is important
-    checkformat_hex_string("a")
+        checkformat_hex_string("AA")  # single case is important
+    checkformat_hex_string("aa")
     checkformat_hex_string(SAMPLE_KEYVAL)
 
 
-# test_checkformat_list_of_hex_keys():
-#     raise NotImplementedError()
+def test_checkformat_hex_key():
+    checkformat_hex_key("deadbeef" * 8)
+    with pytest.raises(ValueError, match="upper-case"):
+        # lowercase only
+        checkformat_hex_key("DEADBEEF" * 8)
+    with pytest.raises(ValueError, match="64"):
+        checkformat_hex_key("deadbeef" * 7)
 
-# def test_checkformat_byteslike():
-#     raise NotImplementedError()
+
+def test_checkformat_list_of_hex_keys():
+    checkformat_list_of_hex_keys([])
+    checkformat_list_of_hex_keys(["deadbeef" * 8])
+    # not keys; not list; duplicates:
+    for not_list_of_hex_keys in (
+        ["deadbeef" * 7],
+        ["deadbeef" * 9],
+        object(),
+        ["deadbeef" * 8] * 2,
+    ):
+        with pytest.raises((TypeError, ValueError)):
+            checkformat_list_of_hex_keys(not_list_of_hex_keys)
+
+
+def test_checkformat_byteslike():
+    checkformat_byteslike(b"")
+    with pytest.raises(TypeError):
+        checkformat_byteslike(object())
+
+
+def test_checkformat_string():
+    checkformat_string("")
+    with pytest.raises(TypeError):
+        checkformat_string(object())
+
 
 # def test_checkformat_natural_int():
 #     raise NotImplementedError()
 
-# def test_checkformat_expiration_distance():
-#     raise NotImplementedError()
+
+def test_checkformat_expiration_distance():
+    """
+    Coverage.
+    """
+    checkformat_expiration_distance(timedelta())
+    with pytest.raises(TypeError):
+        checkformat_expiration_distance(object())
+
 
 # def test_checkformat_utc_isoformat():
 #     raise NotImplementedError()
 
-# def test_checkformat_gpg_fingerprint():
-#     raise NotImplementedError()
 
-# def test_checkformat_gpg_signature():
-#     raise NotImplementedError()
+def test_is_gpg_fingerprint():
+    assert is_gpg_fingerprint(SAMPLE_FINGERPRINT)
+    # not hex
+    assert not is_gpg_fingerprint(SAMPLE_FINGERPRINT + "x")
+    # hex but wrong length
+    assert not is_gpg_fingerprint(SAMPLE_FINGERPRINT + "a")
+    # now uppercase allowed
+    assert not is_gpg_fingerprint(SAMPLE_FINGERPRINT.upper())
+
+
+def test_checkformat_gpg_signature():
+    with pytest.raises(ValueError, match="must include"):
+        checkformat_gpg_signature({})
+
+    with pytest.raises(ValueError, match="hex string"):
+        checkformat_gpg_signature(
+            {"other_headers": "not a hex string", "signature": ""}
+        )
 
 
 def test_checkformat_delegation():
     # TODO ✅: Add other tests.
     with pytest.raises(TypeError):
         checkformat_delegation(1)
+
     with pytest.raises(ValueError):
         checkformat_delegation({})
+
     with pytest.raises(ValueError):
         checkformat_delegation({"threshold": 0, "pubkeys": ["01" * 32]})
+
     with pytest.raises(ValueError):
         checkformat_delegation({"threshold": 1.5, "pubkeys": ["01" * 32]})
+
     checkformat_delegation({"threshold": 1, "pubkeys": ["01" * 32]})
 
     with pytest.raises(ValueError):
@@ -439,6 +538,21 @@ def test_checkformat_delegation():
 
     with pytest.raises(ValueError):
         checkformat_delegation({"threshold": 1, "pubkeys": ["01" * 31]})
+
+
+def test_checkformat_delegations():
+    """
+    Test the plural delegations check.
+    """
+    # coverage
+    with pytest.raises(TypeError):
+        checkformat_delegations(object())
+
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    with pytest.raises(ValueError):  # not the delegations dict
+        checkformat_delegations(sample_signed)
+
+    checkformat_delegations(sample_signed["signed"]["delegations"])
 
 
 def test_checkformat_delegating_metadata():
@@ -456,6 +570,54 @@ def test_checkformat_delegating_metadata():
     ]:
         with pytest.raises((TypeError, ValueError)):
             checkformat_delegating_metadata(badval)
+
+    # valid
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    checkformat_delegating_metadata(sample_signed)
+
+    # invalid
+    sample_signed["signed"]["type"] = "bad type"
+    with pytest.raises(ValueError, match="supported"):
+        checkformat_delegating_metadata(sample_signed)
+
+    # invalid 2 bad timestamp
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    sample_signed["signed"]["timestamp"] = "not a timestamp"
+    with pytest.raises(TypeError, match="ISO8601"):
+        checkformat_delegating_metadata(sample_signed)
+
+    # invalid 3 bad version
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    sample_signed["signed"]["version"] = "not an integer"
+    with pytest.raises(ValueError, match="integer"):
+        checkformat_delegating_metadata(sample_signed)
+
+    # invalid 4 no version or timestamp
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    del sample_signed["signed"]["version"]
+    with pytest.raises(ValueError, match="All metadata"):
+        checkformat_delegating_metadata(sample_signed)
+
+    # invalid 5 timestamp, type is root, no version
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    del sample_signed["signed"]["version"]
+    sample_signed["signed"]["timestamp"] = "2023-08-21"
+    with pytest.raises(
+        ValueError, match="Root metadata must specify its version number."
+    ):
+        checkformat_delegating_metadata(sample_signed)
+
+    # valid, timestamp, type is not root, no version
+    sample_signed = json.loads(EXPECTED_SERIALIZED_SAMPLE_SIGNED_ROOT_MD)
+    sample_signed["signed"]["type"] = "key_mgr"
+    del sample_signed["signed"]["version"]
+    sample_signed["signed"]["timestamp"] = "1999-12-31T23:59:59Z"
+    checkformat_delegating_metadata(sample_signed)
+
+
+def test_checkformat_any_signature():
+    with pytest.raises(ValueError):
+        checkformat_any_signature("not any signature")
 
 
 # def test_iso8601_time_plus_delta():
