@@ -50,7 +50,7 @@ from __future__ import annotations
 from binascii import hexlify, unhexlify
 from datetime import datetime, timedelta
 from json import dumps, load
-from typing import Annotated, Any, Protocol
+from typing import Any, Protocol
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -389,7 +389,7 @@ def checkformat_byteslike(byteslike: Any) -> BytesLike:
     return byteslike
 
 
-def checkformat_natural_int(natural_int: Any) -> Annotated[int, ">= 1"]:
+def checkformat_natural_int(natural_int: Any) -> int:  # Annotated[int, ">= 1"]
     # Technically a TypeError or ValueError, depending, but meh.
     if int(natural_int) != natural_int or natural_int < 1:
         raise ValueError("Expected an integer >= 1.")
@@ -416,7 +416,7 @@ def checkformat_expiration_distance(expiration_distance: Any) -> timedelta:
     return expiration_distance
 
 
-HexKey = Annotated[HexString, "len() == 64"]
+HexKey = HexString  # Annotated[HexString, "len() == 64"]
 
 
 def checkformat_hex_key(hex_key: Any) -> HexKey:
@@ -475,7 +475,7 @@ def is_gpg_fingerprint(gpg_fingerprint: Any) -> bool:
         return False
 
 
-GPGFingerprint = Annotated[HexKey, "len()==40"]
+GPGFingerprint = HexKey  # Annotated[HexKey, "len()==40"]
 
 
 def checkformat_gpg_fingerprint(gpg_fingerprint: Any) -> GPGFingerprint:
