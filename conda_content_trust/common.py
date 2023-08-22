@@ -820,35 +820,6 @@ def checkformat_any_signature(sig):
         )
 
 
-# def sha512256(data):
-#     """
-#     # TODO ✅: Deprecate me in favor of simple SHA-256 hashing via
-#     #          pyca/cryptography.
-
-#     Since hashlib still does not provide a "SHA-512/256" option (SHA-512 with,
-#     basically, truncation to 256 bits at each stage of the hashing, defined by
-#     the FIPS Secure Hash Standard), we provide it here.  SHA-512/256 is as
-#     secure as SHA-256, but substantially faster on 64-bit architectures.
-#     Uses pyca/cryptography.
-
-#     Given bytes, returns the hex digest of the hash of the given bytes, using
-#     SHA-512/256.
-#     """
-#     if not isinstance(data, bytes):
-#         # Note that string literals in Python2 also pass this test by default.
-#         # unicode_literals fixes that for string literals created in modules
-#         # importing unicode_literals.
-#         raise TypeError('Expected bytes; received ' + str(type(data)))
-
-#     # pyca/cryptography's interface is a little clunky about this.
-#     hasher = cryptography.hazmat.primitives.hashes.Hash(
-#             algorithm=cryptography.hazmat.primitives.hashes.SHA512_256(),
-#             backend=cryptography.hazmat.backends.default_backend())
-#     hasher.update(data)
-
-#     return hasher.finalize().hex()
-
-
 def keyfiles_to_bytes(name):
     """
     Toy function.  Import an ed25519 key pair, in the forms of raw public and
@@ -885,50 +856,6 @@ def keyfiles_to_keys(name):
     return private, public
 
 
-# This function has been replaced by method to_bytes() in classes PublicKey
-# and PrivateKey (see class MixinKey).
-# def key_to_bytes(key):
-#     """
-#     Pops out the nice, tidy bytes of a given cryptography...ed25519 key obj,
-#     public or private.
-#     """
-#     if isinstance(key, ed25519.Ed25519PrivateKey):
-#         return key.private_bytes(
-#                 encoding=serialization.Encoding.Raw,
-#                 format=serialization.PrivateFormat.Raw,
-#                 encryption_algorithm=serialization.NoEncryption())
-#     elif isinstance(key, ed25519.Ed25519PublicKey):
-#         return key.public_bytes(
-#                 serialization.Encoding.Raw,
-#                 serialization.PublicFormat.Raw)
-#     else:
-#         raise TypeError(
-#                 'Can only handle objects of class Ed25519PrivateKey or '
-#                 'Ed25519PublicKey.  Given object is of class: ' +
-#                 str(type(key)))
-
-
-# This function has been replaced by method from_bytes() in classes PublicKey
-# and PrivateKey (see class MixinKey).
-# def public_key_from_bytes(public_bytes):
-#     # from_public_bytes() checks length (32), but does not produce helpful
-#     # errors if the argument provided it is not the right type.
-#     checkformat_byteslike(public_bytes)
-#     if len(public_bytes) != 32:
-#         raise ValueError('Requires bytes-like object of length 32.')
-#     return ed25519.Ed25519PublicKey.from_public_bytes(public_bytes)
-
-
-# This function has been replaced by method from_hex() in classes PublicKey and
-# PrivateKey (see class MixinKey).
-# def public_key_from_hex_string(public_hex_string):
-
-#     checkformat_hex_key(public_hex_string)
-
-#     return ed25519.Ed25519PublicKey.from_public_bytes(unhexlify(
-#             public_hex_string))
-
-
 def checkformat_key(key):
     """
     Enforces expectation that argument is an object of type
@@ -944,24 +871,6 @@ def checkformat_key(key):
             + str(type(key))
             + " instead."
         )
-
-
-# def signature
-# def bytes_to_hex_string():
-# def bytes_from_hex_string(hex):
-
-#     hexlify().
-
-# def public_key_from_hex_string(public_hex_string):
-#     return ed25519.Ed25519PublicKey.from_public_bytes(unhexlify(public_hex_string))
-
-# def private_key_from_bytes(private_bytes):
-#     # from_private_bytes() checks length (32), but does not produce helpful
-#     # errors if the argument provided it is not the right type.
-#     checkformat_byteslike(private_bytes)
-#     # if len(private_bytes) != 32:
-#     #     raise ValueError('Requires bytes-like object of length 32.')
-#     return ed25519.Ed25519PrivateKey.from_bytes(private_bytes)
 
 
 def iso8601_time_plus_delta(delta):
@@ -981,30 +890,3 @@ def iso8601_time_plus_delta(delta):
     unix_expiry = datetime.utcnow().replace(microsecond=0) + delta
 
     return unix_expiry.isoformat() + "Z"
-
-
-# This function should not be necessary, since we'll only be dealing with
-# signatures we generate, and we'll adapt them to our requirements when they're
-# made (just a few adjustments).
-# def _gpgsig_to_sslgpgsig(gpg_sig):
-#
-#     conda_content_trust.common.checkformat_gpg_signature(gpg_sig)
-#
-#     return {
-#             'keyid': copy.deepcopy(gpg_sig['key_fingerprint']),
-#             'other_headers': copy.deepcopy(gpg_sig[other_headers]),
-#             'signature': copy.deepcopy(gpg_sig['signature'])}
-
-
-# This function should not be necessary, since we'll only be dealing with
-# signatures we generate, and we'll adapt them to our requirements when they're
-# made (just a few adjustments).
-# def _sslgpgsig_to_gpgsig(ssl_gpg_sig):
-#
-#     securesystemslib.formats.GPG_SIGNATURE_SCHEMA.check_match(ssl_gpg_sig)
-#
-#     return {
-#             'key_fingerprint': copy.deepcopy(ssl_gpg_sig['keyid']),
-#             'other_headers': copy.deepcopy(ssl_gpg_sig[other_headers]),
-#             'signature': copy.depcopy(ssl_gpg_sig['signature'])
-#     }
