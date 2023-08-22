@@ -51,7 +51,7 @@ from binascii import hexlify, unhexlify
 from datetime import datetime, timedelta
 from json import dumps, load
 from re import compile  # for UTC iso8601 date string checking
-from typing import Annotated, Any
+from typing import Annotated, Any, Protocol
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -386,9 +386,16 @@ def checkformat_signable(signable: Any) -> Signable:
     return signable
 
 
-def checkformat_byteslike(obj):
-    if not hasattr(obj, "decode"):
+class BytesLike(Protocol):
+    def decode(self, *args, **kwargs) -> str:
+        ...
+
+
+def checkformat_byteslike(byteslike: Any) -> BytesLike:
+    if not hasattr(byteslike, "decode"):
         raise TypeError("Expected a bytes-like object with a decode method.")
+
+    return byteslike
 
 
 def checkformat_natural_int(number):
