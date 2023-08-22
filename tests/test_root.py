@@ -13,7 +13,7 @@ Run the tests this way:
     pytest tests/test_root.py
 """
 import copy
-import os
+import json
 
 import pytest
 
@@ -115,6 +115,7 @@ def test_gpg_signing_with_unknown_fingerprint():
     #         testing suite we're using provides.
     try:
         gpg_sig = root_signing.sign_via_gpg(b"1234", SAMPLE_UNKNOWN_FINGERPRINT)
+        assert gpg_sig  # minimal "not empty" check
     except securesystemslib.gpg.exceptions.CommandError as e:
         # TODO✅: This is a clumsy check.  It's a shame we don't get better
         #         than CommandError(), but this will do for now.
@@ -147,6 +148,12 @@ def test_root_gen_sign_verify():
     signed_portion = rmd["signed"]
     canonical_signed_portion = common.canonserialize(signed_portion)
     gpg_sig = root_signing.sign_via_gpg(canonical_signed_portion, SAMPLE_FINGERPRINT)
+
+    gpg_sig_with_fingerprint = root_signing.sign_via_gpg(
+        canonical_signed_portion, SAMPLE_FINGERPRINT, include_fingerprint=True
+    )
+    assert "see_also" in gpg_sig_with_fingerprint
+
     signed_rmd = copy.deepcopy(rmd)
     signed_rmd["signatures"][SAMPLE_KEYVAL] = gpg_sig
 
@@ -218,30 +225,6 @@ def test_verify_existing_root_md():
 
 
 @pytest.mark.skipif(
-    not SSLIB_AVAILABLE,
-    reason="Unable to use GPG key retrieval or signing without securesystemslib and GPG.",
-)
-def test_sign_root_metadata_via_gpg():
-    tests_dir = os.path.dirname(os.path.abspath(__file__))
-    root_metadata = os.path.join(
-        tests_dir, "testdata/repodata_short_signed_sample.json"
-    )
-    signing_key = "ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234"
-
-    signed_metadata = sign_root_metadata_via_gpg(root_metadata, signing_key)
-
-    # Verify signature was added
-    assert "signatures" in signed_metadata
-    assert len(signed_metadata["signatures"]) == 1
-
-    # Verify correct key was used
-    assert signed_metadata["signatures"][0]["keyid"] == signing_key
-
-    # Verify original metadata is unchanged
-    assert signed_metadata["packages"] == root_metadata["packages"]
-
-
-@pytest.mark.skipif(
     SSLIB_AVAILABLE,
     reason="Securesystemslib is available, skipping test.",
 )
@@ -250,3 +233,53 @@ def test_check_sslib_available():
     # root_signing.SSLIB_AVAILABLE = False
     with pytest.raises(ImportError):
         root_signing._check_sslib_available()
+
+
+def test_no_sslib(mocker):
+    """
+    Coverage for "we don't have sslib" exceptions.
+    """
+    mocker.patch("conda_content_trust.root_signing.SSLIB_AVAILABLE", False)
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.sign_via_gpg(None, None)  # type: ignore
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.sign_root_metadata_dict_via_gpg(None, None)  # type: ignore
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.fetch_keyval_from_gpg(None)  # type: ignore
+
+
+def test_sign_root_metadata_dict_via_gpg():
+    with pytest.raises(TypeError, match="signable"):
+        root_signing.sign_root_metadata_dict_via_gpg({}, "")
+
+    signable = signing.wrap_as_signable({})
+    root_signing.sign_root_metadata_dict_via_gpg(signable, SAMPLE_FINGERPRINT)
+
+
+def test_sign_root_metadata_via_gpg(tmp_path):
+    md_path = tmp_path / "metadata.json"
+    data = {"packages": {"jim": "a", "bob": "b"}}
+    signable = signing.wrap_as_signable(data)
+    md_path.write_text(json.dumps(signable))
+    root_signing.sign_root_metadata_via_gpg(md_path, SAMPLE_FINGERPRINT)
+    signed_metadata = json.loads(md_path.read_text())
+    assert signed_metadata != data  # at least it was updated?
+
+    # Verify signature was added
+    assert "signatures" in signed_metadata
+    assert len(signed_metadata["signatures"]) == 1
+
+    # Verify correct key was used
+    # TODO this doesn't look anything like the comments' idea of what signed dictionaries are.
+    assert SAMPLE_FINGERPRINT.lower() in list(signed_metadata["signatures"].items())[0][1]["other_headers"]
+
+    # Verify original metadata is unchanged
+    assert signed_metadata["packages"] == data["packages"]
+
+
+def test_gpg_pubkey_in_ssl_format():
+    sample_pubkey = "0f" * 32
+    pubkey_formatted = root_signing._gpg_pubkey_in_ssl_format(
+        SAMPLE_FINGERPRINT, sample_pubkey
+    )
+    assert pubkey_formatted["keyval"]["public"]["q"] == sample_pubkey

@@ -3,6 +3,7 @@
 cryptography>=41.0.0
 pytest
 pytest-cov
-conda>=23.7
+pytest-mock
+conda>23.7
+conda-forge::securesystemslib
 setuptools_scm
-# securesystemslib ==0.13.1  # not available on defaults or conda-forge

@@ -58,8 +58,7 @@ jobs:
       - name: Setup environment
         run: |
           conda install -q -y -c defaults \
-            --file ./tests/requirements.txt \
-            conda-forge::securesystemslib
+            --file ./tests/requirements.txt
           gpg --import tests/testdata/test_key_*
 
       - name: Show info

@@ -25,13 +25,14 @@ try:
     from securesystemslib.gpg import functions as gpg_funcs
 
     SSLIB_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover
     SSLIB_AVAILABLE = False
 
 from .common import (
     canonserialize,
     checkformat_byteslike,
     checkformat_gpg_fingerprint,
+    checkformat_hex_key,
     is_a_signable,
     load_metadata_from_file,
     write_metadata_to_file,
@@ -297,3 +298,68 @@ def fetch_keyval_from_gpg(fingerprint):
     key_parameters = gpg_funcs.export_pubkey(fingerprint)
 
     return key_parameters["keyval"]["public"]["q"]
+
+
+def _gpg_pubkey_in_ssl_format(fingerprint, q):
+    """
+    THIS IS PROVIDED ONLY FOR TESTING PURPOSES.
+    We do not need to convert pubkeys to securesystemslib's format, except to
+    try out securesystemslib's gpg signature verification (which we use only
+    for comparison during testing).
+
+    Given a GPG key fingerprint (40 hex characters) and a q value (64 hex
+    characters representing a 32-byte ed25519 public key raw value), produces a
+    key object in a format that securesystemslib expects, so that we can use
+    securesystemslib.gpg.functions.verify_signature for part of the GPG
+    signature verification.  For our purposes, this means that we should
+    produce a dictionary conforming to
+    securesystemslib.formats._GPG_ED25519_PUBKEY_SCHEMA.
+
+    If securesystemslib.formats._GPG_ED25519_PUBKEY_SCHEMA changes, those
+    changes will likely need to be reflected here.
+
+    Example value produced:
+    {
+        'type': 'eddsa',
+        'method': 'pgp+eddsa-ed25519',
+        'hashes': ['pgp+SHA2'],
+        'keyid': 'F075DD2F6F4CB3BD76134BBB81B6CA16EF9CD589',
+        'keyval': {
+            'public': {'q': 'bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07'},
+            'private': ''}
+        }
+    }
+    """
+    checkformat_gpg_fingerprint(fingerprint)
+    checkformat_hex_key(q)
+
+    ssl_format_key = {
+        "type": "eddsa",
+        "method": securesystemslib.formats.GPG_ED25519_PUBKEY_METHOD_STRING,
+        "hashes": [securesystemslib.formats.GPG_HASH_ALGORITHM_STRING],
+        "keyid": fingerprint,
+        "keyval": {"private": "", "public": {"q": q}},
+    }
+
+    return ssl_format_key
+
+
+# def _gpgsig_to_sslgpgsig(gpg_sig):
+#
+#     conda_content_trust.common.checkformat_gpg_signature(gpg_sig)
+#
+#     return {
+#             'keyid': copy.deepcopy(gpg_sig['key_fingerprint']),
+#             'other_headers': copy.deepcopy(gpg_sig[other_headers]),
+#             'signature': copy.deepcopy(gpg_sig['signature'])}
+
+
+# def _sslgpgsig_to_gpgsig(ssl_gpg_sig):
+#
+#     securesystemslib.formats.GPG_SIGNATURE_SCHEMA.check_match(ssl_gpg_sig)
+#
+#     return {
+#             'key_fingerprint': copy.deepcopy(ssl_gpg_sig['keyid']),
+#             'other_headers': copy.deepcopy(ssl_gpg_sig[other_headers]),
+#             'signature': copy.depcopy(ssl_gpg_sig['signature'])
+#     }
