@@ -408,9 +408,11 @@ def checkformat_natural_int(natural_int: Any) -> Annotated[int, ">= 1"]:
 
 # This is not yet widely used.
 # TODO: ✅ See to it that anywhere we're checking for a string, we use this.
-def checkformat_string(s):
-    if not isinstance(s, str):
+def checkformat_string(string: Any) -> str:
+    if not isinstance(string, str):
         raise TypeError("Expecting a string")
+
+    return string
 
 
 def checkformat_expiration_distance(expiration_distance):
