@@ -28,11 +28,13 @@ try:
 except ImportError:
     SSLIB_AVAILABLE = False
 
-import conda_content_trust.authentication as authentication
-import conda_content_trust.common as common
-import conda_content_trust.metadata_construction as metadata_construction
-import conda_content_trust.root_signing as root_signing
-import conda_content_trust.signing as signing
+from conda_content_trust import (
+    authentication,
+    common,
+    metadata_construction,
+    root_signing,
+    signing,
+)
 
 # Note that changing these sample values breaks the sample signature, so you'd
 # have to generate a new one.
@@ -233,11 +235,11 @@ def test_check_sslib_available():
         root_signing._check_sslib_available()
 
 
-def test_no_sslib(mocker):
+def test_no_sslib(monkeypatch):
     """
     Coverage for "we don't have sslib" exceptions.
     """
-    mocker.patch("conda_content_trust.root_signing.SSLIB_AVAILABLE", False)
+    monkeypatch.setattr(root_signing, "SSLIB_AVAILABLE", False)
     with pytest.raises(Exception, match="securesystemslib"):
         root_signing.sign_via_gpg(None, None)  # type: ignore
     with pytest.raises(Exception, match="securesystemslib"):
