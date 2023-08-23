@@ -33,7 +33,7 @@ from .common import (
     checkformat_byteslike,
     checkformat_gpg_fingerprint,
     checkformat_hex_key,
-    is_a_signable,
+    is_signable,
     load_metadata_from_file,
     write_metadata_to_file,
 )
@@ -210,7 +210,7 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
     _check_sslib_available()
 
     # Make sure it's the right format.
-    if not is_a_signable(root_signable):
+    if not is_signable(root_signable):
         raise TypeError("Expected a signable dictionary.")
 
     # TODO: Add root-specific checks.

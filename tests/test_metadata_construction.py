@@ -21,7 +21,7 @@ from conda_content_trust.common import (
     PrivateKey,
     PublicKey,
     checkformat_delegating_metadata,
-    is_a_signable,
+    is_signable,
     keyfiles_to_bytes,
     keyfiles_to_keys,
 )
@@ -208,9 +208,9 @@ def test_build_root_metadata():
             root_timestamp=TEST_TIMESTAMP,
         )
 
-    assert not is_a_signable(root_md)
+    assert not is_signable(root_md)
     signable_root_md = wrap_as_signable(root_md)
-    assert is_a_signable(signable_root_md)
+    assert is_signable(signable_root_md)
 
 
 def test_build_delegating_metadata():
