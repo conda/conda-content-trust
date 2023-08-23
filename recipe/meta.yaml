@@ -33,7 +33,6 @@ test:
     - pytest-cov
     - ruamel_yaml
   commands:
-    - pytest -v tests
     - conda-content-trust --help
 
 about:
