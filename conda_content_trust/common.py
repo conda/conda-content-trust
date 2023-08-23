@@ -72,7 +72,7 @@ SECURITY_METADATA_SPEC_VERSION = "0.6.0"
 # The only types we're allowed to wrap as "signables" and sign are
 # the JSON-serializable types.  (There are further constraints to what is
 # JSON-serializable in addition to these type constraints.)
-SUPPORTED_SERIALIZABLE_TYPES = [dict, list, tuple, str, int, float, bool, type(None)]
+SUPPORTED_SERIALIZABLE_TYPES = (dict, list, tuple, str, int, float, bool, type(None))
 
 # These are the permissible strings in the "type" field of delegating metadata.
 SUPPORTED_DELEGATING_METADATA_TYPES = ["root", "key_mgr"]  # May be loosened later.
