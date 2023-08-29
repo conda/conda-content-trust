@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Remove unused `conda_content_trust.encryption`. (#38)
 
 ### Docs
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Increase test coverage by removing unreachable/unused code. (#72, #74)
+* <news item>

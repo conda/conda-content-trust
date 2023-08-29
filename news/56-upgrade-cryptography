@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Improve compatibility with cryptography>=41. (#56)
+* Improve compatibility with `cryptography>=41`. (#56)
 
 ### Bug fixes
 
