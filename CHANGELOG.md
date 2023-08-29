@@ -23,11 +23,11 @@
 
 ### Contributors
 
-* @beeankha
+* @beeankha made their first contribution in https://github.com/conda/conda-content-trust/pull/75
 * @conda-bot
-* @dholth
-* @jezdez
-* @kenodegard
+* @dholth made their first contribution in https://github.com/conda/conda-content-trust/pull/74
+* @jezdez made their first contribution in https://github.com/conda/conda-content-trust/pull/6
+* @kenodegard made their first contribution in https://github.com/conda/conda-content-trust/pull/12
 * @awwad
-* @dependabot[bot]
-* @pre-commit-ci[bot]
+* @dependabot[bot] made their first contribution in https://github.com/conda/conda-content-trust/pull/17
+* @pre-commit-ci[bot] made their first contribution in https://github.com/conda/conda-content-trust/pull/73
