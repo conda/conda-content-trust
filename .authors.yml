@@ -1,0 +1,56 @@
+- name: Conda Bot
+  email: 18747875+conda-bot@users.noreply.github.com
+  github: conda-bot
+  aliases:
+  - conda-bot
+  - conda bot
+  alternate_emails:
+  - ad-team+condabot@anaconda.com
+  - 18747875+conda-bot@users.noreply.github.com
+  num_commits: 46
+  first_commit: 2022-01-24 17:53:34
+- name: Bianca Henderson
+  email: beeankha@gmail.com
+  github: beeankha
+  num_commits: 10
+  first_commit: 2023-08-21 14:20:07
+- name: Mike Sarahan
+  email: msarahan@gmail.com
+  github: msarahan
+  num_commits: 2
+  first_commit: 2019-10-09 10:52:18
+- name: pre-commit-ci[bot]
+  email: 66853113+pre-commit-ci[bot]@users.noreply.github.com
+  github: pre-commit-ci[bot]
+  num_commits: 1
+  first_commit: 2023-08-21 17:27:42
+- name: Jannis Leidel
+  email: jannis@leidel.info
+  github: jezdez
+  num_commits: 14
+  first_commit: 2021-05-18 04:58:41
+- name: Cheng H. Lee
+  email: clee@anaconda.com
+  github: chenghlee
+  num_commits: 2
+  first_commit: 2021-03-12 12:48:48
+- name: Daniel Holth
+  email: dholth@anaconda.com
+  github: dholth
+  num_commits: 14
+  first_commit: 2023-08-21 10:31:00
+- name: Ken Odegard
+  email: kodegard@anaconda.com
+  github: kenodegard
+  num_commits: 16
+  first_commit: 2022-01-26 12:00:27
+- name: Sebastien Awwad
+  email: sebastien.awwad@gmail.com
+  github: awwad
+  num_commits: 37
+  first_commit: 2019-12-12 12:03:39
+- name: dependabot[bot]
+  email: 49699333+dependabot[bot]@users.noreply.github.com
+  github: dependabot[bot]
+  num_commits: 2
+  first_commit: 2022-01-26 16:31:36
