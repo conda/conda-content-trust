@@ -11,7 +11,6 @@ Function Manifest for this Module
     verify_root
     verify_delegation
 """
-from binascii import unhexlify
 from struct import pack
 
 import cryptography.exceptions
