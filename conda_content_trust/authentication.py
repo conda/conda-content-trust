@@ -11,7 +11,6 @@ Function Manifest for this Module
     verify_root
     verify_delegation
 """
-from binascii import unhexlify
 from struct import pack
 
 import cryptography.exceptions
@@ -291,7 +290,8 @@ def verify_signature(signature, public_key, data):
             "argument.  Instead, received " + str(type(data))
         )
 
-    public_key.verify(unhexlify(signature), data)
+    signature_bytes = bytes.fromhex(signature)
+    public_key.verify(signature_bytes, data)
 
     # If no error is raised, return, indicating success (Explicit for editors)
     return
@@ -513,7 +513,7 @@ def verify_gpg_signature(signature, key_value, data):
     #     hasher(), data)
 
     # Additional headers in the OpenPGP signature (bleh).
-    additional_header_data = unhexlify(signature["other_headers"])
+    additional_header_data = bytes.fromhex(signature["other_headers"])
 
     # As per RFC4880 Section 5.2.4., we need to hash the content,
     # signature headers and add a very opinionated trailing header
@@ -533,7 +533,8 @@ def verify_gpg_signature(signature, key_value, data):
     # print('Digest as produced by verify_gpg_signature: ' + str(digest))
 
     # Raises cryptography.exceptions.InvalidSignature if not a valid signature.
-    public_key.verify(unhexlify(signature["signature"]), digest)
+    signature_bytes = bytes.fromhex(signature["signature"])
+    public_key.verify(signature_bytes, digest)
 
     # Return if we succeeded.
     return  # explicit for clarity
