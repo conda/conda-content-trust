@@ -110,7 +110,7 @@ def test_sign_all_invalid_repodata(tmp_path):
     invalid_repodata = tmp_path / "invalid_repodata.json"
     invalid_repodata.write_text("{}")
 
-    public = PublicKey.from_hex(REG__PUBLIC_HEX)
+    PublicKey.from_hex(REG__PUBLIC_HEX)
 
     # Make a test copy of the repodata sample, since we're going to
     # update it.

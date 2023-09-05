@@ -205,6 +205,7 @@ def cli_sign_artifacts(args):
             "ABORTED.  Expected key file to contain only a hex string "
             "representation of an ed25519 key.  It does not."
         )
+        return
 
     conda_content_trust.signing.sign_all_in_repodata(
         args.repodata_fname, private_key_hex
