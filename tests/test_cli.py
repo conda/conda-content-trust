@@ -2,17 +2,19 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import pytest
 import sys
-import conda_content_trust.signing
+
+import pytest
+
 import conda_content_trust.root_signing
+import conda_content_trust.signing
 from conda_content_trust.cli import (
-    cli,
     build_parser,
-    cli_sign_artifacts,
+    cli,
     cli_gpg_key_lookup,
     cli_gpg_sign,
     cli_modify_metadata,
+    cli_sign_artifacts,
     cli_verify_metadata,
 )
 
