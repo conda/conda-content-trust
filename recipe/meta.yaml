@@ -23,7 +23,7 @@ requirements:
     - wheel
   run:
     - python
-    - cryptography <41
+    - cryptography >=41
 
 test:
   source_files:
