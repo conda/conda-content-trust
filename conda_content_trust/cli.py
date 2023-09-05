@@ -25,6 +25,17 @@ from .common import (
 
 
 def cli(args=None):
+    parser = build_parser()
+
+    args = parser.parse_args(args)
+
+    if hasattr(args, "func"):
+        return args.func(args)
+    else:
+        parser.print_help()
+
+
+def build_parser():
     parser = ArgumentParser(
         description="Signing and verification tools for Conda",
         conflict_handler="resolve",
@@ -167,12 +178,7 @@ def cli(args=None):
         "filename", help=("the filename of the file that will be signed")
     )
 
-    args = parser.parse_args(args)
-
-    if hasattr(args, "func"):
-        return args.func(args)
-    else:
-        parser.print_help()
+    return parser
 
 
 def cli_gpg_sign(args):
@@ -199,6 +205,10 @@ def cli_sign_artifacts(args):
             "ABORTED.  Expected key file to contain only a hex string "
             "representation of an ed25519 key.  It does not."
         )
+
+    conda_content_trust.signing.sign_all_in_repodata(
+        args.repodata_fname, private_key_hex
+    )
 
 
 def cli_gpg_key_lookup(args):

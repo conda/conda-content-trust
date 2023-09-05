@@ -4,8 +4,17 @@ from __future__ import annotations
 
 import pytest
 import sys
+import conda_content_trust.signing
 import conda_content_trust.root_signing
-from conda_content_trust.cli import cli
+from conda_content_trust.cli import (
+    cli,
+    build_parser,
+    cli_sign_artifacts,
+    cli_gpg_key_lookup,
+    cli_gpg_sign,
+    cli_modify_metadata,
+    cli_verify_metadata,
+)
 
 
 @pytest.mark.parametrize(
@@ -41,3 +50,41 @@ def test_main(monkeypatch):
 def test_cli_no_securesystemslib(monkeypatch):
     monkeypatch.setattr(conda_content_trust.root_signing, "SSLIB_AVAILABLE", False)
     cli([])
+
+
+def test_cli_gpg_sign(monkeypatch):
+    def mock(*args):
+        pass
+
+    monkeypatch.setattr(
+        conda_content_trust.root_signing, "sign_root_metadata_via_gpg", mock
+    )
+    cli(["gpg-sign", "file1", "file2"])
+
+
+def test_cli_sign_artifacts(monkeypatch, tmp_path):
+    def mock(*args):
+        pass
+
+    monkeypatch.setattr(conda_content_trust.signing, "sign_all_in_repodata", mock)
+    hex_key = tmp_path / "key.hex"
+    hex_key.write_text("a" * 40)
+    cli(["sign-artifacts", "repodata-filename", str(hex_key)])
+
+
+def test_cli_build_parser():
+    """
+    Check that parser assigns correct functions to subcommands.
+    """
+    parser = build_parser()
+    args_expected = [
+        (["sign-artifacts", "file1", "file2"], cli_sign_artifacts),
+        (["verify-metadata", "file1", "file2"], cli_verify_metadata),
+        (["modify-metadata", "file1"], cli_modify_metadata),
+        (["gpg-key-lookup", "fingerprint"], cli_gpg_key_lookup),
+        (["gpg-sign", "fingerprint", "file1"], cli_gpg_sign),
+        ([], None),
+    ]
+    for args, expected in args_expected:
+        parsed = parser.parse_args(args)
+        assert getattr(parsed, "func", None) == expected
