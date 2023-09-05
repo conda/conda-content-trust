@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+import sys
 
 from conda_content_trust.cli import cli
 
@@ -30,3 +31,8 @@ def test_cli_basic(args: list[str]):
 def test_cli_verify_metadata(trusted: str, untrusted: str):
     err = cli(["verify-metadata", trusted, untrusted])
     assert not err
+
+
+def test_main(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["conda-content-trust"])
+    __import__("conda_content_trust.__main__")
