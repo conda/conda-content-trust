@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 import sys
-
+import conda_content_trust.root_signing
 from conda_content_trust.cli import cli
 
 
@@ -36,3 +36,8 @@ def test_cli_verify_metadata(trusted: str, untrusted: str):
 def test_main(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["conda-content-trust"])
     __import__("conda_content_trust.__main__")
+
+
+def test_cli_no_securesystemslib(monkeypatch):
+    monkeypatch.setattr(conda_content_trust.root_signing, "SSLIB_AVAILABLE", False)
+    cli([])

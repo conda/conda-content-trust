@@ -50,6 +50,7 @@ def cli(args=None):
             "and update the repodata.json file with their individual signatures."
         ),
     )
+    p_signrepo.set_defaults(func=cli_sign_artifacts)
     p_signrepo.add_argument(
         "repodata_fname",
         help=(
@@ -80,6 +81,7 @@ def cli(args=None):
             "to verify key manager metadata based on version 4 of root."
         ),
     )
+    p_verifymd.set_defaults(func=cli_verify_metadata)
     p_verifymd.add_argument(
         "trusted_metadata_filename",
         help=(
@@ -108,6 +110,7 @@ def cli(args=None):
             "producing a new version of root (version 9) using version 8."
         ),
     )
+    p_modifymd.set_defaults(func=cli_modify_metadata)
     p_modifymd.add_argument(
         "metadata_filename",
         help=("the filename of the existing metadata " "file to modify"),
@@ -131,6 +134,7 @@ def cli(args=None):
             "the actual ed25519 public key value of the underlying key."
         ),
     )
+    p_gpglookup.set_defaults(func=cli_gpg_key_lookup)
     p_gpglookup.add_argument(
         "gpg_key_fingerprint",
         help=(
@@ -150,6 +154,7 @@ def cli(args=None):
             "mechanisms.  Takes an OpenPGP key fingerprint and a filename."
         ),
     )
+    p_gpgsign.set_defaults(func=cli_gpg_sign)
     p_gpgsign.add_argument(
         "gpg_key_fingerprint",
         help=(
@@ -164,131 +169,136 @@ def cli(args=None):
 
     args = parser.parse_args(args)
 
-    if args.subcommand_name == "gpg-sign":
-        # TODO: Validate arguments.
-
-        # Strip any whitespace from the key fingerprint and lowercase it.
-        # GPG pops out keys in a variety of whitespace arrangements and cases,
-        # so this is necessary for convenience.
-        gpg_key_fingerprint = "".join(args.gpg_key_fingerprint.split()).lower()
-
-        conda_content_trust.root_signing.sign_root_metadata_via_gpg(
-            args.filename, gpg_key_fingerprint
-        )
-
-    elif args.subcommand_name == "sign-artifacts":
-        with open(args.private_key_fname) as key_fobj:
-            # Lower-case the hex string and ignore any whitespace before and
-            # after it (in case someone adds some).
-            private_key_hex = key_fobj.read().strip().lower()
-
-        if not is_hex_key(private_key_hex):
-            print(
-                "ABORTED.  Expected key file to contain only a hex string "
-                "representation of an ed25519 key.  It does not."
-            )
-
-    elif args.subcommand_name == "gpg-key-lookup":
-        gpg_key_fingerprint = "".join(args.gpg_key_fingerprint.split()).lower()
-        keyval = conda_content_trust.root_signing.fetch_keyval_from_gpg(
-            gpg_key_fingerprint
-        )
-        print("Underlying ed25519 public key value: " + str(keyval))
-
-    elif args.subcommand_name == "modify-metadata":
-        # `conda-content-trust update-metadata <metadata file to produce new version of>`
-
-        # underlying functions: build_delegating_metadata,
-        # load_metadata_from_file
-
-        # given a metadata file, increment the version number and timestamps,
-        # reporting the changes on the console
-
-        # strip signatures
-
-        # indicate what signatures are required
-
-        # ask if the user wants to sign; query for the key hex or fname;
-        # ideally, offer this functionality for both root and non-root keys.
-        # For root metadata, we can (and should) also report which keys are
-        # expected / still needed in order for the metadata to be verifiable
-        # according to the old metadata and the new metadata
-
-        old_metadata = load_metadata_from_file(args.metadata_filename)
-
-        # new_metadata = cct_metadata_construction.interactive_modify_metadata(old_metadata)
-        # if new_metadata is not None and new_metadata:
-        #     write_metadata_to_file(new_metadata, args.metadata_filename)
-
-        interactive_modify_metadata(old_metadata)
-
-    elif args.subcommand_name == "verify-metadata":
-        # `conda-content-trust verify-metadata <trusted delegating metadata> <untrusted
-        # metadata> <(optional) role name>`
-
-        # underlying functions: conda_content_trust.authentication.verify_delegation,
-        # load_metadata_from_file
-
-        # takes two metadata files, the first being a trusted file that should
-        # provide the verification criteria (expected keys and expected number
-        # of keys) for the second file.  This should support root-root
-        # verification (root chaining as currently implemented in
-        # conda-content-trust) and delegation from one metadata type to another
-        # (e.g. root to key_mgr)
-
-        # conveys to the user whether or not the file is trusted, and for what
-        # role.  e.g., would convey that the first file is (e.g.) a root
-        # metadata file, that it provides a delegation to <role name>, and that
-        # the <untrusted metadata> file provides <role name> and is signed
-        # appropriately based on what the root metadata file requires of that
-        # delegation.
-
-        untrusted_metadata = load_metadata_from_file(args.untrusted_metadata_filename)
-
-        trusted_metadata = load_metadata_from_file(args.trusted_metadata_filename)
-
-        # TODO✅: Argument validation via the check_format_* calls.
-
-        metadata_type = untrusted_metadata["signed"]["type"]
-
-        if metadata_type == "root":
-            # Verifying root has additional steps beyond verify_delegation.
-            try:
-                conda_content_trust.authentication.verify_root(
-                    trusted_metadata, untrusted_metadata
-                )
-                print("Root metadata verification successful.")
-                return 0  # success
-
-            except CCT_Error as e:
-                errorcode = 10
-                errorstring = str(e)
-
-        else:
-            # Verifying anything other than root just uses verify_delegation
-            # directly.
-            try:
-                conda_content_trust.authentication.verify_delegation(
-                    delegation_name=metadata_type,
-                    untrusted_delegated_metadata=untrusted_metadata,
-                    trusted_delegating_metadata=trusted_metadata,
-                )
-                print("Metadata verification successful.")
-                return 0  # success
-
-            except CCT_Error as e:
-                errorcode = 20
-                errorstring = str(e)
-
-        # We should only get here if verification failed.
-        print(
-            "Verification of untrusted metadata failed.  Metadata "
-            'type was "' + metadata_type + '".  Error reads:\n  "' + errorstring + '"'
-        )
-        return errorcode  # failure; exit code
-
+    if hasattr(args, "func"):
+        return args.func(args)
     else:
         parser.print_help()
+
+
+def cli_gpg_sign(args):
+    # TODO: Validate arguments.
+
+    # Strip any whitespace from the key fingerprint and lowercase it.
+    # GPG pops out keys in a variety of whitespace arrangements and cases,
+    # so this is necessary for convenience.
+    gpg_key_fingerprint = "".join(args.gpg_key_fingerprint.split()).lower()
+
+    conda_content_trust.root_signing.sign_root_metadata_via_gpg(
+        args.filename, gpg_key_fingerprint
+    )
+
+
+def cli_sign_artifacts(args):
+    with open(args.private_key_fname) as key_fobj:
+        # Lower-case the hex string and ignore any whitespace before and
+        # after it (in case someone adds some).
+        private_key_hex = key_fobj.read().strip().lower()
+
+    if not is_hex_key(private_key_hex):
+        print(
+            "ABORTED.  Expected key file to contain only a hex string "
+            "representation of an ed25519 key.  It does not."
+        )
+
+
+def cli_gpg_key_lookup(args):
+    gpg_key_fingerprint = "".join(args.gpg_key_fingerprint.split()).lower()
+    keyval = conda_content_trust.root_signing.fetch_keyval_from_gpg(gpg_key_fingerprint)
+    print("Underlying ed25519 public key value: " + str(keyval))
+
+
+def cli_modify_metadata(args):
+    # `conda-content-trust update-metadata <metadata file to produce new version of>`
+
+    # underlying functions: build_delegating_metadata,
+    # load_metadata_from_file
+
+    # given a metadata file, increment the version number and timestamps,
+    # reporting the changes on the console
+
+    # strip signatures
+
+    # indicate what signatures are required
+
+    # ask if the user wants to sign; query for the key hex or fname;
+    # ideally, offer this functionality for both root and non-root keys.
+    # For root metadata, we can (and should) also report which keys are
+    # expected / still needed in order for the metadata to be verifiable
+    # according to the old metadata and the new metadata
+
+    old_metadata = load_metadata_from_file(args.metadata_filename)
+
+    # new_metadata = cct_metadata_construction.interactive_modify_metadata(old_metadata)
+    # if new_metadata is not None and new_metadata:
+    #     write_metadata_to_file(new_metadata, args.metadata_filename)
+
+    interactive_modify_metadata(old_metadata)
+
+
+def cli_verify_metadata(args):
+    # `conda-content-trust verify-metadata <trusted delegating metadata> <untrusted
+    # metadata> <(optional) role name>`
+
+    # underlying functions: conda_content_trust.authentication.verify_delegation,
+    # load_metadata_from_file
+
+    # takes two metadata files, the first being a trusted file that should
+    # provide the verification criteria (expected keys and expected number
+    # of keys) for the second file.  This should support root-root
+    # verification (root chaining as currently implemented in
+    # conda-content-trust) and delegation from one metadata type to another
+    # (e.g. root to key_mgr)
+
+    # conveys to the user whether or not the file is trusted, and for what
+    # role.  e.g., would convey that the first file is (e.g.) a root
+    # metadata file, that it provides a delegation to <role name>, and that
+    # the <untrusted metadata> file provides <role name> and is signed
+    # appropriately based on what the root metadata file requires of that
+    # delegation.
+
+    untrusted_metadata = load_metadata_from_file(args.untrusted_metadata_filename)
+
+    trusted_metadata = load_metadata_from_file(args.trusted_metadata_filename)
+
+    # TODO✅: Argument validation via the check_format_* calls.
+
+    metadata_type = untrusted_metadata["signed"]["type"]
+
+    if metadata_type == "root":
+        # Verifying root has additional steps beyond verify_delegation.
+        try:
+            conda_content_trust.authentication.verify_root(
+                trusted_metadata, untrusted_metadata
+            )
+            print("Root metadata verification successful.")
+            return 0  # success
+
+        except CCT_Error as e:
+            errorcode = 10
+            errorstring = str(e)
+
+    else:
+        # Verifying anything other than root just uses verify_delegation
+        # directly.
+        try:
+            conda_content_trust.authentication.verify_delegation(
+                delegation_name=metadata_type,
+                untrusted_delegated_metadata=untrusted_metadata,
+                trusted_delegating_metadata=trusted_metadata,
+            )
+            print("Metadata verification successful.")
+            return 0  # success
+
+        except CCT_Error as e:
+            errorcode = 20
+            errorstring = str(e)
+
+    # We should only get here if verification failed.
+    print(
+        "Verification of untrusted metadata failed.  Metadata "
+        'type was "' + metadata_type + '".  Error reads:\n  "' + errorstring + '"'
+    )
+    return errorcode  # failure; exit code
 
 
 def interactive_modify_metadata(metadata):
