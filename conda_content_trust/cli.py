@@ -9,10 +9,11 @@ from argparse import ArgumentParser
 from copy import deepcopy
 from json import dumps
 
+import conda_content_trust.authentication
+import conda_content_trust.root_signing
+import conda_content_trust.signing
+
 from . import __version__
-from . import authentication as cct_authentication
-from . import root_signing as cct_root_signing
-from . import signing as cct_signing
 from .common import (
     CCT_Error,
     PrivateKey,
@@ -115,7 +116,7 @@ def cli(args=None):
     # If we're missing optional requirements for the next few options, note
     # that in their help strings.
     opt_reqs_str = ""
-    if not cct_root_signing.SSLIB_AVAILABLE:
+    if not conda_content_trust.root_signing.SSLIB_AVAILABLE:
         opt_reqs_str = (
             "[Unavailable]: Requires optional "
             "dependencies: securesystemslib and gpg.  "
@@ -171,7 +172,9 @@ def cli(args=None):
         # so this is necessary for convenience.
         gpg_key_fingerprint = "".join(args.gpg_key_fingerprint.split()).lower()
 
-        cct_root_signing.sign_root_metadata_via_gpg(args.filename, gpg_key_fingerprint)
+        conda_content_trust.root_signing.sign_root_metadata_via_gpg(
+            args.filename, gpg_key_fingerprint
+        )
 
     elif args.subcommand_name == "sign-artifacts":
         with open(args.private_key_fname) as key_fobj:
@@ -184,13 +187,12 @@ def cli(args=None):
                 "ABORTED.  Expected key file to contain only a hex string "
                 "representation of an ed25519 key.  It does not."
             )
-            return
-
-        cct_signing.sign_all_in_repodata(args.repodata_fname, args.private_key_hex)
 
     elif args.subcommand_name == "gpg-key-lookup":
         gpg_key_fingerprint = "".join(args.gpg_key_fingerprint.split()).lower()
-        keyval = cct_root_signing.fetch_keyval_from_gpg(gpg_key_fingerprint)
+        keyval = conda_content_trust.root_signing.fetch_keyval_from_gpg(
+            gpg_key_fingerprint
+        )
         print("Underlying ed25519 public key value: " + str(keyval))
 
     elif args.subcommand_name == "modify-metadata":
@@ -224,7 +226,7 @@ def cli(args=None):
         # `conda-content-trust verify-metadata <trusted delegating metadata> <untrusted
         # metadata> <(optional) role name>`
 
-        # underlying functions: cct_authentication.verify_delegation,
+        # underlying functions: conda_content_trust.authentication.verify_delegation,
         # load_metadata_from_file
 
         # takes two metadata files, the first being a trusted file that should
@@ -252,7 +254,9 @@ def cli(args=None):
         if metadata_type == "root":
             # Verifying root has additional steps beyond verify_delegation.
             try:
-                cct_authentication.verify_root(trusted_metadata, untrusted_metadata)
+                conda_content_trust.authentication.verify_root(
+                    trusted_metadata, untrusted_metadata
+                )
                 print("Root metadata verification successful.")
                 return 0  # success
 
@@ -264,7 +268,7 @@ def cli(args=None):
             # Verifying anything other than root just uses verify_delegation
             # directly.
             try:
-                cct_authentication.verify_delegation(
+                conda_content_trust.authentication.verify_delegation(
                     delegation_name=metadata_type,
                     untrusted_delegated_metadata=untrusted_metadata,
                     trusted_delegating_metadata=trusted_metadata,
@@ -347,7 +351,7 @@ def interactive_modify_metadata(metadata):
         return 1
 
     def fn_addsig():
-        if not cct_root_signing.SSLIB_AVAILABLE:
+        if not conda_content_trust.root_signing.SSLIB_AVAILABLE:
             print(
                 F_OPTS + "Signing.  " + RED + "Please ABORT (control-c) if "
                 "the metadata above is not EXACTLY what you want to sign!" + ENDC
@@ -364,12 +368,14 @@ def interactive_modify_metadata(metadata):
 
         if is_hex_key(key):
             private_key = PrivateKey.from_hex(key)
-            cct_signing.sign_signable(metadata, private_key)
+            conda_content_trust.signing.sign_signable(metadata, private_key)
             print(F_OPTS + "\n\n--- Successfully signed!  Please save." + ENDC)
 
         elif is_gpg_fingerprint(key):
             try:
-                cct_root_signing.sign_root_metadata_dict_via_gpg(metadata, key)
+                conda_content_trust.root_signing.sign_root_metadata_dict_via_gpg(
+                    metadata, key
+                )
             except:
                 print(
                     F_OPTS
