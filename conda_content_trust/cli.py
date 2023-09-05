@@ -218,34 +218,6 @@ def cli_gpg_key_lookup(args):
     print("Underlying ed25519 public key value: " + str(keyval))
 
 
-def cli_modify_metadata(args):
-    # `conda-content-trust update-metadata <metadata file to produce new version of>`
-
-    # underlying functions: build_delegating_metadata,
-    # load_metadata_from_file
-
-    # given a metadata file, increment the version number and timestamps,
-    # reporting the changes on the console
-
-    # strip signatures
-
-    # indicate what signatures are required
-
-    # ask if the user wants to sign; query for the key hex or fname;
-    # ideally, offer this functionality for both root and non-root keys.
-    # For root metadata, we can (and should) also report which keys are
-    # expected / still needed in order for the metadata to be verifiable
-    # according to the old metadata and the new metadata
-
-    old_metadata = load_metadata_from_file(args.metadata_filename)
-
-    # new_metadata = cct_metadata_construction.interactive_modify_metadata(old_metadata)
-    # if new_metadata is not None and new_metadata:
-    #     write_metadata_to_file(new_metadata, args.metadata_filename)
-
-    interactive_modify_metadata(old_metadata)
-
-
 def cli_verify_metadata(args):
     # `conda-content-trust verify-metadata <trusted delegating metadata> <untrusted
     # metadata> <(optional) role name>`
@@ -310,6 +282,34 @@ def cli_verify_metadata(args):
         'type was "' + metadata_type + '".  Error reads:\n  "' + errorstring + '"'
     )
     return errorcode  # failure; exit code
+
+
+def cli_modify_metadata(args):
+    # `conda-content-trust update-metadata <metadata file to produce new version of>`
+
+    # underlying functions: build_delegating_metadata,
+    # load_metadata_from_file
+
+    # given a metadata file, increment the version number and timestamps,
+    # reporting the changes on the console
+
+    # strip signatures
+
+    # indicate what signatures are required
+
+    # ask if the user wants to sign; query for the key hex or fname;
+    # ideally, offer this functionality for both root and non-root keys.
+    # For root metadata, we can (and should) also report which keys are
+    # expected / still needed in order for the metadata to be verifiable
+    # according to the old metadata and the new metadata
+
+    old_metadata = load_metadata_from_file(args.metadata_filename)
+
+    # new_metadata = cct_metadata_construction.interactive_modify_metadata(old_metadata)
+    # if new_metadata is not None and new_metadata:
+    #     write_metadata_to_file(new_metadata, args.metadata_filename)
+
+    interactive_modify_metadata(old_metadata)
 
 
 def interactive_modify_metadata(metadata):

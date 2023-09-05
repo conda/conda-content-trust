@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import json
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -42,6 +44,34 @@ def test_cli_basic(args: list[str]):
 )
 def test_cli_verify_metadata(trusted: str, untrusted: str, expected_error: bool):
     err = cli(["verify-metadata", trusted, untrusted])
+    assert bool(err) == expected_error
+
+
+@pytest.mark.parametrize(
+    "trusted,untrusted,expected_error",
+    [
+        ["tests/testdata/1.root.json", "tests/testdata/key_mgr.json", True],
+    ],
+)
+def test_cli_verify_metadata_error_not_root(
+    trusted: str, untrusted: str, expected_error: bool, tmp_path: Path
+):
+    # change data to invalidate signature
+    signed = json.loads(Path(untrusted).read_text())
+    signed["signed"]["timestamp"] = "2023" + signed["signed"]["timestamp"][4:]
+    corrupted = tmp_path / "corrupted.json"
+    corrupted.write_text(json.dumps(signed))
+
+    err = cli(["verify-metadata", trusted, str(corrupted)])
+    assert bool(err) == expected_error
+
+    # will it correctly fail verification when all signatures are missing?
+    signed = json.loads(Path(untrusted).read_text())
+    signed["signatures"] = {}
+    corrupted = tmp_path / "corrupted.json"
+    corrupted.write_text(json.dumps(signed))
+
+    err = cli(["verify-metadata", trusted, str(corrupted)])
     assert bool(err) == expected_error
 
 
@@ -114,13 +144,3 @@ def test_cli_gpg_key_lookup(monkeypatch):
 # TODO Difficult to test this interactive command
 # def test_cli_modify_metadata():
 #     pass
-
-
-# def test_cli_verify_metadata(monkeypatch):
-#     def verify_delegation_succeed(*args, **kwargs):
-#         pass
-
-#     def verify_delegation_fail(*args, **kwargs):
-#         raise CCT_Error()
-
-#     cli(["verify-metadata", "tests/testdata/1.root.json", "tests/testdata/2.root.json"])
