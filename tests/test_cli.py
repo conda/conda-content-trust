@@ -77,12 +77,14 @@ def test_cli_verify_metadata_error_not_root(
 
 def test_main(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["conda-content-trust"])
-    __import__("conda_content_trust.__main__")
+    with pytest.raises(SystemExit):
+        __import__("conda_content_trust.__main__")
 
 
 def test_cli_no_securesystemslib(monkeypatch):
     monkeypatch.setattr(conda_content_trust.root_signing, "SSLIB_AVAILABLE", False)
-    cli([])
+    with pytest.raises(SystemExit):
+        cli([])
 
 
 def test_cli_build_parser():
@@ -99,8 +101,12 @@ def test_cli_build_parser():
         ([], None),
     ]
     for args, expected in args_expected:
-        parsed = parser.parse_args(args)
-        assert getattr(parsed, "func", None) == expected
+        if expected is None:
+            with pytest.raises(SystemExit):
+                parsed = parser.parse_args(args)
+        else:
+            parsed = parser.parse_args(args)
+            assert getattr(parsed, "func", None) == expected
 
 
 def test_cli_gpg_sign(monkeypatch):

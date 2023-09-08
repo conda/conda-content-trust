@@ -26,13 +26,8 @@ from .common import (
 
 def cli(args=None):
     parser = build_parser()
-
     args = parser.parse_args(args)
-
-    if hasattr(args, "func"):
-        return args.func(args)
-    else:
-        parser.print_help()
+    return args.func(args)
 
 
 def build_parser():
@@ -49,7 +44,7 @@ def build_parser():
     )
 
     # Create separate parsers for the subcommands.
-    sp = parser.add_subparsers(title="subcommands", dest="subcommand_name")
+    sp = parser.add_subparsers(title="subcommands", dest="subcommand", required=True)
 
     # subcommand: sign-artifacts
 
