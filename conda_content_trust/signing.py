@@ -73,7 +73,7 @@ def wrap_as_signable(obj):
     Raises ❌TypeError if the given object is not a JSON-serializable type per
     SUPPORTED_SERIALIZABLE_TYPES
     """
-    if not type(obj) in SUPPORTED_SERIALIZABLE_TYPES:
+    if type(obj) not in SUPPORTED_SERIALIZABLE_TYPES:
         raise TypeError(
             "wrap_dict_as_signable requires a JSON-serializable object, "
             "but the given argument is of type " + str(type(obj)) + ", "

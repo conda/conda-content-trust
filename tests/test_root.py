@@ -98,7 +98,7 @@ def test_gpg_key_retrieval_with_unknown_fingerprint():
     #         testing suite we're using provides.
 
     with pytest.raises(securesystemslib.gpg.exceptions.KeyNotFoundError):
-        full_gpg_pubkey = gpg_funcs.export_pubkey(SAMPLE_UNKNOWN_FINGERPRINT)
+        gpg_funcs.export_pubkey(SAMPLE_UNKNOWN_FINGERPRINT)
 
     print(
         "--TEST SUCCESS✅: detection of error when we pass an unknown "
