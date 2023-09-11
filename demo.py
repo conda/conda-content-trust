@@ -44,7 +44,7 @@ def input_func(s):
 
 
 def main():
-    junk = input_func(
+    input_func(
         "\n\n\n\nFirst: a demo of root metadata creation, verification, "
         "updating, and root chaining.  We create an initial version of "
         "the root metadata and sign it, then create a second version, "
@@ -65,19 +65,19 @@ def main():
     # with open(name + '.pri', 'rb') as fobj:
     #         private_bytes = fobj.read()
 
-    junk = input_func(
+    input_func(
         "\n\n\nSecond: a demo of the creation and signing of the key "
         "manager role (key_mgr), a role root delegates to."
     )
     key_mgr = demo_create_and_sign_key_mgr()
 
-    junk = input_func(
+    input_func(
         "\n\n\nThird: a demo of the verification of the key manager "
         "metadata using trusted root metadata."
     )
     demo_verify_key_mgr_using_root(key_mgr, root_v2)
 
-    junk = input_func(
+    input_func(
         "\n\n\nFourth: a demo of verification of an individual package "
         "signature using the now-trusted key manager metadata."
     )
@@ -156,7 +156,7 @@ def demo_root_signing_and_verifying_and_chaining():
     print("\n-- Unsigned root metadata version 1 written.\n")
 
     # Sign sample root metadata.
-    junk = input_func(
+    input_func(
         "Preparing to request root signature.  Please plug in your "
         "YubiKey and prepare to put in your user PIN in a GPG dialog box. "
         " When the YubiKey is plugged in and you are READY TO ENTER your "
@@ -170,21 +170,17 @@ def demo_root_signing_and_verifying_and_chaining():
     cct_root_signing.sign_root_metadata_via_gpg(
         ROOT_FNAME_V1, ROOT_PUBKEY_GPG_FINGERPRINT
     )
-    junk = input_func("\n-- Root metadata v1 signed.  Next: load signed root v1.\n")
+    input_func("\n-- Root metadata v1 signed.  Next: load signed root v1.\n")
 
     # Load untrusted signed root metadata.
     signed_root_md = cct_common.load_metadata_from_file(ROOT_FNAME_V1)
-    junk = input_func(
-        "\n-- Signed root metadata v1 loaded.  Next: verify signed root v1\n"
-    )
+    input_func("\n-- Signed root metadata v1 loaded.  Next: verify signed root v1\n")
 
     # Verify untrusted signed root metadata.  (Normally, one uses the prior
     # version of root, but here we're bootstrapping for the demo.  We'll verify
     # with a prior version lower down in this demo.)
     cct_authentication.verify_signable(signed_root_md, [ROOT_PUBKEY_HEX], 1, gpg=True)
-    junk = input_func(
-        "\n-- Root metadata v1 fully verified.  Next: build root metadata v2.\n"
-    )
+    input_func("\n-- Root metadata v1 fully verified.  Next: build root metadata v2.\n")
 
     # Build sample second version of root metadata.  In this case, let's try
     # adding another authorized key and requiring signatures from both keys.
@@ -204,7 +200,7 @@ def demo_root_signing_and_verifying_and_chaining():
     # Write unsigned sample root metadata.
     with open(ROOT_FNAME_V2, "wb") as fobj:
         fobj.write(root_md2)
-    junk = input_func(
+    input_func(
         "\n-- Unsigned root metadata version 2 generated and written.  Next: sign root v2\n"
     )
 
@@ -216,7 +212,7 @@ def demo_root_signing_and_verifying_and_chaining():
     cct_root_signing.sign_root_metadata_via_gpg(
         ROOT_FNAME_V2, ROOT_PUBKEY_2_GPG_FINGERPRINT
     )
-    junk = input_func(
+    input_func(
         "\n-- Root metadata v2 signed.  Next: load and verify signed root v2 based on root v1 (root chaining).\n"
     )
 
@@ -250,7 +246,7 @@ def demo_root_signing_and_verifying_and_chaining():
     # Write unsigned sample root metadata.
     with open(ROOT_FNAME_V3, "wb") as fobj:
         fobj.write(root_md3)
-    junk = input_func(
+    input_func(
         "\n-- Unsigned root metadata version 2 generated and written.  Next: sign root v2\n"
     )
 
@@ -262,7 +258,7 @@ def demo_root_signing_and_verifying_and_chaining():
     cct_root_signing.sign_root_metadata_via_gpg(
         ROOT_FNAME_V3, ROOT_PUBKEY_2_GPG_FINGERPRINT
     )
-    junk = input_func(
+    input_func(
         "\n-- Root metadata v2 signed.  Next: load and verify signed root v2 based on root v1 (root chaining).\n"
     )
 
@@ -297,7 +293,7 @@ def demo_root_chaining_w_files(trusted_root_fname, new_untrusted_root_fname):
 
     # Use that to verify the next root.
 
-    verify_root(trusted_root, untrusted_root)
+    cct_authentication.verify_root(trusted_root, untrusted_root)
 
 
 def demo_verify_pkg_sig_via_key_mgr(key_mgr):
@@ -336,7 +332,7 @@ def demo_verify_pkg_sig_via_key_mgr(key_mgr):
     from pprint import pprint
 
     pprint(packages)
-    junk = input_func("\n\nNext: sign it with the pkg_mgr key.")
+    input_func("\n\nNext: sign it with the pkg_mgr key.")
 
     signable = cct_signing.wrap_as_signable(
         packages["pytorch-1.2.0-cuda92py27hd3e106c_0.tar.bz2"]
@@ -353,7 +349,7 @@ def demo_verify_pkg_sig_via_key_mgr(key_mgr):
     print("Signed envelope around this pytorch package metadata:\n\n")
     pprint(signable)
 
-    junk = input_func(
+    input_func(
         "\n\nNext: verify the signature based on what the now-trusted "
         "key manager role told us to expect.\n"
     )
