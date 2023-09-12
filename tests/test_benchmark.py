@@ -37,13 +37,9 @@ SAMPLE_HEX_KEY_1 = "abcde123" * 8
 SAMPLE_HEX_KEY_2 = "deadbeef" * 8
 
 
-def bench_checkformat_hex_string():
-    hex_string = "0123456789abcdef" * 4
-    checkformat_hex_string(hex_string)
-
-
 def test_benchmark_checkformat_hex_string(benchmark):
-    benchmark(bench_checkformat_hex_string)
+    hex_string = "0123456789abcdef" * 4
+    benchmark(checkformat_hex_string, hex_string)
 
 
 def verify_bad_signature():
