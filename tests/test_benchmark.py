@@ -2,6 +2,7 @@
 pytest-benchmark benchmarks for conda-content-trust.
 """
 import cryptography.exceptions
+import datetime
 import pytest
 
 from conda_content_trust.authentication import verify_signature
@@ -21,14 +22,17 @@ from conda_content_trust.common import (  # Putting this entire import list here
     checkformat_string,
 )
 
+from .test_common import SAMPLE_GPG_SIG
+
 from .test_authentication import (
     REG__MESSAGE_THAT_WAS_SIGNED,
     REG__PUBLIC_BYTES,
     REG__SIGNATURE_HEX,
+    TEST_ROOT_MD_V1,
 )
 
-SAMPLE_HEX_KEY = "abcde123" * 8
-
+SAMPLE_HEX_KEY_1 = "abcde123" * 8
+SAMPLE_HEX_KEY_2 = "deadbeef" * 8
 
 def bench_checkformat_hex_string():
     hex_string = "0123456789abcdef" * 4
@@ -81,7 +85,7 @@ def test_benchmark_create_public_key(benchmark):
 
 
 def bench_checkformat_hex_key():
-    checkformat_hex_key(SAMPLE_HEX_KEY)
+    checkformat_hex_key(SAMPLE_HEX_KEY_1)
 
 
 def test_benchmark_checkformat_hex_key(benchmark):
@@ -89,7 +93,7 @@ def test_benchmark_checkformat_hex_key(benchmark):
 
 
 def bench_checkformat_list_of_hex_keys():
-    checkformat_list_of_hex_keys([SAMPLE_HEX_KEY, "deadbeef" * 8])
+    checkformat_list_of_hex_keys([SAMPLE_HEX_KEY_1, SAMPLE_HEX_KEY_2])
 
 
 def test_benchmark_checkformat_list_of_hex_keys(benchmark):
@@ -97,19 +101,81 @@ def test_benchmark_checkformat_list_of_hex_keys(benchmark):
 
 
 def bench_checkformat_any_signature():
-    #     # What does a good placeholder ed25519 signature look like?
-    private_key = "bfbeb6554fca9558da7aa05c5e9952b7a1aa3995dede93f3bb89f0abecc7dc07"
-    #     private_key = cryptography.hazmat.primitives.asymmetric.ed25519
-    #     public_key = "\x19t\x8e\xcb+\xebm\xa4\x99\xbew\x0f\xc1U\x19\xeb\xedn\xd8\xe9A \xc7o\x15\x96\x99\x83a\x8frU"
-    checkformat_any_signature(REG__SIGNATURE_HEX)
+    checkformat_any_signature(SAMPLE_GPG_SIG)
 
 
-#     # The error that I get here is:
-#     # ValueError: Expected either a hex string representing a raw ed25519 signature
-#     # (see checkformat_signature) or a dictionary representing an OpenPGP/GPG
-#     # signature (see checkformat_gpg_signature).
-
-
-@pytest.mark.skip
 def test_bench_checkformat_any_signature(benchmark):
     benchmark(bench_checkformat_any_signature)
+
+
+def bench_checkformat_byteslike():
+    checkformat_byteslike(REG__PUBLIC_BYTES)
+
+
+def test_benchmark_checkformat_byteslike(benchmark):
+    benchmark(bench_checkformat_byteslike)
+    
+
+def benchmark_checkformat_gpg_signature():
+    checkformat_gpg_signature(SAMPLE_GPG_SIG)
+
+
+def test_benchmark_checkformat_gpg_signature(benchmark):
+    benchmark(benchmark_checkformat_gpg_signature)
+
+
+def benchmark_checkformat_signature():
+    checkformat_signature(SAMPLE_GPG_SIG)
+
+
+def test_benchmark_checkformat_signature(benchmark):
+    benchmark(benchmark_checkformat_signature)
+
+
+def benchmark_checkformat_string():
+    checkformat_string(SAMPLE_HEX_KEY_1)
+
+
+def test_benchmark_checkformat_string(benchmark):
+    benchmark(benchmark_checkformat_string)
+
+
+def benchmark_checkformat_delegation():
+    checkformat_delegation(
+        {
+            "pubkeys": [SAMPLE_HEX_KEY_1, SAMPLE_HEX_KEY_2],
+            "threshold": 1,
+        }
+    )
+
+def test_benchmark_checkformat_delegation(benchmark):
+    benchmark(benchmark_checkformat_delegation)
+
+
+def benchmark_checkformat_delegations():
+    checkformat_delegations(
+        {'root.json':
+            {'pubkeys': ['01'*32, '02'*32, '03'*32], 'threshold': 2},
+        'test.json':
+            {'pubkeys': ['04'*32], 'threshold': 1}}
+    )
+
+
+def test_benchmark_checkformat_delegations(benchmark):
+    benchmark(benchmark_checkformat_delegations)
+
+
+def benchmark_checkformat_delegating_metadata():
+    checkformat_delegating_metadata(TEST_ROOT_MD_V1)
+
+
+def test_benchmark_checkformat_delegating_metadata(benchmark):
+    benchmark(benchmark_checkformat_delegating_metadata)
+
+
+def benchmark_checkformat_expiration_distance():
+    checkformat_expiration_distance(datetime.timedelta(days=100))
+
+
+def test_benchmark_checkformat_expiration_distance(benchmark):
+    benchmark(benchmark_checkformat_expiration_distance)
