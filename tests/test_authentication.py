@@ -177,8 +177,6 @@ def test_wrap_sign_verify_signable():
     )
 
     # Clean up a bit for the next tests.
-    new_private = loaded_new_private
-    new_public = loaded_new_public
     del (
         loaded_new_public,
         loaded_new_private,
