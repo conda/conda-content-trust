@@ -1,8 +1,11 @@
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 pytest-benchmark benchmarks for conda-content-trust.
 """
-import cryptography.exceptions
 import datetime
+
+import cryptography.exceptions
 import pytest
 
 from conda_content_trust.authentication import verify_signature
@@ -22,17 +25,17 @@ from conda_content_trust.common import (  # Putting this entire import list here
     checkformat_string,
 )
 
-from .test_common import SAMPLE_GPG_SIG
-
 from .test_authentication import (
     REG__MESSAGE_THAT_WAS_SIGNED,
     REG__PUBLIC_BYTES,
     REG__SIGNATURE_HEX,
     TEST_ROOT_MD_V1,
 )
+from .test_common import SAMPLE_GPG_SIG
 
 SAMPLE_HEX_KEY_1 = "abcde123" * 8
 SAMPLE_HEX_KEY_2 = "deadbeef" * 8
+
 
 def bench_checkformat_hex_string():
     hex_string = "0123456789abcdef" * 4
@@ -114,7 +117,7 @@ def bench_checkformat_byteslike():
 
 def test_benchmark_checkformat_byteslike(benchmark):
     benchmark(bench_checkformat_byteslike)
-    
+
 
 def benchmark_checkformat_gpg_signature():
     checkformat_gpg_signature(SAMPLE_GPG_SIG)
@@ -148,16 +151,17 @@ def benchmark_checkformat_delegation():
         }
     )
 
+
 def test_benchmark_checkformat_delegation(benchmark):
     benchmark(benchmark_checkformat_delegation)
 
 
 def benchmark_checkformat_delegations():
     checkformat_delegations(
-        {'root.json':
-            {'pubkeys': ['01'*32, '02'*32, '03'*32], 'threshold': 2},
-        'test.json':
-            {'pubkeys': ['04'*32], 'threshold': 1}}
+        {
+            "root.json": {"pubkeys": ["01" * 32, "02" * 32, "03" * 32], "threshold": 2},
+            "test.json": {"pubkeys": ["04" * 32], "threshold": 1},
+        }
     )
 
 

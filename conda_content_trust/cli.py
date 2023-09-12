@@ -336,6 +336,7 @@ def interactive_modify_metadata(metadata):
     metadata = deepcopy(initial_metadata)
 
     import pprint
+
     try:
         import pygments
         import pygments.formatters
