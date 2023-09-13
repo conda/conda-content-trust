@@ -442,8 +442,9 @@ def interactive_modify_metadata(metadata):
 
         try:
             new_thresh = int(new_thresh)
-            assert new_thresh >= 1
-        except:  # noqa: E722
+            if not new_thresh >= 1:
+                raise ValueError()
+        except (ValueError, TypeError):
             print(
                 F_OPTS + "\n--- " + RED + "Invalid value.  Expecting integer "
                 "greater than or equal to 1.  Please try again." + ENDC
@@ -516,7 +517,7 @@ def interactive_modify_metadata(metadata):
         selected = input(F_OPTS + "Choice: " + ENDC)
         try:
             selected = int(selected)
-        except:  # noqa: E722
+        except (ValueError, TypeError):
             print(RED + BOLD + "\nInvalid entry.  Try again.\n" + ENDC)
             continue
         if selected not in options:
