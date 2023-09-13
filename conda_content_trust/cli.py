@@ -392,7 +392,7 @@ def interactive_modify_metadata(metadata):
                 conda_content_trust.root_signing.sign_root_metadata_dict_via_gpg(
                     metadata, key
                 )
-            except:  # noqa: E722
+            except (ValueError, TypeError, ImportError):
                 print(
                     F_OPTS
                     + "\n\n--- "
