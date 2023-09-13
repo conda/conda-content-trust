@@ -173,7 +173,7 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     # care about that as much -- we want to use the raw ed25519 public key
     # value to refer to the key in a manner consistent with the way we refer to
     # non-GPG (non-OpenPGP) keys.
-    _ = fetch_keyval_from_gpg(gpg_key_fingerprint)
+    # keyval = fetch_keyval_from_gpg(gpg_key_fingerprint)
 
     # ssl gpg sigs look like this:
     #
