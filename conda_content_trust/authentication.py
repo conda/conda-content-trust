@@ -207,7 +207,7 @@ def verify_delegation(
     checkformat_signable(untrusted_delegated_metadata)
     try:
         checkformat_delegating_metadata(untrusted_delegated_metadata)
-    except:  # noqa: E722
+    except (TypeError or ValueError):
         # If we can't verify that we're verifying more delegating metadata
         # (e.g. we're using root to verify key_mgr), then we don't need to
         # perform the type check, as it can just be any signed content we're
