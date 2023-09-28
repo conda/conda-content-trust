@@ -30,7 +30,7 @@ repos:
         files: \.py$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.10.1
+    rev: v3.13.0
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
