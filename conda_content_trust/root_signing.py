@@ -206,7 +206,7 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
 
 def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
     """
-    Throws ValueError, TypeError, ImportError (from not catching the exceptions of various functions)
+    Raises ValueError, TypeError, ImportError (from not catching the exceptions of various functions)
     """
     # Signs root_signable in place, returns nothing.
 
