@@ -14,11 +14,6 @@ Function Manifest for this Module:
     sign_root_metadata_via_gpg    # requires securesystemslib
     fetch_keyval_from_gpg         # requires securesystemslib
 
-These two functions are provided only for testing purpose and are not part of
-the API for this module:
-    _gpg_pubkey_in_ssl_format
-    _verify_gpg_sig_using_ssl     # requires securesystemslib
-
 Note that there is a function in conda_content_trust.authentication that verifies these
 signatures without requiring securesystemslib.
 """
@@ -26,11 +21,11 @@ signatures without requiring securesystemslib.
 # root metadata via GPG.  Verification of those signatures, and signing other
 # metadata with raw ed25519 signatures, does not require securesystemslib.
 try:
-    import securesystemslib.formats
+    import securesystemslib.formats  # noqa: F401
     from securesystemslib.gpg import functions as gpg_funcs
 
     SSLIB_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover
     SSLIB_AVAILABLE = False
 
 from .common import (
@@ -38,11 +33,17 @@ from .common import (
     checkformat_byteslike,
     checkformat_gpg_fingerprint,
     checkformat_hex_key,
-    checkformat_key,
-    is_a_signable,
+    is_signable,
     load_metadata_from_file,
     write_metadata_to_file,
 )
+
+
+def _check_sslib_available():
+    if not SSLIB_AVAILABLE:
+        raise ImportError(
+            "The securesystemslib library is required, which appears to be unavailable."
+        )
 
 
 def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
@@ -160,36 +161,19 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
         While that is not ideal, it is difficult enough simply to find a SHA256
         collision that this is acceptable.
     """
-    if not SSLIB_AVAILABLE:
-        # TODO✅: Consider a missing-optional-dependency exception class.
-        raise Exception(
-            "sign_via_gpg requires the securesystemslib library, which "
-            "appears to be unavailable."
-        )
+    _check_sslib_available()
 
     # Argument validation
     checkformat_gpg_fingerprint(gpg_key_fingerprint)
     checkformat_byteslike(data_to_sign)
 
-    # try:
-    #     full_gpg_pubkey = gpg_funcs.export_pubkey(gpg_key_fingerprint)
-    # except securesystemslib.gpg.exceptions.KeyNotFoundError as e:
-    #     raise Exception( # TODO✅: Consider an appropriate error class.
-    #             'The GPG application reported that it is not aware of a key '
-    #             'with the fingerprint provided ("' + str(gpg_key_fingerprint) +
-    #             '").  You may need to import the given key.')
-
     sig = gpg_funcs.create_signature(data_to_sign, gpg_key_fingerprint)
-
-    # # 💣💥 Debug only.
-    # # 💣💥 Debug only.
-    # assert gpg_funcs.verify_signature(sig, full_gpg_pubkey, data_to_sign)
 
     # securesystemslib.gpg makes use of the GPG key fingerprint.  We don't
     # care about that as much -- we want to use the raw ed25519 public key
     # value to refer to the key in a manner consistent with the way we refer to
     # non-GPG (non-OpenPGP) keys.
-    keyval = fetch_keyval_from_gpg(gpg_key_fingerprint)
+    # keyval = fetch_keyval_from_gpg(gpg_key_fingerprint)
 
     # ssl gpg sigs look like this:
     #
@@ -204,7 +188,7 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     #   {'gpg_key_fingerprint': <gpg key fingerprint>,
     #    'other_headers': <extra data mandated in OpenPGP signatures>,
     #    'signature': <actual ed25519 signature, 64 bytes as 128 hex chars>}
-    #
+
     # sig['key'] = keyval  # q, the 32-byte raw ed25519 public key value, expressed as 64 hex characters
 
     # The OpenPGP Fingerprint of the OpenPGP key used to sign.  This is not
@@ -220,25 +204,18 @@ def sign_via_gpg(data_to_sign, gpg_key_fingerprint, include_fingerprint=False):
     return sig
 
 
-# TODO✅: Rename this to sign_root_metadata_via_gpg and rename
-#         the old sign_root_metadata_via_gpg to sign_root_metadata_file_via_gpg
 def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
+    """
+    Raises ValueError, TypeError, ImportError (from not catching the exceptions of various functions)
+    """
     # Signs root_signable in place, returns nothing.
 
-    if not SSLIB_AVAILABLE:
-        # TODO✅: Consider a missing-optional-dependency exception class.
-        raise Exception(
-            "sign_root_metadata_via_gpg requires the securesystemslib library, which "
-            "appears to be unavailable."
-        )
+    _check_sslib_available()
 
     # Make sure it's the right format.
-    if not is_a_signable(root_signable):
-        raise TypeError(
-            "Expected a signable dictionary; the given file "
-            + str(root_md_fname)
-            + " failed the check."
-        )
+    if not is_signable(root_signable):
+        raise TypeError("Expected a signable dictionary.")
+
     # TODO: Add root-specific checks.
 
     # Canonicalize and serialize the data, putting it in the form we expect to
@@ -246,7 +223,6 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
     # again once the signatures have been added.
     data_to_sign = canonserialize(root_signable["signed"])
 
-    # sig_dict, pgp_pubkey = sign_via_gpg(data_to_sign, gpg_key_fingerprint)
     sig_dict = sign_via_gpg(data_to_sign, gpg_key_fingerprint)
 
     # sig_dict looks like this:
@@ -274,13 +250,6 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
     # public_key_as_hexstr = binascii.hexlify(key_to_bytes(
     #         private_key.public_key())).decode('utf-8')
 
-    # TODO: ✅⚠️ Log a warning in whatever conda's style is (or conda-build):
-    #
-    # if public_key_as_hexstr in signable['signatures']:
-    #   warn(    # replace: log, 'warnings' module, print statement, whatever
-    #           'Overwriting existing signature by the same key on given '
-    #           'signable.  Public key: ' + public_key + '.')
-
     # Add signature in-place.
     root_signable["signatures"][raw_pubkey] = sig_dict
 
@@ -289,12 +258,10 @@ def sign_root_metadata_dict_via_gpg(root_signable, gpg_key_fingerprint):
 
 def sign_root_metadata_via_gpg(root_md_fname, gpg_key_fingerprint):
     """
-    # TODO✅: Proper docstring:
     # This is a higher-level function than sign_via_gpg, including code that
     # deals with the filesystem.  It is not actually limited to root metadata,
     # and SHOULD BE RENAMED.
     """
-
     # Read in json
     root_signable = load_metadata_from_file(root_md_fname)
 
@@ -323,12 +290,7 @@ def fetch_keyval_from_gpg(fingerprint):
             94a3eed0806c1f107754a446fdad11b82dd40e8c
             etc.
     """
-    if not SSLIB_AVAILABLE:
-        # TODO✅: Consider a missing-optional-dependency exception class.
-        raise Exception(
-            "fetch_keyval_from_gpg requires the securesystemslib library, which "
-            "appears to be unavailable."
-        )
+    _check_sslib_available()
 
     fingerprint = (
         fingerprint.lower().replace(" ", "").replace("\xa0", "")
@@ -339,42 +301,6 @@ def fetch_keyval_from_gpg(fingerprint):
     key_parameters = gpg_funcs.export_pubkey(fingerprint)
 
     return key_parameters["keyval"]["public"]["q"]
-
-
-def _verify_gpg_sig_using_ssl(signature, gpg_key_fingerprint, key_value, data):
-    """
-    THIS IS PROVIDED ONLY FOR TESTING PURPOSES.
-    We will verify signatures using our own code in conda_content_trust.authentication, not
-    by using the securesystemslib.gpg.functions.verify_signature call that
-    sits here.
-
-    Wraps securesystemslib.gpg.functions.verify_signature.  to format the
-    arguments in a manner ssl will like (i.e. conforming to
-    securesystemslib.formats.GPG_SIGNATURE_SCHEMA).
-    """
-    if not SSLIB_AVAILABLE:
-        # TODO✅: Consider a missing-optional-dependency exception class.
-        raise Exception(
-            "verifygpg_sig_using_ssl requires the securesystemslib "
-            "library, which appears to be unavailable."
-        )
-
-    checkformat_key(key_value)
-
-    # This function validates these two args in the process of formatting them.
-    ssl_format_key = gpg_pubkey_in_ssl_format(gpg_key_fingerprint, key_value)
-
-    securesystemslib.formats.GPG_SIGNATURE_SCHEMA.check_match(signature)
-    securesystemslib.formats._GPG_ED25519_PUBKEY_SCHEMA.check_match(ssl_format_key)
-
-    # TODO: ✅ Validate sig (ssl-format gpg sig dict) and content (bytes).
-
-    # Note: if we change the signature format to deviate from what ssl uses,
-    #       then we need to correct it here if we're going to use ssl.
-
-    validity = gpg_funcs.verify_signature(signature, ssl_format_key, data)
-
-    return validity
 
 
 def _gpg_pubkey_in_ssl_format(fingerprint, q):

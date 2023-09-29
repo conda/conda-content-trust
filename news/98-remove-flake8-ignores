@@ -16,4 +16,4 @@
 
 ### Other
 
-* Enable pre-commit for linting and auto-formatting. (#35)
+* Remove flake8 ignores and fix findings or add `# noqa` inline

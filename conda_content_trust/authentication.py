@@ -11,7 +11,6 @@ Function Manifest for this Module
     verify_root
     verify_delegation
 """
-from binascii import unhexlify
 from struct import pack
 
 import cryptography.exceptions
@@ -28,10 +27,10 @@ from .common import (
     checkformat_gpg_signature,
     checkformat_hex_key,
     checkformat_signable,
-    is_a_signable,
     is_gpg_signature,
     is_hex_key,
     is_hex_signature,
+    is_signable,
     is_signature,
 )
 
@@ -208,7 +207,7 @@ def verify_delegation(
     checkformat_signable(untrusted_delegated_metadata)
     try:
         checkformat_delegating_metadata(untrusted_delegated_metadata)
-    except:
+    except (ValueError, TypeError):
         # If we can't verify that we're verifying more delegating metadata
         # (e.g. we're using root to verify key_mgr), then we don't need to
         # perform the type check, as it can just be any signed content we're
@@ -291,7 +290,8 @@ def verify_signature(signature, public_key, data):
             "argument.  Instead, received " + str(type(data))
         )
 
-    public_key.verify(unhexlify(signature), data)
+    signature_bytes = bytes.fromhex(signature)
+    public_key.verify(signature_bytes, data)
 
     # If no error is raised, return, indicating success (Explicit for editors)
     return
@@ -342,7 +342,7 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
     #       we'll mostly have the hex strings on hand, but....
 
     # Argument validation
-    if not is_a_signable(signable):
+    if not is_signable(signable):
         raise TypeError(
             "verify_signable expects a signable dictionary.  "
             "Given argument failed the test."
@@ -393,14 +393,6 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
             )
             continue
 
-        if not gpg and not is_signature(signature):
-            # TODO: ✅ Make this a warning instead.
-            print(
-                'Ignoring "signature" that does not look like a hex '
-                "signature value: " + str(signature)
-            )
-            continue
-
         if gpg and not is_gpg_signature(signature):
             # TODO: ✅ Make this a warning instead.
             print(
@@ -419,15 +411,15 @@ def verify_signable(signable, authorized_pub_keys, threshold, gpg=False):
             continue
 
         if not gpg:  # normal ed25519 signatures using pyca/cryptography
-            public = PublicKey.from_hex(pubkey_hex)
-
             if not is_signature(signature):
-                # TODO: ✅ Make this a warning or log statement instead.
+                # TODO: ✅ Make this a warning instead.
                 print(
-                    'Ignoring "signature" that does not look like a raw '
-                    "ed25519 signature value."
+                    'Ignoring "signature" that does not look like a hex '
+                    "signature value: " + str(signature)
                 )
                 continue
+
+            public = PublicKey.from_hex(pubkey_hex)
 
             try:
                 verify_signature(signature["signature"], public, signed_data)
@@ -521,7 +513,7 @@ def verify_gpg_signature(signature, key_value, data):
     #     hasher(), data)
 
     # Additional headers in the OpenPGP signature (bleh).
-    additional_header_data = unhexlify(signature["other_headers"])
+    additional_header_data = bytes.fromhex(signature["other_headers"])
 
     # As per RFC4880 Section 5.2.4., we need to hash the content,
     # signature headers and add a very opinionated trailing header
@@ -541,7 +533,8 @@ def verify_gpg_signature(signature, key_value, data):
     # print('Digest as produced by verify_gpg_signature: ' + str(digest))
 
     # Raises cryptography.exceptions.InvalidSignature if not a valid signature.
-    public_key.verify(unhexlify(signature["signature"]), digest)
+    signature_bytes = bytes.fromhex(signature["signature"])
+    public_key.verify(signature_bytes, digest)
 
     # Return if we succeeded.
     return  # explicit for clarity

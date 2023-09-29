@@ -10,7 +10,6 @@ Function Manifest for this Module:
     wrap_as_signable
     sign_signable
 """
-from binascii import hexlify
 from copy import deepcopy
 
 from .common import (
@@ -28,7 +27,7 @@ from .common import (
 )
 
 
-def serialize_and_sign(obj, private_key):
+def serialize_and_sign(obj, private_key: PrivateKey):
     """
     Given a JSON-compatible object, does the following:
      - serializes the dictionary as utf-8-encoded JSON, lazy-canonicalized
@@ -53,7 +52,7 @@ def serialize_and_sign(obj, private_key):
 
     signature_as_bytes = private_key.sign(serialized)
 
-    signature_as_hexstr = hexlify(signature_as_bytes).decode("utf-8")
+    signature_as_hexstr = signature_as_bytes.hex()
 
     return signature_as_hexstr
 
@@ -74,7 +73,7 @@ def wrap_as_signable(obj):
     Raises ❌TypeError if the given object is not a JSON-serializable type per
     SUPPORTED_SERIALIZABLE_TYPES
     """
-    if not type(obj) in SUPPORTED_SERIALIZABLE_TYPES:
+    if type(obj) not in SUPPORTED_SERIALIZABLE_TYPES:
         raise TypeError(
             "wrap_dict_as_signable requires a JSON-serializable object, "
             "but the given argument is of type " + str(type(obj)) + ", "

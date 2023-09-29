@@ -13,6 +13,7 @@ Run the tests this way:
     pytest tests/test_root.py
 """
 import copy
+import json
 
 import pytest
 
@@ -27,11 +28,13 @@ try:
 except ImportError:
     SSLIB_AVAILABLE = False
 
-import conda_content_trust.authentication as authentication
-import conda_content_trust.common as common
-import conda_content_trust.metadata_construction as metadata_construction
-import conda_content_trust.root_signing as root_signing
-import conda_content_trust.signing as signing
+from conda_content_trust import (
+    authentication,
+    common,
+    metadata_construction,
+    root_signing,
+    signing,
+)
 
 # Note that changing these sample values breaks the sample signature, so you'd
 # have to generate a new one.
@@ -86,19 +89,16 @@ SAMPLE_SIGNED_ROOT_MD = {
 }
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG key retrieval or signing without securesystemslib and GPG.",
+)
 def test_gpg_key_retrieval_with_unknown_fingerprint():
-    if not SSLIB_AVAILABLE:
-        pytest.skip(
-            "--TEST SKIPPED⚠️ : Unable to use GPG key retrieval or "
-            "signing without securesystemslib and GPG."
-        )
-        return
-
     # TODO✅: Adjust this to use whatever assertRaises() functionality the
     #         testing suite we're using provides.
 
     with pytest.raises(securesystemslib.gpg.exceptions.KeyNotFoundError):
-        full_gpg_pubkey = gpg_funcs.export_pubkey(SAMPLE_UNKNOWN_FINGERPRINT)
+        gpg_funcs.export_pubkey(SAMPLE_UNKNOWN_FINGERPRINT)
 
     print(
         "--TEST SUCCESS✅: detection of error when we pass an unknown "
@@ -106,18 +106,16 @@ def test_gpg_key_retrieval_with_unknown_fingerprint():
     )
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG key retrieval or signing without securesystemslib and GPG.",
+)
 def test_gpg_signing_with_unknown_fingerprint():
-    if not SSLIB_AVAILABLE:
-        pytest.skip(
-            "--TEST SKIPPED⚠️ : Unable to use GPG key retrieval or "
-            "signing without securesystemslib and GPG."
-        )
-        return
-
     # TODO✅: Adjust this to use whatever assertRaises() functionality the
     #         testing suite we're using provides.
     try:
         gpg_sig = root_signing.sign_via_gpg(b"1234", SAMPLE_UNKNOWN_FINGERPRINT)
+        assert gpg_sig  # minimal "not empty" check
     except securesystemslib.gpg.exceptions.CommandError as e:
         # TODO✅: This is a clumsy check.  It's a shame we don't get better
         #         than CommandError(), but this will do for now.
@@ -131,12 +129,11 @@ def test_gpg_signing_with_unknown_fingerprint():
     )
 
 
-# def test_gpg_verification_compared_to_ssls():
-
-
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG key retrieval or signing without securesystemslib and GPG.",
+)
 def test_root_gen_sign_verify():
-    # Integration test
-
     # Build a basic root metadata file with empty key_mgr delegation and one
     # root key, threshold 1, version 1.
     rmd = metadata_construction.build_root_metadata(
@@ -146,55 +143,22 @@ def test_root_gen_sign_verify():
         key_mgr_pubkeys=[],
         key_mgr_threshold=1,
     )
+
     rmd = signing.wrap_as_signable(rmd)
-
     signed_portion = rmd["signed"]
-
     canonical_signed_portion = common.canonserialize(signed_portion)
-
-    if not SSLIB_AVAILABLE:
-        pytest.skip(
-            "--TEST SKIPPED⚠️ : Unable to perform GPG signing without "
-            "securesystemslib and GPG."
-        )
-        return
-
-    # gpg_key_obj = securesystemslib.gpg.functions.export_pubkey(
-    #         SAMPLE_FINGERPRINT)
-
     gpg_sig = root_signing.sign_via_gpg(canonical_signed_portion, SAMPLE_FINGERPRINT)
 
+    gpg_sig_with_fingerprint = root_signing.sign_via_gpg(
+        canonical_signed_portion, SAMPLE_FINGERPRINT, include_fingerprint=True
+    )
+    assert "see_also" in gpg_sig_with_fingerprint
+
     signed_rmd = copy.deepcopy(rmd)
-
     signed_rmd["signatures"][SAMPLE_KEYVAL] = gpg_sig
-
-    # # Dump working files
-    # with open('T_gpg_sig.json', 'wb') as fobj:
-    #     fobj.write(common.canonserialize(gpg_sig))
-
-    # with open('T_gpg_key_obj.json', 'wb') as fobj:
-    #     fobj.write(common.canonserialize(gpg_key_obj))
-
-    # with open('T_canonical_sigless_md.json', 'wb') as fobj:
-    #     fobj.write(canonical_signed_portion)
-
-    # with open('T_full_rmd.json', 'wb') as fobj:
-    #     fobj.write(common.canonserialize(signed_rmd))
-
-    # Verify using the SSL code and the expected pubkey object.
-    # # (Purely as a test -- we wouldn't normally do this.)
-    # verified = securesystemslib.gpg.functions.verify_signature(
-    #     gpg_sig, gpg_key_obj, canonical_signed_portion)
-
-    # assert verified
 
     authentication.verify_gpg_signature(
         gpg_sig, SAMPLE_KEYVAL, canonical_signed_portion
-    )
-
-    print(
-        "--TEST SUCCESS✅: GPG signing (using GPG and securesystemslib) and "
-        "GPG signature verification (using only cryptography)"
     )
 
 
@@ -242,7 +206,6 @@ def test_verify_existing_root_md():
 
     # Verify using verify_gpg_signature.
     authentication.verify_gpg_signature(
-        # authentication.verify_gpg_signature(
         SAMPLE_GPG_SIG,
         SAMPLE_KEYVAL,
         canonical_signed_portion,
@@ -259,3 +222,67 @@ def test_verify_existing_root_md():
     # TODO ✅: Add a v2 of root to this test, and verify static v2 via v1 as
     #          well.  Also add failure modes (verifying valid v2 using v0
     #          expectations.)
+
+
+@pytest.mark.skipif(
+    SSLIB_AVAILABLE,
+    reason="Securesystemslib is available, skipping test.",
+)
+def test_check_sslib_available():
+    # Verify that the function returns False when securesystemslib is not available
+    # root_signing.SSLIB_AVAILABLE = False
+    with pytest.raises(ImportError):
+        root_signing._check_sslib_available()
+
+
+def test_no_sslib(monkeypatch):
+    """
+    Coverage for "we don't have sslib" exceptions.
+    """
+    monkeypatch.setattr(root_signing, "SSLIB_AVAILABLE", False)
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.sign_via_gpg(None, None)  # type: ignore
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.sign_root_metadata_dict_via_gpg(None, None)  # type: ignore
+    with pytest.raises(Exception, match="securesystemslib"):
+        root_signing.fetch_keyval_from_gpg(None)  # type: ignore
+
+
+def test_sign_root_metadata_dict_via_gpg():
+    with pytest.raises(TypeError, match="signable"):
+        root_signing.sign_root_metadata_dict_via_gpg({}, "")
+
+    signable = signing.wrap_as_signable({})
+    root_signing.sign_root_metadata_dict_via_gpg(signable, SAMPLE_FINGERPRINT)
+
+
+def test_sign_root_metadata_via_gpg(tmp_path):
+    md_path = tmp_path / "metadata.json"
+    data = {"packages": {"jim": "a", "bob": "b"}}
+    signable = signing.wrap_as_signable(data)
+    md_path.write_text(json.dumps(signable))
+    root_signing.sign_root_metadata_via_gpg(md_path, SAMPLE_FINGERPRINT)
+    signed_metadata = json.loads(md_path.read_text())
+    assert signed_metadata != data  # at least it was updated?
+
+    # Verify signature was added
+    assert "signatures" in signed_metadata
+    assert len(signed_metadata["signatures"]) == 1
+
+    # Verify correct key was used
+    # TODO this doesn't look anything like the comments' idea of what signed dictionaries are.
+    assert (
+        SAMPLE_FINGERPRINT.lower()
+        in list(signed_metadata["signatures"].items())[0][1]["other_headers"]
+    )
+
+    # Verify original metadata is unchanged
+    assert signed_metadata["signed"]["packages"] == data["packages"]
+
+
+def test_gpg_pubkey_in_ssl_format():
+    sample_pubkey = "0f" * 32
+    pubkey_formatted = root_signing._gpg_pubkey_in_ssl_format(
+        SAMPLE_FINGERPRINT, sample_pubkey
+    )
+    assert pubkey_formatted["keyval"]["public"]["q"] == sample_pubkey

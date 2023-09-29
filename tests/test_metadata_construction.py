@@ -21,11 +21,16 @@ from conda_content_trust.common import (
     PrivateKey,
     PublicKey,
     checkformat_delegating_metadata,
-    is_a_signable,
+    is_signable,
     keyfiles_to_bytes,
     keyfiles_to_keys,
 )
-from conda_content_trust.metadata_construction import *
+from conda_content_trust.metadata_construction import (
+    build_delegating_metadata,
+    build_root_metadata,
+    gen_and_write_keys,
+    gen_keys,
+)
 from conda_content_trust.signing import wrap_as_signable
 
 # Some REGRESSION test data.
@@ -208,9 +213,9 @@ def test_build_root_metadata():
             root_timestamp=TEST_TIMESTAMP,
         )
 
-    assert not is_a_signable(root_md)
+    assert not is_signable(root_md)
     signable_root_md = wrap_as_signable(root_md)
-    assert is_a_signable(signable_root_md)
+    assert is_signable(signable_root_md)
 
 
 def test_build_delegating_metadata():
@@ -219,6 +224,22 @@ def test_build_delegating_metadata():
     key_mgr = build_delegating_metadata(
         metadata_type="key_mgr",  # 'root' or 'key_mgr'
         delegations={"pkg_mgr": {"pubkeys": [PKGMGR_PUBLIC_HEX], "threshold": 1}},
+        version=1,
+        # timestamp   default: now
+        # expiration  default: now plus root expiration default duration
+    )
+
+    key_mgr = wrap_as_signable(key_mgr)
+
+    checkformat_delegating_metadata(key_mgr)
+
+
+def test_build_delegating_metadata_coverage():
+    # See also test_build_root_metadata.
+
+    key_mgr = build_delegating_metadata(
+        metadata_type="key_mgr",  # 'root' or 'key_mgr'
+        delegations=None,
         version=1,
         # timestamp   default: now
         # expiration  default: now plus root expiration default duration

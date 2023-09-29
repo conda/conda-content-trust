@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Improve compatibility with cryptography>=41. (#56)
+* <news item>
 
 ### Bug fixes
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Increase test coverage. Refactor cli to be more testable. (#96)

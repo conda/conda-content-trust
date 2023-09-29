@@ -17,11 +17,9 @@ Formats and Validation:
   x  is_hex_string
   x  is_hex_signature
   r  is_hex_key
-     is_hex_hash
   r  checkformat_hex_key
-     checkformat_hex_hash
   r  checkformat_list_of_hex_keys
-  x  is_a_signable
+  x  is_signable
   x  checkformat_byteslike
   x  checkformat_natural_int
   x  checkformat_expiration_distance
@@ -31,9 +29,7 @@ Formats and Validation:
   x  checkformat_gpg_signature
      is_gpg_signature
      checkformat_any_signature
-     is_delegation
      checkformat_delegation
-     is_delegations
      checkformat_delegations
      checkformat_delegating_metadata
   x  iso8601_time_plus_delta
@@ -49,10 +45,12 @@ Exceptions:
         MetadataVerificationError
         UnknownRoleError
 """
+from __future__ import annotations
+
 from binascii import hexlify, unhexlify
 from datetime import datetime, timedelta
 from json import dumps, load
-from re import compile  # for UTC iso8601 date string checking
+from typing import Any, Protocol
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -74,18 +72,10 @@ SECURITY_METADATA_SPEC_VERSION = "0.6.0"
 # The only types we're allowed to wrap as "signables" and sign are
 # the JSON-serializable types.  (There are further constraints to what is
 # JSON-serializable in addition to these type constraints.)
-SUPPORTED_SERIALIZABLE_TYPES = [dict, list, tuple, str, int, float, bool, type(None)]
+SUPPORTED_SERIALIZABLE_TYPES = {dict, list, tuple, str, int, float, bool, type(None)}
 
 # These are the permissible strings in the "type" field of delegating metadata.
 SUPPORTED_DELEGATING_METADATA_TYPES = ["root", "key_mgr"]  # May be loosened later.
-
-# (I think the regular expression checks for datetime strings run faster if we
-#  compile the pattern once and use the same object for all checks.  For a
-#  pattern like this, it's probably a negligible difference, though, and
-#  it's conceivable that the compiler already optimizes this....)
-UTC_ISO8601_REGEX_PATTERN = compile(
-    "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
-)
 
 
 class CCT_Error(Exception):
@@ -245,14 +235,6 @@ class PrivateKey(MixinKey, ed25519.Ed25519PrivateKey):
         checkformat_byteslike(key_value_in_bytes)
         return super().from_private_bytes(key_value_in_bytes)
 
-    def public_key(self):  # Overrides ed25519.Ed25519PrivateKey's method
-        """
-        Return the public key corresponding to this private key.
-        """
-        public = super().public_key()
-        checkformat_key(public)
-        return public
-
 
 class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
     """
@@ -300,55 +282,38 @@ class PublicKey(MixinKey, ed25519.Ed25519PublicKey):
 
 
 # ✅ TODO: Consider a schema definitions module, e.g. PyPI project "schema"
-def is_hex_string(s):
+def is_hex_string(hex_string: Any) -> bool:
     """
     Returns True if hex is a hex string with no uppercase characters, no spaces,
     etc.  Else, False.
     """
     try:
-        checkformat_hex_string(s)
+        checkformat_hex_string(hex_string)
         return True
     except (ValueError, TypeError):
         return False
 
 
-def checkformat_hex_string(s):
+HexString = str
+
+
+def checkformat_hex_string(hex_string: Any) -> HexString:
     """
     Throws TypeError if s is not a string.
     Throws ValueError if the given string is not a string of hexadecimal
     characters (upper-case not allowed to prevent redundancy).
     """
+    bytes.fromhex(hex_string)
+    # isalnum() checks for no whitespace which bytes.fromhex() would allow.
+    if not hex_string.isalnum() or hex_string.lower() != hex_string:
+        raise ValueError(
+            "Expected a hex string; non-hexadecimal or upper-case character found."
+        )
 
-    if not isinstance(s, str):
-        raise TypeError("Expected a hex string; given value is not string typed.")
-
-    for c in s:
-        if c not in [
-            "0",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-            "8",
-            "9",
-            "0",
-            "a",
-            "b",
-            "c",
-            "d",
-            "e",
-            "f",
-        ]:
-            raise ValueError(
-                "Expected a hex string; non-hexadecimal or upper-case "
-                'character found: "' + str(c) + '".'
-            )
+    return hex_string
 
 
-def is_hex_signature(sig):
+def is_hex_signature(hex_signature: Any) -> bool:
     """
     Returns True if key is a hex string with no uppercase characters, no
     spaces, no '0x' prefix(es), etc., and is 128 hexadecimal characters (the
@@ -356,13 +321,13 @@ def is_hex_signature(sig):
     as 128 hexadecimal characters).
     Else, returns False.
     """
-    if is_hex_string(sig) and len(sig) == 128:
+    if is_hex_string(hex_signature) and len(hex_signature) == 128:
         return True
 
     return False
 
 
-def is_hex_key(key):
+def is_hex_key(hex_key: Any) -> bool:
     """
     Returns True if key is a hex string with no uppercase characters, no
     spaces, no '0x' prefix(es), etc., and is 64 hexadecimal characters (the
@@ -371,26 +336,13 @@ def is_hex_key(key):
     Else, returns False.
     """
     try:
-        checkformat_hex_key(key)
+        checkformat_hex_key(hex_key)
         return True
     except (TypeError, ValueError):
         return False
 
 
-def is_hex_hash(h):
-    """
-    Returns True if h is a hex string with no uppercase characters, no
-    spaces, no '0x' prefix(es), etc., and is 64 hexadecimal characters (the
-    correct length for a sha256 or sha512256 hash, 32 bytes of raw data
-    represented as 64 hexadecimal characters).
-    Else, returns False.
-
-    Indistinguishable from is_hex_key.
-    """
-    return is_hex_key(h)
-
-
-def is_a_signable(dictionary):
+def is_signable(signable: Any) -> bool:
     """
     Returns True if the given dictionary is a signable dictionary as produced
     by wrap_as_signable.  Note that there MUST be no additional elements beyond
@@ -398,24 +350,21 @@ def is_a_signable(dictionary):
     outside the signed portion of the data should be the signatures; what's
     outside of 'signed' is under attacker control.)
     """
-    if (
-        isinstance(dictionary, dict)
-        and "signatures" in dictionary
-        and "signed" in dictionary
-        and isinstance(dictionary["signatures"], dict)  # , list)
-        and type(dictionary["signed"]) in SUPPORTED_SERIALIZABLE_TYPES
-        and len(dictionary) == 2
-    ):
-        return True
+    return (
+        isinstance(signable, dict)
+        and set(signable) == {"signatures", "signed"}
+        and isinstance(signable["signatures"], dict)
+        and type(signable["signed"]) in SUPPORTED_SERIALIZABLE_TYPES
+    )
 
-    else:
-        return False
+
+Signable = dict
 
 
 # TODO: ✅ Consolidate: switch to use of this wherever is_a_signable is called
 #          and then an error is raised if the result is False.
-def checkformat_signable(dictionary):
-    if not is_a_signable(dictionary):
+def checkformat_signable(signable: Any) -> Signable:
+    if not is_signable(signable):
         raise TypeError(
             "Expected a signable dictionary, but the given argument "
             "does not match expectations for a signable dictionary "
@@ -425,114 +374,118 @@ def checkformat_signable(dictionary):
             "type (" + str(SUPPORTED_SERIALIZABLE_TYPES) + ")"
         )
 
+    return signable
 
-def checkformat_byteslike(obj):
-    if not hasattr(obj, "decode"):
+
+class BytesLike(Protocol):
+    def decode(self, *args, **kwargs) -> str:
+        ...
+
+
+def checkformat_byteslike(byteslike: Any) -> BytesLike:
+    if not hasattr(byteslike, "decode"):
         raise TypeError("Expected a bytes-like object with a decode method.")
 
+    return byteslike
 
-def checkformat_natural_int(number):
+
+def checkformat_natural_int(natural_int: Any) -> int:  # Annotated[int, ">= 1"]
     # Technically a TypeError or ValueError, depending, but meh.
-    if int(number) != number or number < 1:
+    if int(natural_int) != natural_int or natural_int < 1:
         raise ValueError("Expected an integer >= 1.")
+
+    return natural_int
 
 
 # This is not yet widely used.
 # TODO: ✅ See to it that anywhere we're checking for a string, we use this.
-def checkformat_string(s):
-    if not isinstance(s, str):
+def checkformat_string(string: Any) -> str:
+    if not isinstance(string, str):
         raise TypeError("Expecting a string")
 
+    return string
 
-def checkformat_expiration_distance(expiration_distance):
+
+def checkformat_expiration_distance(expiration_distance: Any) -> timedelta:
     if not isinstance(expiration_distance, timedelta):
         raise TypeError(
             "Expiration distance must be a datetime.timedelta object. "
-            "Instead received a " + +str(type(expiration_distance))
+            "Instead received a " + str(type(expiration_distance))
         )
 
+    return expiration_distance
 
-def checkformat_hex_key(k):
-    checkformat_hex_string(k)
 
-    if 64 != len(k):
+HexKey = HexString  # Annotated[HexString, "len() == 64"]
+
+
+def checkformat_hex_key(hex_key: Any) -> HexKey:
+    checkformat_hex_string(hex_key)
+
+    if 64 != len(hex_key):
         raise ValueError("Expected a 64-character hex string representing a key value.")
 
-    # Prevent multiple possible representations of keys.  There are security
-    # implications.  For example, we cannot permit two signatures from the
-    # same key -- with the key represented differently -- to count as two
-    # signatures from distinct keys.
-    if k.lower() != k:
-        raise ValueError("Hex representations of keys must use only lowercase.")
+    return hex_key
 
 
-def checkformat_hex_hash(h):
-    checkformat_hex_string(h)
-
-    if 64 != len(h):
-        raise ValueError("Expected a 64-character hex string representing a hash.")
-
-    # Prevent multiple possible representations.  There are security
-    # implications.
-    if h.lower() != h:
-        raise ValueError("Hex representations of hashes must use only lowercase.")
-
-
-def checkformat_list_of_hex_keys(value):
+def checkformat_list_of_hex_keys(list_of_hex_keys: Any) -> list[HexKey]:
     """
     Note that this rejects any list of keys that includes any exact duplicates.
     """
-    if not isinstance(value, list):
+    if not isinstance(list_of_hex_keys, list):
         raise TypeError(
             "Expected a list of 64-character hex strings representing keys."
         )
 
-    for key in value:
-        checkformat_hex_key(key)
+    for hex_key in list_of_hex_keys:
+        checkformat_hex_key(hex_key)
 
-    if len(set(value)) != len(value):
+    if len(set(list_of_hex_keys)) != len(list_of_hex_keys):
         raise ValueError(
             "The given list of keys in hex string form contains duplicates.  "
             "Duplicates are not permitted."
         )
 
+    return list_of_hex_keys
 
-def checkformat_utc_isoformat(s):
-    # e.g. '1999-12-31T23:59:59Z'
-    # TODO: ✅ Python2/3-compatible string check
 
-    # Note that ^ and $ use is redundant with use of fullmatch here (defensive
-    # coding).  See also notes for UTC_ISO8601_REGEX_PATTERN above.
-    if UTC_ISO8601_REGEX_PATTERN.fullmatch(s) is None:
+def checkformat_utc_isoformat(date_string: Any) -> str:
+    try:
+        datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        # ValueError: date_string does not match format '%Y-%m-%dT%H:%M:%SZ'
         raise TypeError(
             "The provided string appears not to be a datetime string "
             "formatted as an ISO8601 UTC-specific datetime (e.g. "
-            '"1999-12-31T23:59:59Z".'
-        )
+            '"1999-12-31T23:59:59Z").'
+        ) from None
+
+    return date_string
 
 
-def is_gpg_fingerprint(fingerprint):
+def is_gpg_fingerprint(gpg_fingerprint: Any) -> bool:
     """
     True if the given value is a hex string of length 40 (representing a
     20-byte SHA-1 value, which is what OpenPGP/GPG uses as a key fingerprint).
     """
     try:
-        checkformat_gpg_fingerprint(fingerprint)
+        checkformat_gpg_fingerprint(gpg_fingerprint)
         return True
     except (TypeError, ValueError):
         return False
 
 
-def checkformat_gpg_fingerprint(fingerprint):
+GPGFingerprint = HexKey  # Annotated[HexKey, "len()==40"]
+
+
+def checkformat_gpg_fingerprint(gpg_fingerprint: Any) -> GPGFingerprint:
     """
     See is_gpg_fingerprint.  Raises a TypeError if is_gpg_fingerprint is not
     True.
     """
-    checkformat_hex_string(fingerprint)
-
-    if len(fingerprint) != 40:
+    if len(gpg_fingerprint) != 40:
         raise ValueError(
-            'The given value, "' + str(fingerprint) + '", is not a full '
+            'The given value, "' + str(gpg_fingerprint) + '", is not a full '
             "GPG fingerprint (40 hex characters)."
         )
 
@@ -542,57 +495,30 @@ def checkformat_gpg_fingerprint(fingerprint):
     # implications.  For example, we cannot permit two signatures from the
     # same key -- with the key represented differently -- to count as two
     # signatures from distinct keys.
-    if fingerprint.lower() != fingerprint:
+    # local hex test. isalnum() checks for no whitespace.
+    bytes.fromhex(gpg_fingerprint)
+    if not gpg_fingerprint.isalnum() or gpg_fingerprint.lower() != gpg_fingerprint:
         raise ValueError(
-            "Hex representations of GPG key fingerprints should use only " "lowercase."
+            "Expected a hex string; non-hexadecimal or upper-case character found."
         )
 
-
-def checkformat_sslgpg_signature(signature_obj):
-    """
-    Raises a TypeError if the given object is not a dictionary representing a
-    signature in a format like that produced by
-    securesystemslib.gpg.functions.create_signature(), conforming to
-    securesystemslib.formats.GPG_SIGNATURE_SCHEMA.
-
-    We will generally use a slightly different format in order to include the
-    raw ed25519 public key value.
-    This is the format we
-    expect for Root signatures.
-
-    If the given object matches the format, returns silently.
-    """
-    if not (
-        isinstance(signature_obj, dict)
-        and "keyid" in signature_obj
-        and "other_headers" in signature_obj
-        and "signature" in signature_obj
-        and len(signature_obj) == 3
-        and is_hex_signature(signature_obj["signature"])
-        # TODO ✅: Determine if we can constrain "other_headers" beyond
-        #          limiting it to a hex string.  (No length constraint is
-        #          provided here, for example.)
-        and is_hex_string(signature_obj["other_headers"])
-    ):
-        raise TypeError(
-            "Expected a dictionary representing a GPG signature in the "
-            "securesystemslib.formats.GPG_SIGNATURE_SCHEMA format."
-        )
-
-    checkformat_gpg_fingerprint(signature_obj["keyid"])
+    return gpg_fingerprint
 
 
-def is_gpg_signature(signature_obj):
+def is_gpg_signature(gpg_signature: Any) -> bool:
     # TODO: ✅ docstring based on docstring from checkformat_gpg_signature
 
     try:
-        checkformat_gpg_signature(signature_obj)
+        checkformat_gpg_signature(gpg_signature)
         return True
     except (ValueError, TypeError):
         return False
 
 
-def checkformat_gpg_signature(signature_obj):
+GPGSignature = dict
+
+
+def checkformat_gpg_signature(gpg_signature: Any) -> GPGSignature:
     """
     Raises a TypeError if the given object is not a dictionary representing a
     signature in a format that we expect.
@@ -606,13 +532,13 @@ def checkformat_gpg_signature(signature_obj):
 
     If the given object matches the format, returns silently.
     """
-    if not isinstance(signature_obj, dict):
+    if not isinstance(gpg_signature, dict):
         raise TypeError(
             "OpenPGP signatures objects must be dictionaries.  Received "
-            "type " + str(type(signature_obj)) + " instead."
+            "type " + str(type(gpg_signature)) + " instead."
         )
 
-    if sorted(list(signature_obj.keys())) not in [
+    if sorted(list(gpg_signature.keys())) not in [
         ["other_headers", "signature"],
         ["other_headers", "see_also", "signature"],
     ]:
@@ -622,7 +548,7 @@ def checkformat_gpg_signature(signature_obj):
             "other entries are permitted."
         )
 
-    if not is_hex_string(signature_obj["other_headers"]):
+    if not is_hex_string(gpg_signature["other_headers"]):
         raise ValueError(
             '"other_headers" entry in OpenPGP signature object must be a ' "hex string."
         )
@@ -630,18 +556,20 @@ def checkformat_gpg_signature(signature_obj):
         #          limiting it to a hex string.  (No length constraint is
         #          provided here, for example.)
 
-    if not is_hex_signature(signature_obj["signature"]):
+    if not is_hex_signature(gpg_signature["signature"]):
         raise ValueError(
             '"signature" entry in OpenPGP signature obj must be a hex '
             "string representing an ed25519 signature, 128 hex characters "
             "representing 64 bytes of data."
         )
 
-    if "see_also" in signature_obj:
-        checkformat_gpg_fingerprint(signature_obj["see_also"])
+    if "see_also" in gpg_signature:
+        checkformat_gpg_fingerprint(gpg_signature["see_also"])
+
+    return gpg_signature
 
 
-def is_a_signature(signature_obj):
+def is_signature(signature: Any) -> bool:
     """
     Returns True if signature_obj is a dictionary representing an ed25519
     signature, either in the conda-content-trust normal format, or
@@ -650,13 +578,16 @@ def is_a_signature(signature_obj):
     See conda_content_trust.common.checkformat_signature() docstring for more details.
     """
     try:
-        checkformat_signature(signature_obj)
+        checkformat_signature(signature)
         return True
     except (TypeError, ValueError):
         return False
 
 
-def checkformat_signature(signature_obj):
+Signature = dict
+
+
+def checkformat_signature(signature: Any) -> Signature:
     """
     Raises a TypeError if the given object is not a dictionary.
     Raises a ValueError if the given object is a dictionary, but is not in
@@ -681,11 +612,9 @@ def checkformat_signature(signature_obj):
           'other_headers': 'deadbeef'*??,
           'see_also': 'deadbeef'*10}}      # listing an OpenPGP key fingerprint
     """
-    if not isinstance(signature_obj, dict):
+    if not isinstance(signature, dict):
         raise TypeError("Expected a signature object, of type dict.")
-    elif not (
-        "signature" in signature_obj and is_hex_signature(signature_obj["signature"])
-    ):
+    elif not ("signature" in signature and is_hex_signature(signature["signature"])):
         # Even the minimal required element is not correct, so...
         raise ValueError(
             "Expected a dictionary representing an ed25519 signature as a "
@@ -695,16 +624,16 @@ def checkformat_signature(signature_obj):
         )
 
     # simple ed25519 signature, not an OpenPGP signature
-    elif len(signature_obj) == 1:
+    elif len(signature) == 1:
         # If this is a simple ed25519 signature, and not an OpenPGP/GPG
         # signature, then we're all set, since 'signature' is included and
         # has a reasonable value.
-        return
+        return signature
 
     # Permit an OpenPGP (GPG / RFC 4880) signature noted as defined in
     # function is_gpg_signature.
-    elif is_gpg_signature(signature_obj):
-        return
+    elif is_gpg_signature(signature):
+        return signature
 
     else:
         raise ValueError(
@@ -714,20 +643,10 @@ def checkformat_signature(signature_obj):
         )
 
 
-def is_signature(s):
-    """
-    True if the given value is a dictionary containing a 'signature' entry
-    with value set to a hex string of length 128 (representing an ed25519
-    signature).
-    """
-    try:
-        checkformat_signature(s)
-        return True
-    except (TypeError, ValueError):
-        return False
+Delegation = dict
 
 
-def checkformat_delegation(delegation):
+def checkformat_delegation(delegation: Any) -> Delegation:
     """
     A dictionary specifying public key values and threshold of keys
     e.g.
@@ -747,10 +666,8 @@ def checkformat_delegation(delegation):
             '"pubkeys" and "threshold" elements.'
         )
     elif not (
-        len(delegation) == 2
-        and "threshold" in delegation
+        set(delegation) == {"threshold", "pubkeys"}
         and delegation["threshold"] >= 1
-        and "pubkeys" in delegation
         and isinstance(delegation["pubkeys"], list)
         and all([is_hex_key(k) for k in delegation["pubkeys"]])
     ):
@@ -765,16 +682,10 @@ def checkformat_delegation(delegation):
     checkformat_list_of_hex_keys(delegation["pubkeys"])
     checkformat_natural_int(delegation["threshold"])
 
-
-def is_a_delegation(delegation):
-    try:
-        checkformat_delegation(delegation)
-        return True
-    except (ValueError, TypeError):
-        return False
+    return delegation
 
 
-def checkformat_delegations(delegations):
+def checkformat_delegations(delegations: Any) -> dict[str, Delegation]:
     """
     A dictionary specifying a delegation for any number of role names.
     Index: rolename.  Value: delegation (see checkformat_delegation).
@@ -796,16 +707,13 @@ def checkformat_delegations(delegations):
         checkformat_string(index)
         checkformat_delegation(delegations[index])
 
-
-def is_delegations(delegations):
-    try:
-        checkformat_delegations(delegations)
-        return True
-    except (ValueError, TypeError):
-        return False
+    return delegations
 
 
-def checkformat_delegating_metadata(metadata):
+DelegatingMetadata = Signable
+
+
+def checkformat_delegating_metadata(metadata: Any) -> DelegatingMetadata:
     """
     Validates argument "metadata" as delegating metadata.  Passes if it is,
     raises a TypeError or ValueError if it is not.
@@ -926,8 +834,8 @@ def checkformat_delegating_metadata(metadata):
     #          themselves in the foot.
 
 
-def checkformat_any_signature(sig):
-    if not is_a_signature(sig) and not is_gpg_signature(sig):
+def checkformat_any_signature(signature: Any) -> Signature | GPGSignature:
+    if not is_signature(signature) and not is_gpg_signature(signature):
         raise ValueError(
             "Expected either a hex string representing a raw ed25519 "
             "signature (see checkformat_signature) or a dictionary "
@@ -935,34 +843,7 @@ def checkformat_any_signature(sig):
             "(see checkformat_gpg_signature)."
         )
 
-
-# def sha512256(data):
-#     """
-#     # TODO ✅: Deprecate me in favor of simple SHA-256 hashing via
-#     #          pyca/cryptography.
-
-#     Since hashlib still does not provide a "SHA-512/256" option (SHA-512 with,
-#     basically, truncation to 256 bits at each stage of the hashing, defined by
-#     the FIPS Secure Hash Standard), we provide it here.  SHA-512/256 is as
-#     secure as SHA-256, but substantially faster on 64-bit architectures.
-#     Uses pyca/cryptography.
-
-#     Given bytes, returns the hex digest of the hash of the given bytes, using
-#     SHA-512/256.
-#     """
-#     if not isinstance(data, bytes):
-#         # Note that string literals in Python2 also pass this test by default.
-#         # unicode_literals fixes that for string literals created in modules
-#         # importing unicode_literals.
-#         raise TypeError('Expected bytes; received ' + str(type(data)))
-
-#     # pyca/cryptography's interface is a little clunky about this.
-#     hasher = cryptography.hazmat.primitives.hashes.Hash(
-#             algorithm=cryptography.hazmat.primitives.hashes.SHA512_256(),
-#             backend=cryptography.hazmat.backends.default_backend())
-#     hasher.update(data)
-
-#     return hasher.finalize().hex()
+    return signature
 
 
 def keyfiles_to_bytes(name):
@@ -1001,59 +882,13 @@ def keyfiles_to_keys(name):
     return private, public
 
 
-# This function has been replaced by method to_bytes() in classes PublicKey
-# and PrivateKey (see class MixinKey).
-# def key_to_bytes(key):
-#     """
-#     Pops out the nice, tidy bytes of a given cryptography...ed25519 key obj,
-#     public or private.
-#     """
-#     if isinstance(key, ed25519.Ed25519PrivateKey):
-#         return key.private_bytes(
-#                 encoding=serialization.Encoding.Raw,
-#                 format=serialization.PrivateFormat.Raw,
-#                 encryption_algorithm=serialization.NoEncryption())
-#     elif isinstance(key, ed25519.Ed25519PublicKey):
-#         return key.public_bytes(
-#                 serialization.Encoding.Raw,
-#                 serialization.PublicFormat.Raw)
-#     else:
-#         raise TypeError(
-#                 'Can only handle objects of class Ed25519PrivateKey or '
-#                 'Ed25519PublicKey.  Given object is of class: ' +
-#                 str(type(key)))
-
-
-# This function has been replaced by method from_bytes() in classes PublicKey
-# and PrivateKey (see class MixinKey).
-# def public_key_from_bytes(public_bytes):
-#     # from_public_bytes() checks length (32), but does not produce helpful
-#     # errors if the argument provided it is not the right type.
-#     checkformat_byteslike(public_bytes)
-#     if len(public_bytes) != 32:
-#         raise ValueError('Requires bytes-like object of length 32.')
-#     return ed25519.Ed25519PublicKey.from_public_bytes(public_bytes)
-
-
-# This function has been replaced by method from_hex() in classes PublicKey and
-# PrivateKey (see class MixinKey).
-# def public_key_from_hex_string(public_hex_string):
-
-#     checkformat_hex_key(public_hex_string)
-
-#     return ed25519.Ed25519PublicKey.from_public_bytes(unhexlify(
-#             public_hex_string))
-
-
-def checkformat_key(key):
+def checkformat_key(key: Any) -> ed25519.Ed25519PublicKey | ed25519.Ed25519PrivateKey:
     """
     Enforces expectation that argument is an object of type
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PublicKey or
     cryptography.hazmat.primitives.asymmetric.ed25519.Ed25519PrivateKey.
     """
-    if not isinstance(key, ed25519.Ed25519PublicKey) and not isinstance(
-        key, ed25519.Ed25519PrivateKey
-    ):
+    if not isinstance(key, (ed25519.Ed25519PublicKey, ed25519.Ed25519PrivateKey)):
         raise TypeError(
             "Expected an Ed25519PublicKey or Ed25519PrivateKey object "
             'from the "cryptography" library.  Received object of type '
@@ -1061,23 +896,7 @@ def checkformat_key(key):
             + " instead."
         )
 
-
-# def signature
-# def bytes_to_hex_string():
-# def bytes_from_hex_string(hex):
-
-#     hexlify().
-
-# def public_key_from_hex_string(public_hex_string):
-#     return ed25519.Ed25519PublicKey.from_public_bytes(unhexlify(public_hex_string))
-
-# def private_key_from_bytes(private_bytes):
-#     # from_private_bytes() checks length (32), but does not produce helpful
-#     # errors if the argument provided it is not the right type.
-#     checkformat_byteslike(private_bytes)
-#     # if len(private_bytes) != 32:
-#     #     raise ValueError('Requires bytes-like object of length 32.')
-#     return ed25519.Ed25519PrivateKey.from_bytes(private_bytes)
+    return key
 
 
 def iso8601_time_plus_delta(delta):
@@ -1097,30 +916,3 @@ def iso8601_time_plus_delta(delta):
     unix_expiry = datetime.utcnow().replace(microsecond=0) + delta
 
     return unix_expiry.isoformat() + "Z"
-
-
-# This function should not be necessary, since we'll only be dealing with
-# signatures we generate, and we'll adapt them to our requirements when they're
-# made (just a few adjustments).
-# def _gpgsig_to_sslgpgsig(gpg_sig):
-#
-#     conda_content_trust.common.checkformat_gpg_signature(gpg_sig)
-#
-#     return {
-#             'keyid': copy.deepcopy(gpg_sig['key_fingerprint']),
-#             'other_headers': copy.deepcopy(gpg_sig[other_headers]),
-#             'signature': copy.deepcopy(gpg_sig['signature'])}
-
-
-# This function should not be necessary, since we'll only be dealing with
-# signatures we generate, and we'll adapt them to our requirements when they're
-# made (just a few adjustments).
-# def _sslgpgsig_to_gpgsig(ssl_gpg_sig):
-#
-#     securesystemslib.formats.GPG_SIGNATURE_SCHEMA.check_match(ssl_gpg_sig)
-#
-#     return {
-#             'key_fingerprint': copy.deepcopy(ssl_gpg_sig['keyid']),
-#             'other_headers': copy.deepcopy(ssl_gpg_sig[other_headers]),
-#             'signature': copy.depcopy(ssl_gpg_sig['signature'])
-#     }

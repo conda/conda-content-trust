@@ -14,9 +14,15 @@ import os
 import os.path
 import shutil
 
-from conda_content_trust.authentication import *
-from conda_content_trust.common import *
-from conda_content_trust.signing import *
+import pytest
+
+from conda_content_trust.authentication import verify_signature
+from conda_content_trust.common import (
+    PublicKey,
+    canonserialize,
+    load_metadata_from_file,
+)
+from conda_content_trust.signing import sign_all_in_repodata, wrap_as_signable
 
 # Some REGRESSION test data.
 REG__KEYPAIR_NAME = "keytest_old"
@@ -68,7 +74,8 @@ REG__EXPECTED_REGSIGNED_REPODATA_VERIFY = {
         "osx-64/repodata_from_packages.json": "8120fb07a6a8a280ffa2b89fb2fbb89484823d0b0357ff0cfa7c333352b2faa2",
     },
 }
-REG__REPODATA_SAMPLE_FNAME = "tests/repodata_sample.json"
+REG__REPODATA_SAMPLE_FNAME = "tests/testdata/repodata_sample.json"
+REG__REPODATA_NO_PACKAGES_FNAME = "tests/testdata/repodata_no_packages.json"
 REG__REPODATA_SAMPLE_TEMP_FNAME = "tests/repodata_sample_temp.json"
 
 
@@ -82,15 +89,39 @@ REG__REPODATA_SAMPLE_TEMP_FNAME = "tests/repodata_sample_temp.json"
 #             '⚠️ These tests are currently implemented in '
 #             'test_authentication.py instead.'))
 
-# def test_wrap_as_signable():
-#     raise(NotImplementedError(
-#             '⚠️ This function is tested in multiple modules, but '
-#             'a unit test should be constructed from those tests.'))
+
+def test_wrap_as_signable_default():
+    obj = {"foo": "bar"}
+    signed = wrap_as_signable(obj)
+    assert signed == {"signatures": {}, "signed": obj}
+
+
+def test_wrap_as_signable_error():
+    with pytest.raises(TypeError):
+        wrap_as_signable(object())
 
 
 def remove_sample_tempfile():
     if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
         os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
+
+
+def test_sign_all_invalid_repodata(tmp_path):
+    invalid_repodata = tmp_path / "invalid_repodata.json"
+    invalid_repodata.write_text("{}")
+
+    PublicKey.from_hex(REG__PUBLIC_HEX)
+
+    # Make a test copy of the repodata sample, since we're going to
+    # update it.
+    if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
+        os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
+    shutil.copy(REG__REPODATA_SAMPLE_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
+
+    with pytest.raises(
+        ValueError, match='Expected a "packages" entry in given repodata file.'
+    ):
+        sign_all_in_repodata(str(invalid_repodata), REG__PRIVATE_HEX)
 
 
 def test_sign_all_in_repodata(request):
@@ -120,7 +151,9 @@ def test_sign_all_in_repodata(request):
 
     # Make sure there is one signature entry for every artifact entry, and no
     # mystery entries.
-    assert repodata["packages"].keys() == repodata_signed["signatures"].keys()
+    assert set(repodata["packages"].keys()) | set(
+        repodata["packages.conda"].keys()
+    ) == set(repodata_signed["signatures"].keys())
 
     for artifact_name in repodata["packages"]:
         # There's a signature "by" this key listed for every artifact.
@@ -132,3 +165,21 @@ def test_sign_all_in_repodata(request):
             public,
             canonserialize(repodata["packages"][artifact_name]),
         )
+
+
+def test_wrap_unserializable():
+    with pytest.raises(TypeError):
+        wrap_as_signable(object())
+
+
+def test_sign_all_in_repodata_no_packages(request):
+    request.addfinalizer(remove_sample_tempfile)
+
+    # Make a test copy of the repodata sample, since we're going to
+    # update it.
+    if os.path.exists(REG__REPODATA_SAMPLE_TEMP_FNAME):
+        os.remove(REG__REPODATA_SAMPLE_TEMP_FNAME)
+    shutil.copy(REG__REPODATA_NO_PACKAGES_FNAME, REG__REPODATA_SAMPLE_TEMP_FNAME)
+
+    with pytest.raises(ValueError):
+        sign_all_in_repodata(REG__REPODATA_SAMPLE_TEMP_FNAME, REG__PRIVATE_HEX)

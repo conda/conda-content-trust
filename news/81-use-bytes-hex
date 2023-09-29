@@ -16,5 +16,4 @@
 
 ### Other
 
-* Replace `darker` with `black` pre-commit hook. (#58)
-* Add `isort` pre-commit hook. (#58)
+* Use `bytes.hex()` APIs instead of `binascii.unhexlify()` (#81)
