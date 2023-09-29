@@ -392,7 +392,7 @@ def interactive_modify_metadata(metadata):
                 conda_content_trust.root_signing.sign_root_metadata_dict_via_gpg(
                     metadata, key
                 )
-            except:
+            except (ValueError, TypeError, ImportError):
                 print(
                     F_OPTS
                     + "\n\n--- "
@@ -442,8 +442,9 @@ def interactive_modify_metadata(metadata):
 
         try:
             new_thresh = int(new_thresh)
-            assert new_thresh >= 1
-        except:
+            if not new_thresh >= 1:
+                raise ValueError()
+        except (ValueError, TypeError):
             print(
                 F_OPTS + "\n--- " + RED + "Invalid value.  Expecting integer "
                 "greater than or equal to 1.  Please try again." + ENDC
@@ -516,7 +517,7 @@ def interactive_modify_metadata(metadata):
         selected = input(F_OPTS + "Choice: " + ENDC)
         try:
             selected = int(selected)
-        except:
+        except (ValueError, TypeError):
             print(RED + BOLD + "\nInvalid entry.  Try again.\n" + ENDC)
             continue
         if selected not in options:
