@@ -335,6 +335,8 @@ def interactive_modify_metadata(metadata):
     initial_metadata = metadata
     metadata = deepcopy(initial_metadata)
 
+    import pprint
+
     try:
         import pygments
         import pygments.formatters
@@ -348,7 +350,6 @@ def interactive_modify_metadata(metadata):
             "and prettier printing of JSON, you may install pygments."
         )
         pygments = None
-        from pprint import pprint
 
     # Build the modification options and prompt.
     def promptfor(s):
@@ -511,7 +512,7 @@ def interactive_modify_metadata(metadata):
                 )
             )
         else:
-            pprint(metadata)
+            pprint.pprint(metadata)
 
         print(option_text)
         selected = input(F_OPTS + "Choice: " + ENDC)
