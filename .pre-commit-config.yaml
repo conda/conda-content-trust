@@ -42,7 +42,7 @@ repos:
       # auto sort Python imports
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 23.9.1
+    rev: 23.10.1
     hooks:
       # auto format Python codes
       - id: black
