@@ -37,7 +37,7 @@ repos:
         args: [--py38-plus]
         exclude: ^conda/exports.py
   - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 5.13.0
     hooks:
       # auto sort Python imports
       - id: isort
