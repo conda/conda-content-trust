@@ -37,12 +37,12 @@ repos:
         args: [--py38-plus]
         exclude: ^conda/exports.py
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.0
+    rev: 5.13.2
     hooks:
       # auto sort Python imports
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 23.11.0
+    rev: 23.12.1
     hooks:
       # auto format Python codes
       - id: black
