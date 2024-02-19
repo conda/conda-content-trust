@@ -23,14 +23,14 @@ repos:
       - id: check-merge-conflict
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.4
+    rev: v1.5.5
     hooks:
       # auto inject license blurb
       - id: insert-license
         files: \.py$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.15.1
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -42,7 +42,7 @@ repos:
       # auto sort Python imports
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 24.2.0
     hooks:
       # auto format Python codes
       - id: black
