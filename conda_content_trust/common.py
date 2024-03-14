@@ -378,8 +378,7 @@ def checkformat_signable(signable: Any) -> Signable:
 
 
 class BytesLike(Protocol):
-    def decode(self, *args, **kwargs) -> str:
-        ...
+    def decode(self, *args, **kwargs) -> str: ...
 
 
 def checkformat_byteslike(byteslike: Any) -> BytesLike:
