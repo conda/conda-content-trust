@@ -452,9 +452,9 @@ def test_verify_root():
     # Not enough signatures from authorized keys:
     #     Have one of the signatures claim to be from the wrong key.
     with pytest.raises(SignatureError):
-        root_v2_edited["signatures"][
-            REG__PUBLIC_HEX_ROOT[:-6] + "ffffff"
-        ] = root_v2_edited["signatures"][REG__PUBLIC_HEX_ROOT]
+        root_v2_edited["signatures"][REG__PUBLIC_HEX_ROOT[:-6] + "ffffff"] = (
+            root_v2_edited["signatures"][REG__PUBLIC_HEX_ROOT]
+        )
         del root_v2_edited["signatures"][REG__PUBLIC_HEX_ROOT]
         verify_root(TEST_ROOT_MD_V1, root_v2_edited)
 
