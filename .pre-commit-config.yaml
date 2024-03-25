@@ -30,7 +30,7 @@ repos:
         files: \.py$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.1
+    rev: v3.15.2
     hooks:
       # upgrade standard Python codes
       - id: pyupgrade
@@ -42,7 +42,7 @@ repos:
       # auto sort Python imports
       - id: isort
   - repo: https://github.com/psf/black
-    rev: 24.2.0
+    rev: 24.3.0
     hooks:
       # auto format Python codes
       - id: black
