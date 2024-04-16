@@ -3,6 +3,7 @@
 """
 pytest-benchmark benchmarks for conda-content-trust.
 """
+
 import datetime
 
 import cryptography.exceptions

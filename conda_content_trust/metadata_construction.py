@@ -14,6 +14,7 @@ Metadata Construction:
   build_delegating_metadata
   build_root_metadata         (wraps build_delegating_metadata)
 """
+
 from datetime import timedelta
 
 from .common import (

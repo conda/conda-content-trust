@@ -10,6 +10,7 @@ Function Manifest for this Module:
     wrap_as_signable
     sign_signable
 """
+
 from copy import deepcopy
 
 from .common import (
