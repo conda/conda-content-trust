@@ -57,6 +57,9 @@ changelog = "https://github.com/conda/conda-content-trust/blob/main/CHANGELOG.md
 [project.scripts]
 conda-content-trust = "conda_content_trust.cli:cli"
 
+[project.entry-points."conda"]
+conda-content-trust = "conda_content_trust.plugin"
+
 [tool.hatch.version]
 source = "vcs"
 
@@ -69,11 +72,63 @@ include = ["conda_content_trust"]
 [tool.hatch.build.hooks.vcs]
 version-file = "conda_content_trust/__version__.py"
 
-[tool.black]
-target-version = ['py38', 'py39', 'py310', 'py311']
+[tool.coverage.run]
+# store relative paths in coverage information
+relative_files = true
 
-[tool.isort]
-profile = "black"
+[tool.coverage.report]
+show_missing = true
+sort = "Miss"
+skip_covered = true
+omit = ["tests/*"]
+exclude_lines = [
+    "pragma: no cover",
+    "pragma: py$PYTHON_MAJOR_VERSION no cover",
+    "pragma: $TEST_PLATFORM no cover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "def __repr__",
+    '\s*\.\.\.$',
+    "if TYPE_CHECKING:",  # ignoring type checking imports
+]
 
-[project.entry-points."conda"]
-conda-content-trust = "conda_content_trust.plugin"
+[tool.ruff]
+target-version = "py38"
+
+[tool.ruff.lint]
+# E, W = pycodestyle errors and warnings
+# F = pyflakes
+# I = isort
+# UP = pyupgrade
+# ISC = flake8-implicit-str-concat
+# TCH = flake8-type-checking
+# T10 = flake8-debugger
+# FA = flake8-future-annotations
+# see also https://docs.astral.sh/ruff/rules/
+select = ["E", "W", "F", "I", "UP", "ISC", "TCH", "T10", "FA"]
+# E501 Line too long
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+  "--benchmark-columns=mean,iqr,median,ops,rounds",
+  "--benchmark-name=short",
+  "--color=yes",
+  "--cov-branch",
+  "--cov-report=html",
+  "--cov-report=term",
+  "--cov-report=term-missing",
+  "--cov-report=xml",
+  # "--cov=conda_content_trust",  # passed in test runner scripts instead (avoid debugger)
+  "--durations=20",
+  "--junitxml=test-report.xml",
+  "--showlocals",
+  "--strict-markers",
+  "--tb=native",
+  "--verbose",
+]
+markers = [
+  "serial: execute test serially (to avoid race conditions)",
+]
