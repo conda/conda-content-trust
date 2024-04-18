@@ -17,6 +17,7 @@ Function Manifest for this Module:
 Note that there is a function in conda_content_trust.authentication that verifies these
 signatures without requiring securesystemslib.
 """
+
 # securesystemslib is an optional dependency, and required only for signing
 # root metadata via GPG.  Verification of those signatures, and signing other
 # metadata with raw ed25519 signatures, does not require securesystemslib.

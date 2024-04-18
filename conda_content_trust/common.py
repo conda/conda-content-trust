@@ -45,6 +45,7 @@ Exceptions:
         MetadataVerificationError
         UnknownRoleError
 """
+
 from __future__ import annotations
 
 from binascii import hexlify, unhexlify
@@ -549,7 +550,7 @@ def checkformat_gpg_signature(gpg_signature: Any) -> GPGSignature:
 
     if not is_hex_string(gpg_signature["other_headers"]):
         raise ValueError(
-            '"other_headers" entry in OpenPGP signature object must be a ' "hex string."
+            '"other_headers" entry in OpenPGP signature object must be a hex string.'
         )
         # TODO ✅: Determine if we can constrain "other_headers" beyond
         #          limiting it to a hex string.  (No length constraint is

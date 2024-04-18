@@ -12,6 +12,7 @@ securesystemslib and GPG available on the system.
 Run the tests this way:
     pytest tests/test_root.py
 """
+
 import copy
 import json
 

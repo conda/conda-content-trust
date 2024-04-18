@@ -12,6 +12,7 @@ Run the tests this way:
      - pytest
      - parameterize?
 """
+
 import os
 
 import pytest

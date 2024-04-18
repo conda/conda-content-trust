@@ -1,9 +1,7 @@
-# conda-content-trust test dependencies
-# run as 'conda install -c defaults --file tests/requirements.txt'
+conda-forge::securesystemslib
+conda>=22.11
 cryptography>=41.0.0
 pytest
-pytest-cov
-conda>=22.11
-conda-forge::securesystemslib
-setuptools_scm
 pytest-benchmark
+pytest-cov
+setuptools_scm

@@ -1,16 +1,12 @@
 [build-system]
+build-backend = "hatchling.build"
 requires = [
   "hatchling >=1.12.2",
   "hatch-vcs >=0.2.0",
 ]
-build-backend = "hatchling.build"
 
 [project]
-name = "conda-content-trust"
-description = "Signing and verification tools, geared toward the conda ecosystem."
-readme = "README.md"
 authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
-license = {file = "LICENSE"}
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -23,24 +19,31 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy"
+  "Programming Language :: Python :: Implementation :: PyPy",
 ]
-requires-python = ">=3.8"
 dependencies = [
   "cryptography>=41",
 ]
+description = "Signing and verification tools, geared toward the conda ecosystem."
 dynamic = ["version"]
 keywords = [
-    "conda-content-trust",
-    "conda-authentication-resources",
-    "conda",
-    "signing",
-    "secure",
-    "verify",
-    "authentication",
-    "key",
-    "compromise",
+  "conda-content-trust",
+  "conda-authentication-resources",
+  "conda",
+  "signing",
+  "secure",
+  "verify",
+  "authentication",
+  "key",
+  "compromise",
 ]
+license = {file = "LICENSE"}
+name = "conda-content-trust"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.entry-points."conda"]
+conda-content-trust = "conda_content_trust.plugin"
 
 [project.optional-dependencies]
 # Note that the securesystemslib optional dependency is only required to
@@ -50,18 +53,33 @@ keywords = [
 # WARNING: DEPENDENCY ON SECURESYSTEMSLIB PINNED.
 gpgsigning = ["securesystemslib==0.13.1"]
 
-[project.urls]
-repository = "https://github.com/conda/conda-content-trust"
-changelog = "https://github.com/conda/conda-content-trust/blob/main/CHANGELOG.md"
-
 [project.scripts]
 conda-content-trust = "conda_content_trust.cli:cli"
 
-[tool.hatch.version]
-source = "vcs"
+[project.urls]
+changelog = "https://github.com/conda/conda-content-trust/blob/main/CHANGELOG.md"
+repository = "https://github.com/conda/conda-content-trust"
 
-[tool.hatch.version.raw-options]
-local_scheme = "dirty-tag"
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "pragma: py$PYTHON_MAJOR_VERSION no cover",
+  "pragma: $TEST_PLATFORM no cover",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "def __repr__",
+  '\s*\.\.\.$',
+  "if TYPE_CHECKING:",  # ignoring type checking imports
+]
+omit = ["tests/*"]
+show_missing = true
+skip_covered = true
+sort = "Miss"
+
+[tool.coverage.run]
+# store relative paths in coverage information
+relative_files = true
 
 [tool.hatch.build]
 include = ["conda_content_trust"]
@@ -69,11 +87,51 @@ include = ["conda_content_trust"]
 [tool.hatch.build.hooks.vcs]
 version-file = "conda_content_trust/__version__.py"
 
-[tool.black]
-target-version = ['py38', 'py39', 'py310', 'py311']
+[tool.hatch.version]
+source = "vcs"
 
-[tool.isort]
-profile = "black"
+[tool.hatch.version.raw-options]
+local_scheme = "dirty-tag"
 
-[project.entry-points."conda"]
-conda-content-trust = "conda_content_trust.plugin"
+[tool.pytest.ini_options]
+addopts = [
+  "--benchmark-columns=mean,iqr,median,ops,rounds",
+  "--benchmark-name=short",
+  "--color=yes",
+  "--cov-branch",
+  "--cov-report=html",
+  "--cov-report=term",
+  "--cov-report=term-missing",
+  "--cov-report=xml",
+  # "--cov=conda_content_trust",  # passed in test runner scripts instead (avoid debugger)
+  "--durations=20",
+  "--junitxml=test-report.xml",
+  "--showlocals",
+  "--strict-markers",
+  "--tb=native",
+  "--verbose",
+]
+markers = [
+  "serial: execute test serially (to avoid race conditions)",
+]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py38"
+
+[tool.ruff.lint]
+ignore = [
+  "E501",  # Line too long
+]
+# see https://docs.astral.sh/ruff/rules/
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # isort
+  "UP",  # pyupgrade
+  "ISC",  # flake8-implicit-str-concat
+  "TCH",  # flake8-type-checking
+  "T10",  # flake8-debugger
+  "FA",  # flake8-future-annotations
+]

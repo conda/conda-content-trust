@@ -9,6 +9,7 @@ NOTE that much of the signing module is currently tested in
 Run the tests this way:
     pytest tests/test_signing.py
 """
+
 import copy
 import os
 import os.path

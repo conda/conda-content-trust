@@ -11,6 +11,7 @@ Function Manifest for this Module
     verify_root
     verify_delegation
 """
+
 from struct import pack
 
 import cryptography.exceptions

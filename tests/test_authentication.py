@@ -7,6 +7,7 @@ as well as integration tests for the signing.py + authentication.py.
 Run the tests this way:
     pytest tests/test_authentication.py
 """
+
 import copy
 import json
 import os

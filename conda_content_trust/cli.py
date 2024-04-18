@@ -5,6 +5,7 @@ This module provides the CLI interface for conda-content-trust.
 This is intended to provide a command-line signing and metadata update
 interface.
 """
+
 from argparse import ArgumentParser
 from copy import deepcopy
 from json import dumps
@@ -98,7 +99,7 @@ def build_parser():
     )
     p_verifymd.add_argument(
         "untrusted_metadata_filename",
-        help=("the filename of the " "(untrusted) metadata file to verify"),
+        help="the filename of the (untrusted) metadata file to verify",
     )
 
     # subcommand: modify-metadata
@@ -119,7 +120,7 @@ def build_parser():
     p_modifymd.set_defaults(func=cli_modify_metadata)
     p_modifymd.add_argument(
         "metadata_filename",
-        help=("the filename of the existing metadata " "file to modify"),
+        help="the filename of the existing metadata file to modify",
     )
 
     # If we're missing optional requirements for the next few options, note
@@ -170,7 +171,7 @@ def build_parser():
         ),
     )
     p_gpgsign.add_argument(
-        "filename", help=("the filename of the file that will be signed")
+        "filename", help="the filename of the file that will be signed"
     )
 
     return parser
