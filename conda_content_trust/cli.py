@@ -41,7 +41,7 @@ def build_parser():
         "--version",
         action="version",
         help="Show the conda-content-trust version number and exit.",
-        version="conda-content-trust %s" % __version__,
+        version=f"conda-content-trust {__version__}",
     )
 
     # Create separate parsers for the subcommands.
