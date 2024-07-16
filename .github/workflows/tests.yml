@@ -72,15 +72,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Timestamp
-        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
-        shell: bash
+      - name: Hash + Timestamp
+        shell: bash  # use bash to run date command
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
-      - name: Cache conda
+      - name: Cache Conda
         uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-content-trust-${{ env.TIMESTAMP }}
+          key: cache-${{ env.HASH }}
 
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@a4260408e20b96e80095f42ff7f1a15b27dd94ca # v3.0.4
