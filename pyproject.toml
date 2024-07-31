@@ -51,7 +51,7 @@ conda-content-trust = "conda_content_trust.plugin"
 # pyca/cryptography).  *Verification* of either signature type does NOT
 # require securesystemslib.
 # WARNING: DEPENDENCY ON SECURESYSTEMSLIB PINNED.
-gpgsigning = ["securesystemslib==0.13.1"]
+gpgsigning = ["securesystemslib==0.28.0"]
 
 [project.scripts]
 conda-content-trust = "conda_content_trust.cli:cli"
