@@ -24,8 +24,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # detect whether any code changes are included in this PR
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      # necessary to detect changes
+      # https://github.com/dorny/paths-filter#supported-workflows
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        # dorny/paths-filter needs git clone for non-PR events
+        # https://github.com/dorny/paths-filter#supported-workflows
+        if: github.event_name != 'pull_request'
+
+      - name: Filter Changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'conda_content_trust/**'
+              - 'tests/**'
+              - '*.py'
+              - 'recipe/**'
+              - '.github/workflows/tests.yml'
+
   # test suite
   tests:
+    # only run test suite if there are code changes
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -34,45 +66,54 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-latest, macos-13, windows-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Source
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Timestamp
-        run: echo "TIMESTAMP=$(date -u "+%Y%m")" >> $GITHUB_ENV
-        shell: bash
+      - name: Hash + Timestamp
+        shell: bash  # use bash to run date command
+        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
-      - name: Cache conda
+      - name: Cache Conda
         uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-content-trust-${{ env.TIMESTAMP }}
+          key: cache-${{ env.HASH }}
 
-      - name: Setup miniconda
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@a4260408e20b96e80095f42ff7f1a15b27dd94ca # v3.0.4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Setup environment
-        run: |
-          conda install -q -y -c defaults \
-            --file ./tests/requirements.txt
-          gpg --import tests/testdata/test_key_*
+      - name: Conda Install
+        run: >
+          conda install
+          --yes
+          --channel=defaults
+          --file tests/requirements.txt
 
-      - name: Show info
-        run: |
-          conda info -a
-          conda list --show-channel-urls
+      - name: Import GPG Keys
+        run: gpg --import tests/testdata/test_key_*
 
-      - name: Run tests
+      - name: Conda Info
+        # view test env info (not base)
+        run: python -m conda info --verbose
+
+      - name: Conda Config
+        run: conda config --show-sources
+
+      - name: Conda List
+        run: conda list --show-channel-urls
+
+      - name: Run Tests
         run: pytest --cov=conda_content_trust
 
-      - name: Upload coverage
+      - name: Upload Coverage
         uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         with:
-          flags: ${{ matrix.python-version }},${{ runner.os }}
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }}
 
   # canary builds
   build:
