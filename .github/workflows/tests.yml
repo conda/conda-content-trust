@@ -111,7 +111,7 @@ jobs:
         run: pytest --cov=conda_content_trust
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }}
 
