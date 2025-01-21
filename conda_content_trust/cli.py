@@ -128,8 +128,7 @@ def build_parser():
     opt_reqs_str = ""
     if not conda_content_trust.root_signing.SSLIB_AVAILABLE:
         opt_reqs_str = (
-            "[Unavailable]: Requires optional "
-            "dependencies: securesystemslib and gpg.  "
+            "[Unavailable]: Requires optional dependencies: securesystemslib and gpg.  "
         )
 
     # subcommand: gpg-key-lookup
@@ -479,8 +478,7 @@ def interactive_modify_metadata(metadata):
     }
 
     option_text = (
-        F_INSTRUCT + "\n--- Please choose an operation by entering its "
-        "number\n" + ENDC
+        F_INSTRUCT + "\n--- Please choose an operation by entering its number\n" + ENDC
     )
     for index in options:
         option_text += (
