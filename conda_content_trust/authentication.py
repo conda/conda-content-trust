@@ -229,8 +229,7 @@ def verify_delegation(
 
     if delegation_name not in delegations:
         raise UnknownRoleError(
-            "Role " + delegation_name + " not found in the given "
-            "delegating metadata."
+            "Role " + delegation_name + " not found in the given delegating metadata."
         )
 
     expected_keys = delegations[delegation_name]["pubkeys"]
