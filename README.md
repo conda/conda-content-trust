@@ -39,7 +39,7 @@ If you intend to *create* *GPG* key signatures (as opposed to the typical non-GP
 
 ## Demonstration and Use
 
-Use of the command-line utility provides help functionality::
+Use of the command-line utility provides help functionality:
 
 ```
 conda-content-trust --help
