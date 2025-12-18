@@ -16,7 +16,7 @@ requirements:
   build:
     - git  # for source/git_url above
   host:
-    - python
+    - python >=3.10
     - pip
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
