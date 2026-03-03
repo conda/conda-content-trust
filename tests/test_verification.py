@@ -17,7 +17,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 from conda.base.constants import REPODATA_FN
-from conda.base.context import context, reset_context
+from conda.base.context import Context, context, reset_context
+from conda.core.subdir_data import SubdirData
 from conda.gateways.connection import HTTPError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
@@ -27,10 +28,7 @@ from conda_content_trust.constants import KEY_MGR_FILE
 from conda_content_trust.verification import _SignatureVerification
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from pytest import MonkeyPatch
-    from pytest_mock import MockerFixture
 
 
 TESTDATA = Path(__file__).parent / "testdata"
@@ -45,13 +43,11 @@ def clear_cache():
 
 
 @pytest.fixture
-def av_data_dir(mocker: MockerFixture, tmp_path: Path) -> Path:
+def av_data_dir(monkeypatch: MonkeyPatch, tmp_path: Path) -> Path:
     av_data_dir = tmp_path / "av_data"
     av_data_dir.mkdir()
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=mocker.PropertyMock,
-        return_value=av_data_dir,
+    monkeypatch.setattr(
+        Context, "av_data_dir", property(lambda self: av_data_dir)
     )
     return av_data_dir
 
@@ -70,36 +66,45 @@ def key_mgr(av_data_dir: Path) -> dict:
 
 
 @pytest.fixture
-def mock_fetch_channel_signing_data(
-    mocker: MockerFixture,
-) -> Callable[..., None]:
-    def inner(*values) -> None:
-        mocker.patch(
-            "conda_content_trust.verification._SignatureVerification._fetch_channel_signing_data",
-            side_effect=values,
-        )
+def mock_fetch(monkeypatch: MonkeyPatch):
+    """Patch _fetch_channel_signing_data with a fake that pops from a response queue.
 
-    return inner
+    Returns a SimpleNamespace with:
+      - responses: list to fill with return values or exceptions to raise
+      - calls: list of filenames that were requested
+    """
+    state = SimpleNamespace(responses=[], calls=[])
+
+    def fake_fetch(self, url, filename, **kwargs):
+        state.calls.append(filename)
+        resp = state.responses.pop(0)
+        if isinstance(resp, Exception):
+            raise resp
+        return resp
+
+    monkeypatch.setattr(
+        _SignatureVerification, "_fetch_channel_signing_data", fake_fetch
+    )
+    return state
 
 
 def test_trusted_root_no_new_metadata(
     av_data_dir: Path,
     initial_trust_root: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
-    # return HTTPError(404)
-    mock_fetch_channel_signing_data(HTTP404)
+    mock_fetch.responses.extend([HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches 2.root.json (non-existent), uses 1.root.json from disk
     assert sig_ver.trusted_root == initial_trust_root
-    assert sig_ver._fetch_channel_signing_data.call_count == 1
+    assert len(mock_fetch.calls) == 1
 
 
 def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
     av_data_dir: Path,
     initial_trust_root: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     Case where we cannot reach new root metadata online but have a newer version locally
@@ -111,19 +116,18 @@ def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
     # load 2.root.json
     root2 = json.loads(path.read_text())
 
-    # return HTTPError(404)
-    mock_fetch_channel_signing_data(HTTP404)
+    mock_fetch.responses.extend([HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches 3.root.json (non-existent), fallback to disk
     assert sig_ver.trusted_root == root2
-    assert sig_ver._fetch_channel_signing_data.call_count == 1
+    assert len(mock_fetch.calls) == 1
 
 
 def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
     av_data_dir: Path,
     initial_trust_root: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     Unusual case:  We have an invalid 2.root.json on disk and no new metadata available
@@ -135,19 +139,18 @@ def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
     # load 2.root.json
     root2 = json.loads(path.read_text())
 
-    # return HTTPError(404)
-    mock_fetch_channel_signing_data(HTTP404)
+    mock_fetch.responses.extend([HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches 3.root.json (non-existent), fallback to disk
     assert sig_ver.trusted_root == root2
-    assert sig_ver._fetch_channel_signing_data.call_count == 1
+    assert len(mock_fetch.calls) == 1
 
 
 def test_2nd_root_metadata_from_web(
     av_data_dir: Path,
     initial_trust_root: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     Test happy case where we get a new valid root metadata from the web
@@ -156,18 +159,18 @@ def test_2nd_root_metadata_from_web(
     root2 = json.loads((TESTDATA / "2.root.json").read_text())
 
     # return 2.root.json then HTTPError(404)
-    mock_fetch_channel_signing_data(root2, HTTP404)
+    mock_fetch.responses.extend([root2, HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches 2.root.json (valid) and 3.root.json (non-existent)
     assert sig_ver.trusted_root == root2
-    assert sig_ver._fetch_channel_signing_data.call_count == 2
+    assert len(mock_fetch.calls) == 2
 
 
 def test_3rd_root_metadata_from_web(
     av_data_dir: Path,
     initial_trust_root: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     Test happy case where we get a chain of valid root metadata from the web
@@ -177,18 +180,18 @@ def test_3rd_root_metadata_from_web(
     root3 = json.loads((TESTDATA / "3.root.json").read_text())
 
     # return 2.root.json, 3.root.json, then HTTPError(404)
-    mock_fetch_channel_signing_data(root2, root3, HTTP404)
+    mock_fetch.responses.extend([root2, root3, HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches 2.root.json (valid), 3.root.json (valid), and 4.root.json (non-existent)
     assert sig_ver.trusted_root == root3
-    assert sig_ver._fetch_channel_signing_data.call_count == 3
+    assert len(mock_fetch.calls) == 3
 
 
 def test_single_invalid_signature_3rd_root_metadata_from_web(
     av_data_dir: Path,
     initial_trust_root: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     Third root metadata retrieved from online has a bad signature. Test that we do not trust it.
@@ -198,53 +201,51 @@ def test_single_invalid_signature_3rd_root_metadata_from_web(
     root3 = json.loads((TESTDATA / "3.root_invalid.json").read_text())
 
     # return 2.root.json then 3.root.json
-    mock_fetch_channel_signing_data(root2, root3)
+    mock_fetch.responses.extend([root2, root3])
     sig_ver = _SignatureVerification()
 
     # fetches 2.root.json (valid) and 3.root.json (invalid)
     assert sig_ver.trusted_root == root2
-    assert sig_ver._fetch_channel_signing_data.call_count == 2
+    assert len(mock_fetch.calls) == 2
 
 
 def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(
     av_data_dir: Path,
     initial_trust_root: dict,
     key_mgr: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     If we don't have a new key_mgr online, we use the one from disk
     """
-    # return HTTPError(404)
-    mock_fetch_channel_signing_data(HTTP404)
+    mock_fetch.responses.extend([HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches key_mgr.json (non-existent), fallback to disk (exists)
     assert sig_ver.key_mgr == key_mgr
-    assert sig_ver._fetch_channel_signing_data.call_count == 1
+    assert len(mock_fetch.calls) == 1
 
 
 def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(
     av_data_dir: Path,
     initial_trust_root: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     If we have no key_mgr online and no key_mgr on disk we don't have a key_mgr
     """
-    # return HTTPError(404)
-    mock_fetch_channel_signing_data(HTTP404)
+    mock_fetch.responses.extend([HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches key_mgr.json (non-existent), fallback to disk (non-existent)
     assert sig_ver.key_mgr is None
-    assert sig_ver._fetch_channel_signing_data.call_count == 1
+    assert len(mock_fetch.calls) == 1
 
 
 def test_trusted_root_new_key_mgr_online(
     av_data_dir: Path,
     initial_trust_root: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     We have a new key_mgr online that can be verified against our trusted root.
@@ -254,19 +255,19 @@ def test_trusted_root_new_key_mgr_online(
     key_mgr = json.loads((TESTDATA / "key_mgr.json").read_text())
 
     # return key_mgr.json then HTTPError(404)
-    mock_fetch_channel_signing_data(key_mgr, HTTP404)
+    mock_fetch.responses.extend([key_mgr, HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches key_mgr.json (valid) then 2.root.json (non-existent)
     assert sig_ver.key_mgr == key_mgr
-    assert sig_ver._fetch_channel_signing_data.call_count == 2
+    assert len(mock_fetch.calls) == 2
 
 
 def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     av_data_dir: Path,
     initial_trust_root: dict,
     key_mgr: dict,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     We have a new key_mgr online that can be verified against our trusted root.
@@ -279,13 +280,13 @@ def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
     key_mgr = json.loads((TESTDATA / "key_mgr_invalid.json").read_text())
 
     # return key_mgr_invalid.json then HTTPError(404)
-    mock_fetch_channel_signing_data(key_mgr, HTTP404)
+    mock_fetch.responses.extend([key_mgr, HTTP404])
     sig_ver = _SignatureVerification()
 
     # fetches key_mgr.json (invalid) then 2.root.json (non-existent)
     with pytest.raises(SignatureError):
         sig_ver.key_mgr
-    assert sig_ver._fetch_channel_signing_data.call_count == 2
+    assert len(mock_fetch.calls) == 2
 
 
 def test_signature_verification_not_enabled(
@@ -317,13 +318,12 @@ def test_signature_verification_not_enabled(
 
 def test_no_trust_root_on_disk(
     av_data_dir: Path,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
 ):
     """
     If no trust root is found on disk, trusted_root should be None.
     """
-    # return HTTPError(404) - no new metadata online
-    mock_fetch_channel_signing_data(HTTP404)
+    mock_fetch.responses.extend([HTTP404])
     sig_ver = _SignatureVerification()
 
     # no 1.root.json on disk, should return None
@@ -343,9 +343,8 @@ def test_no_trust_root_on_disk(
     ],
 )
 def test_signature_verification(
-    mocker: MockerFixture,
     monkeypatch: MonkeyPatch,
-    mock_fetch_channel_signing_data: Callable,
+    mock_fetch: SimpleNamespace,
     tmp_path: Path,
     package: str,
     signed: bool | None,
@@ -358,23 +357,19 @@ def test_signature_verification(
             copyfile(root_file, av_data_dir / root_file.name)
     copyfile(TESTDATA / "key_mgr_verify.json", av_data_dir / "key_mgr.json")
 
-    mocker.patch(
-        "conda.base.context.Context.av_data_dir",
-        new_callable=mocker.PropertyMock,
-        return_value=av_data_dir,
+    monkeypatch.setattr(
+        Context, "av_data_dir", property(lambda self: av_data_dir)
     )
 
-    # mock out the cache path base
+    # set up cache path for SubdirData
     cache_path_base = tmp_path / "cache"
     cache_path_base.mkdir()
-    mocker.patch(
-        "conda.core.subdir_data.SubdirData.cache_path_base",
-        new_callable=mocker.PropertyMock,
-        return_value=cache_path_base,
+    monkeypatch.setattr(
+        SubdirData, "cache_path_base", property(lambda self: cache_path_base)
     )
 
     # mock out network calls for trust root refresh and key_mgr fetch
-    mock_fetch_channel_signing_data(HTTP404, HTTP404)
+    mock_fetch.responses.extend([HTTP404, HTTP404])
 
     # enable signature verification
     monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
