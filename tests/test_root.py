@@ -249,6 +249,10 @@ def test_no_sslib(monkeypatch):
         root_signing.fetch_keyval_from_gpg(None)  # type: ignore
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG signing without securesystemslib and GPG.",
+)
 def test_sign_root_metadata_dict_via_gpg():
     with pytest.raises(TypeError, match="signable"):
         root_signing.sign_root_metadata_dict_via_gpg({}, "")
@@ -257,6 +261,10 @@ def test_sign_root_metadata_dict_via_gpg():
     root_signing.sign_root_metadata_dict_via_gpg(signable, SAMPLE_FINGERPRINT)
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG signing without securesystemslib and GPG.",
+)
 def test_sign_root_metadata_via_gpg(tmp_path):
     md_path = tmp_path / "metadata.json"
     data = {"packages": {"jim": "a", "bob": "b"}}
@@ -281,6 +289,10 @@ def test_sign_root_metadata_via_gpg(tmp_path):
     assert signed_metadata["signed"]["packages"] == data["packages"]
 
 
+@pytest.mark.skipif(
+    not SSLIB_AVAILABLE,
+    reason="Unable to use GPG key formatting without securesystemslib.",
+)
 def test_gpg_pubkey_in_ssl_format():
     sample_pubkey = "0f" * 32
     pubkey_formatted = root_signing._gpg_pubkey_in_ssl_format(
