@@ -49,8 +49,9 @@ def av_data_dir(mocker: MockerFixture, tmp_path: Path) -> Path:
     av_data_dir = tmp_path / "av_data"
     av_data_dir.mkdir()
     mocker.patch(
-        "conda_content_trust.verification.context.av_data_dir",
-        av_data_dir,
+        "conda.base.context.Context.av_data_dir",
+        new_callable=mocker.PropertyMock,
+        return_value=av_data_dir,
     )
     return av_data_dir
 
@@ -344,14 +345,23 @@ def test_no_trust_root_on_disk(
 def test_signature_verification(
     mocker: MockerFixture,
     monkeypatch: MonkeyPatch,
+    mock_fetch_channel_signing_data: Callable,
     tmp_path: Path,
     package: str,
     signed: bool | None,
 ):
-    # mock out the signature verification root path
+    # set up av_data_dir with root metadata and matching key_mgr
+    av_data_dir = tmp_path / "av_data"
+    av_data_dir.mkdir()
+    for root_file in TESTDATA.glob("*.root.json"):
+        if "invalid" not in root_file.name:
+            copyfile(root_file, av_data_dir / root_file.name)
+    copyfile(TESTDATA / "key_mgr_verify.json", av_data_dir / "key_mgr.json")
+
     mocker.patch(
-        "conda_content_trust.verification.context.av_data_dir",
-        TESTDATA,
+        "conda.base.context.Context.av_data_dir",
+        new_callable=mocker.PropertyMock,
+        return_value=av_data_dir,
     )
 
     # mock out the cache path base
@@ -363,9 +373,12 @@ def test_signature_verification(
         return_value=cache_path_base,
     )
 
+    # mock out network calls for trust root refresh and key_mgr fetch
+    mock_fetch_channel_signing_data(HTTP404, HTTP404)
+
     # enable signature verification
     monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
-    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "http://example.com")
     reset_context()
     assert context.extra_safety_checks
     assert context.signing_metadata_url_base == url

@@ -27,7 +27,7 @@ from conda.base.constants import (
 from conda.base.context import context
 from conda.common.url import join_url
 from conda.core.subdir_data import SubdirData
-from conda.gateways.connection import InsecureRequestWarning
+from conda.gateways.connection import HTTPError, InsecureRequestWarning
 from conda.gateways.connection.session import get_session
 
 from .authentication import verify_delegation, verify_root
@@ -138,15 +138,15 @@ class _SignatureVerification:
                 )
 
                 verify_root(trusted, untrusted)
+            except HTTPError as err:
+                # HTTP 404 implies no updated root.json is available, which is
+                # not really an "error" and does not need to be logged.
+                if err.response.status_code != 404:
+                    log.error(err)
+                break
             except Exception as err:
-                # Check for HTTP 404 - no updated root.json available
-                if hasattr(err, "response") and err.response.status_code == 404:
-                    pass  # Not an error, just no update available
-                elif hasattr(err, "response"):
-                    log.error(err)
-                else:
-                    # TODO: more error handling
-                    log.error(err)
+                # TODO: more error handling
+                log.error(err)
                 break
             else:
                 # New trust root metadata checks out
@@ -172,16 +172,12 @@ class _SignatureVerification:
             verify_delegation("key_mgr", untrusted, self.trusted_root)
         except ConnectionError as err:
             log.warning(err)
-        except Exception as err:
-            # Check for HTTPError
-            if hasattr(err, "response"):
-                # sometimes the HTTPError message is blank, when that occurs include the
-                # HTTP status code
-                log.warning(
-                    str(err) or f"{err.__class__.__name__} ({err.response.status_code})"
-                )
-            else:
-                log.warning(err)
+        except HTTPError as err:
+            # sometimes the HTTPError message is blank, when that occurs include the
+            # HTTP status code
+            log.warning(
+                str(err) or f"{err.__class__.__name__} ({err.response.status_code})"
+            )
         else:
             # New key manager metadata checks out
             write_metadata_to_file(trusted := untrusted, path)
