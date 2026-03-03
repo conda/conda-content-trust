@@ -46,9 +46,7 @@ def clear_cache():
 def av_data_dir(monkeypatch: MonkeyPatch, tmp_path: Path) -> Path:
     av_data_dir = tmp_path / "av_data"
     av_data_dir.mkdir()
-    monkeypatch.setattr(
-        Context, "av_data_dir", property(lambda self: av_data_dir)
-    )
+    monkeypatch.setattr(Context, "av_data_dir", property(lambda self: av_data_dir))
     return av_data_dir
 
 
@@ -357,9 +355,7 @@ def test_signature_verification(
             copyfile(root_file, av_data_dir / root_file.name)
     copyfile(TESTDATA / "key_mgr_verify.json", av_data_dir / "key_mgr.json")
 
-    monkeypatch.setattr(
-        Context, "av_data_dir", property(lambda self: av_data_dir)
-    )
+    monkeypatch.setattr(Context, "av_data_dir", property(lambda self: av_data_dir))
 
     # set up cache path for SubdirData
     cache_path_base = tmp_path / "cache"
