@@ -1,0 +1,407 @@
+# Copyright (C) 2019 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""Tests for the signature verification module.
+
+Note: These tests were migrated from conda/tests/trust/test_signature_verification.py
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from shutil import copyfile
+from types import SimpleNamespace
+from typing import TYPE_CHECKING
+
+import pytest
+from conda.base.constants import REPODATA_FN
+from conda.base.context import Context, context, reset_context
+from conda.core.subdir_data import SubdirData
+from conda.gateways.connection import HTTPError
+from conda.models.channel import Channel
+from conda.models.records import PackageRecord
+
+from conda_content_trust.common import SignatureError
+from conda_content_trust.constants import KEY_MGR_FILE
+from conda_content_trust.verification import _SignatureVerification
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+
+TESTDATA = Path(__file__).parent / "testdata"
+HTTP404 = HTTPError(response=SimpleNamespace(status_code=404))
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    _SignatureVerification.cache_clear()
+    yield
+    _SignatureVerification.cache_clear()
+
+
+@pytest.fixture
+def av_data_dir(monkeypatch: MonkeyPatch, tmp_path: Path) -> Path:
+    av_data_dir = tmp_path / "av_data"
+    av_data_dir.mkdir()
+    monkeypatch.setattr(Context, "av_data_dir", property(lambda self: av_data_dir))
+    return av_data_dir
+
+
+@pytest.fixture
+def initial_trust_root(av_data_dir: Path) -> dict:
+    """Copy 1.root.json to av_data_dir and return its contents."""
+    copyfile(TESTDATA / "1.root.json", av_data_dir / "1.root.json")
+    return json.loads((TESTDATA / "1.root.json").read_text())
+
+
+@pytest.fixture
+def key_mgr(av_data_dir: Path) -> dict:
+    copyfile(key_mgr := TESTDATA / "key_mgr.json", av_data_dir / KEY_MGR_FILE)
+    return json.loads(key_mgr.read_text())
+
+
+@pytest.fixture
+def mock_fetch(monkeypatch: MonkeyPatch):
+    """Patch _fetch_channel_signing_data with a fake that pops from a response queue.
+
+    Returns a SimpleNamespace with:
+      - responses: list to fill with return values or exceptions to raise
+      - calls: list of filenames that were requested
+    """
+    state = SimpleNamespace(responses=[], calls=[])
+
+    def fake_fetch(self, url, filename, **kwargs):
+        state.calls.append(filename)
+        resp = state.responses.pop(0)
+        if isinstance(resp, Exception):
+            raise resp
+        return resp
+
+    monkeypatch.setattr(
+        _SignatureVerification, "_fetch_channel_signing_data", fake_fetch
+    )
+    return state
+
+
+def test_trusted_root_no_new_metadata(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch: SimpleNamespace,
+):
+    mock_fetch.responses.extend([HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches 2.root.json (non-existent), uses 1.root.json from disk
+    assert sig_ver.trusted_root == initial_trust_root
+    assert len(mock_fetch.calls) == 1
+
+
+def test_trusted_root_2nd_metadata_on_disk_no_new_metadata_on_web(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    Case where we cannot reach new root metadata online but have a newer version locally
+    (2.root.json). Use this new version if it is valid.
+    """
+    # copy 2.root.json to disk
+    copyfile(TESTDATA / "2.root.json", path := av_data_dir / "2.root.json")
+
+    # load 2.root.json
+    root2 = json.loads(path.read_text())
+
+    mock_fetch.responses.extend([HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches 3.root.json (non-existent), fallback to disk
+    assert sig_ver.trusted_root == root2
+    assert len(mock_fetch.calls) == 1
+
+
+def test_invalid_2nd_metadata_on_disk_no_new_metadata_on_web(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    Unusual case:  We have an invalid 2.root.json on disk and no new metadata available
+    online. In this case, our deliberate choice is to accept whatever on disk.
+    """
+    # copy 2.root_invalid.json to disk
+    copyfile(TESTDATA / "2.root_invalid.json", path := av_data_dir / "2.root.json")
+
+    # load 2.root.json
+    root2 = json.loads(path.read_text())
+
+    mock_fetch.responses.extend([HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches 3.root.json (non-existent), fallback to disk
+    assert sig_ver.trusted_root == root2
+    assert len(mock_fetch.calls) == 1
+
+
+def test_2nd_root_metadata_from_web(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    Test happy case where we get a new valid root metadata from the web
+    """
+    # load 2.root.json
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
+
+    # return 2.root.json then HTTPError(404)
+    mock_fetch.responses.extend([root2, HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches 2.root.json (valid) and 3.root.json (non-existent)
+    assert sig_ver.trusted_root == root2
+    assert len(mock_fetch.calls) == 2
+
+
+def test_3rd_root_metadata_from_web(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    Test happy case where we get a chain of valid root metadata from the web
+    """
+    # load 2.root.json and 3.root.json
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
+    root3 = json.loads((TESTDATA / "3.root.json").read_text())
+
+    # return 2.root.json, 3.root.json, then HTTPError(404)
+    mock_fetch.responses.extend([root2, root3, HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches 2.root.json (valid), 3.root.json (valid), and 4.root.json (non-existent)
+    assert sig_ver.trusted_root == root3
+    assert len(mock_fetch.calls) == 3
+
+
+def test_single_invalid_signature_3rd_root_metadata_from_web(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    Third root metadata retrieved from online has a bad signature. Test that we do not trust it.
+    """
+    # load 2.root.json and 3.root_invalid.json
+    root2 = json.loads((TESTDATA / "2.root.json").read_text())
+    root3 = json.loads((TESTDATA / "3.root_invalid.json").read_text())
+
+    # return 2.root.json then 3.root.json
+    mock_fetch.responses.extend([root2, root3])
+    sig_ver = _SignatureVerification()
+
+    # fetches 2.root.json (valid) and 3.root.json (invalid)
+    assert sig_ver.trusted_root == root2
+    assert len(mock_fetch.calls) == 2
+
+
+def test_trusted_root_no_new_key_mgr_online_key_mgr_is_on_disk(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    key_mgr: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    If we don't have a new key_mgr online, we use the one from disk
+    """
+    mock_fetch.responses.extend([HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches key_mgr.json (non-existent), fallback to disk (exists)
+    assert sig_ver.key_mgr == key_mgr
+    assert len(mock_fetch.calls) == 1
+
+
+def test_trusted_root_no_new_key_mgr_online_key_mgr_not_on_disk(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    If we have no key_mgr online and no key_mgr on disk we don't have a key_mgr
+    """
+    mock_fetch.responses.extend([HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches key_mgr.json (non-existent), fallback to disk (non-existent)
+    assert sig_ver.key_mgr is None
+    assert len(mock_fetch.calls) == 1
+
+
+def test_trusted_root_new_key_mgr_online(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    We have a new key_mgr online that can be verified against our trusted root.
+    We should accept the new key_mgr
+    """
+    # load key_mgr.json
+    key_mgr = json.loads((TESTDATA / "key_mgr.json").read_text())
+
+    # return key_mgr.json then HTTPError(404)
+    mock_fetch.responses.extend([key_mgr, HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches key_mgr.json (valid) then 2.root.json (non-existent)
+    assert sig_ver.key_mgr == key_mgr
+    assert len(mock_fetch.calls) == 2
+
+
+def test_trusted_root_invalid_key_mgr_online_valid_on_disk(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    key_mgr: dict,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    We have a new key_mgr online that can be verified against our trusted root.
+    We should accept the new key_mgr
+
+    Note:  This one does not fail with a warning and no side effects like the others.
+    Instead, we raise a SignatureError
+    """
+    # load key_mgr_invalid.json
+    key_mgr = json.loads((TESTDATA / "key_mgr_invalid.json").read_text())
+
+    # return key_mgr_invalid.json then HTTPError(404)
+    mock_fetch.responses.extend([key_mgr, HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # fetches key_mgr.json (invalid) then 2.root.json (non-existent)
+    with pytest.raises(SignatureError):
+        sig_ver.key_mgr
+    assert len(mock_fetch.calls) == 2
+
+
+def test_signature_verification_not_enabled(
+    av_data_dir: Path,
+    initial_trust_root: dict,
+    key_mgr: dict,
+    monkeypatch: MonkeyPatch,
+):
+    sig_ver = _SignatureVerification()
+
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "false")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", "")
+    reset_context()
+    assert not context.extra_safety_checks
+    assert not context.signing_metadata_url_base
+
+    _SignatureVerification.cache_clear()
+    assert not sig_ver.enabled
+
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", "")
+    reset_context()
+    assert context.extra_safety_checks
+    assert not context.signing_metadata_url_base
+
+    _SignatureVerification.cache_clear()
+    assert not sig_ver.enabled
+
+
+def test_no_trust_root_on_disk(
+    av_data_dir: Path,
+    mock_fetch: SimpleNamespace,
+):
+    """
+    If no trust root is found on disk, trusted_root should be None.
+    """
+    mock_fetch.responses.extend([HTTP404])
+    sig_ver = _SignatureVerification()
+
+    # no 1.root.json on disk, should return None
+    assert sig_ver.trusted_root is None
+
+
+@pytest.mark.parametrize(
+    "package,signed",
+    [
+        ("first.tar.bz2", True),
+        ("second.conda", True),
+        ("third.conda", True),
+        # bad signature
+        ("broken-0.0.1-broken.tar.bz2", False),
+        # no signature
+        ("broken-0.0.1-broken.conda", None),
+    ],
+)
+def test_signature_verification(
+    monkeypatch: MonkeyPatch,
+    mock_fetch: SimpleNamespace,
+    tmp_path: Path,
+    package: str,
+    signed: bool | None,
+):
+    # set up av_data_dir with root metadata and matching key_mgr
+    av_data_dir = tmp_path / "av_data"
+    av_data_dir.mkdir()
+    for root_file in TESTDATA.glob("*.root.json"):
+        if "invalid" not in root_file.name:
+            copyfile(root_file, av_data_dir / root_file.name)
+    copyfile(TESTDATA / "key_mgr_verify.json", av_data_dir / "key_mgr.json")
+
+    monkeypatch.setattr(Context, "av_data_dir", property(lambda self: av_data_dir))
+
+    # set up cache path for SubdirData
+    cache_path_base = tmp_path / "cache"
+    cache_path_base.mkdir()
+    monkeypatch.setattr(
+        SubdirData, "cache_path_base", property(lambda self: cache_path_base)
+    )
+
+    # mock out network calls for trust root refresh and key_mgr fetch
+    mock_fetch.responses.extend([HTTP404, HTTP404])
+
+    # enable signature verification
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "http://example.com")
+    reset_context()
+    assert context.extra_safety_checks
+    assert context.signing_metadata_url_base == url
+
+    # load repodata.json with signatures
+    src = TESTDATA / "repodata.json"
+    repodata = json.loads(src.read_text())
+
+    # copy repodata.json to cache path
+    dst = cache_path_base / (subdir := repodata["info"]["subdir"]) / REPODATA_FN
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    copyfile(src, dst)
+
+    # create record to verify
+    pkg = "packages.conda" if package.endswith(".conda") else "packages"
+    record = PackageRecord.from_objects(
+        repodata[pkg][package],
+        channel=Channel.from_value(f"file:///{cache_path_base}/{subdir}"),
+        fn=package,
+    )
+
+    sig_ver = _SignatureVerification()
+    assert sig_ver.trusted_root
+    assert sig_ver.key_mgr
+    assert sig_ver.enabled
+
+    # ensure signature is valid
+    sig_ver.verify(REPODATA_FN, record)
+
+    if signed:
+        assert "(package metadata is TRUSTED)" in record.metadata
+    elif signed is False:
+        assert "(package metadata is UNTRUSTED)" in record.metadata
+    else:
+        assert f"(no signatures found for {package})" in record.metadata
