@@ -1,0 +1,17 @@
+### Enhancements
+
+* Add `CondaPostSolve` plugin hook for signature verification, migrated from `conda.trust.signature_verification`. This enables automatic package signature verification when conda's `extra_safety_checks` is enabled and a trust root is installed (e.g., via `conda-anaconda-trust-root`). (#TBD)
+* Add `verification` module with `_SignatureVerification` class for verifying package metadata signatures during conda's solve phase. (#TBD)
+* Add `constants` module with `KEY_MGR_FILE` constant, migrated from `conda.trust.constants`. (#TBD)
+
+### Deprecations
+
+* None
+
+### Docs
+
+* None
+
+### Other
+
+* Add `pytest-mock` to test dependencies for the new verification tests. (#TBD)
