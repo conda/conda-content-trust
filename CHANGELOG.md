@@ -1,5 +1,46 @@
 [//]: # (current developments)
 
+## 0.3.0 (2026-03-18)
+
+### Enhancements
+
+* Add support for Python 3.13. (#239)
+* Add `CondaPostSolve` plugin hook for signature verification, migrated from `conda.trust.signature_verification`. This enables automatic package signature verification when conda's `extra_safety_checks` is enabled and a trust root is installed (e.g., via `conda-anaconda-trust-root`). (#245)
+* Add `verification` module with `_SignatureVerification` class for verifying package metadata signatures during conda's solve phase. (#245)
+* Add `constants` module with `KEY_MGR_FILE` constant, migrated from `conda.trust.constants`. (#245)
+* Add support for Python 3.14. (#245)
+
+### Deprecations
+
+* Drop support for Python 3.8 and 3.9. (#239)
+* None
+
+### Docs
+
+* None
+
+### Other
+
+* Use `bytes.hex()` APIs instead of `binascii.unhexlify()` (#81)
+* Increase test coverage. Refactor cli to be more testable. (#96)
+* Remove flake8 ignores and fix findings or add `# noqa` inline. (#98)
+* None
+
+### Contributors
+
+* @agriyakhetarpal
+* @beeankha
+* @conda-bot
+* @dbast
+* @dholth
+* @jaimergp
+* @jezdez
+* @kenodegard
+* @dependabot[bot]
+* @pre-commit-ci[bot]
+
+
+
 ## 0.2.0 (2023-08-29)
 
 ### Enhancements
