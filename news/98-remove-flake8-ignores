@@ -16,4 +16,4 @@
 
 ### Other
 
-* Remove flake8 ignores and fix findings or add `# noqa` inline
+* Remove flake8 ignores and fix findings or add `# noqa` inline. (#98)

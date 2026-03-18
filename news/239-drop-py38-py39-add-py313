@@ -1,6 +1,6 @@
 ### Enhancements
 
-* <news item>
+* Add support for Python 3.13. (#239)
 
 ### Bug fixes
 
@@ -9,7 +9,6 @@
 ### Deprecations
 
 * Drop support for Python 3.8 and 3.9. (#239)
-* Add support for Python 3.13. (#239)
 
 ### Docs
 
