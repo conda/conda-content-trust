@@ -1,7 +1,5 @@
 # Copyright (C) 2019 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
 """Tests for the signature verification module.
 
 Note: These tests were migrated from conda/tests/trust/test_signature_verification.py
@@ -37,9 +35,10 @@ HTTP404 = HTTPError(response=SimpleNamespace(status_code=404))
 
 @pytest.fixture(autouse=True)
 def clear_cache():
-    _SignatureVerification.cache_clear()
+    sig_ver = _SignatureVerification()
+    sig_ver.cache_clear()
     yield
-    _SignatureVerification.cache_clear()
+    sig_ver.cache_clear()
 
 
 @pytest.fixture
@@ -301,7 +300,7 @@ def test_signature_verification_not_enabled(
     assert not context.extra_safety_checks
     assert not context.signing_metadata_url_base
 
-    _SignatureVerification.cache_clear()
+    sig_ver.cache_clear()
     assert not sig_ver.enabled
 
     monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
@@ -310,7 +309,7 @@ def test_signature_verification_not_enabled(
     assert context.extra_safety_checks
     assert not context.signing_metadata_url_base
 
-    _SignatureVerification.cache_clear()
+    sig_ver.cache_clear()
     assert not sig_ver.enabled
 
 

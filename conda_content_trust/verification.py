@@ -15,7 +15,7 @@ import json
 import os
 import re
 import warnings
-from functools import cache
+from functools import cached_property
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -50,8 +50,7 @@ class _SignatureVerification:
     metadata signatures against the trusted root and key manager metadata.
     """
 
-    @property
-    @cache
+    @cached_property
     def enabled(self) -> bool:
         # safety checks must be enabled
         if not context.extra_safety_checks:
@@ -61,7 +60,7 @@ class _SignatureVerification:
         if not context.signing_metadata_url_base:
             log.warning(
                 "metadata signature verification requested, "
-                "but no metadata URL base has not been specified."
+                "but no metadata URL base has been specified."
             )
             return False
 
@@ -85,8 +84,7 @@ class _SignatureVerification:
         # signature verification is enabled
         return True
 
-    @property
-    @cache
+    @cached_property
     def trusted_root(self) -> dict | None:
         # TODO: formalize paths for `*.root.json` and `key_mgr.json` on server-side
         trusted: dict | None = None
@@ -154,8 +152,7 @@ class _SignatureVerification:
 
         return trusted
 
-    @property
-    @cache
+    @cached_property
     def key_mgr(self) -> dict | None:
         trusted: dict | None = None
 
@@ -310,12 +307,10 @@ class _SignatureVerification:
         for prec in link_precs:
             self.verify(repodata_fn, prec)
 
-    @classmethod
-    def cache_clear(cls) -> None:
+    def cache_clear(self) -> None:
         """Clear all cached properties."""
-        cls.enabled.fget.cache_clear()
-        cls.trusted_root.fget.cache_clear()
-        cls.key_mgr.fget.cache_clear()
+        for attr in ("enabled", "trusted_root", "key_mgr"):
+            self.__dict__.pop(attr, None)
 
 
 # singleton for caching
