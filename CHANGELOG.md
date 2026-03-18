@@ -13,33 +13,25 @@
 ### Deprecations
 
 * Drop support for Python 3.8 and 3.9. (#239)
-* None
-
-### Docs
-
-* None
 
 ### Other
 
 * Use `bytes.hex()` APIs instead of `binascii.unhexlify()` (#81)
 * Increase test coverage. Refactor cli to be more testable. (#96)
 * Remove flake8 ignores and fix findings or add `# noqa` inline. (#98)
-* None
 
 ### Contributors
 
-* @agriyakhetarpal
+* @agriyakhetarpal made their first contribution in https://github.com/conda/conda-content-trust/pull/238
 * @beeankha
 * @conda-bot
-* @dbast
+* @dbast made their first contribution in https://github.com/conda/conda-content-trust/pull/98
 * @dholth
-* @jaimergp
+* @jaimergp made their first contribution in https://github.com/conda/conda-content-trust/pull/227
 * @jezdez
 * @kenodegard
 * @dependabot[bot]
 * @pre-commit-ci[bot]
-
-
 
 ## 0.2.0 (2023-08-29)
 
