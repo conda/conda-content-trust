@@ -9,7 +9,7 @@ This module registers:
 Note: The signature verification hook was migrated from conda.trust in conda 26.3.
 """
 
-import conda.plugins.hookimpl
+import conda.plugins
 import conda.plugins.types
 
 from .cli import cli
