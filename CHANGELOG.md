@@ -1,5 +1,18 @@
 [//]: # (current developments)
 
+## 0.3.1 (2026-04-01)
+
+### Bug fixes
+
+* Fix `conda.plugins` import. (#260)
+
+### Contributors
+
+* @jezdez
+* @kenodegard
+
+
+
 ## 0.3.0 (2026-03-18)
 
 ### Enhancements
