@@ -15,6 +15,7 @@ Function Manifest for this Module
 from struct import pack
 
 import cryptography.exceptions
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from .common import (
@@ -517,10 +518,14 @@ def verify_gpg_signature(signature, key_value, data):
 
     # As per RFC4880 Section 5.2.4., we need to hash the content,
     # signature headers and add a very opinionated trailing header
-    hasher = cryptography.hazmat.primitives.hashes.Hash(
-        cryptography.hazmat.primitives.hashes.SHA256(),
-        cryptography.hazmat.backends.default_backend(),
-    )
+    # ``Hash``'s ``backend`` argument has been optional since cryptography
+    # 3.1. Previously this passed ``cryptography.hazmat.backends.default_backend()``
+    # without importing ``cryptography.hazmat.backends``; that worked only
+    # because Ed25519PrivateKey.generate() on cryptography <= 43 transitively
+    # loaded the backends submodule. On cryptography >= 44, Ed25519 is
+    # Rust-only and no longer does so, causing ``AttributeError: module
+    # 'cryptography.hazmat' has no attribute 'backends'`` at this call site.
+    hasher = hashes.Hash(hashes.SHA256())
     hasher.update(data)
     hasher.update(additional_header_data)
     hasher.update(b"\x04\xff")
