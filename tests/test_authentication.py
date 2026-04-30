@@ -11,13 +11,17 @@ Run the tests this way:
 import copy
 import json
 import os
+import struct
 from pathlib import Path
 
 import cryptography.exceptions
 import pytest
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from conda_content_trust.authentication import (
     verify_delegation,
+    verify_gpg_signature,
     verify_root,
     verify_signable,
     verify_signature,
@@ -553,3 +557,99 @@ def test_verify_signable_coverage():
     # gpg and signature that doesn't look like a gpg signature
     with pytest.raises(SignatureError, match="from at least"):
         verify_signable(signable_d, [HEX_KEY], 1, gpg=True)
+
+
+def _build_gpg_signature(
+    priv: ed25519.Ed25519PrivateKey,
+    data: bytes,
+    other_headers_bytes: bytes = b"\x04\x13\x01\x00",
+) -> tuple[str, dict]:
+    """Construct ``(pubkey_hex, signature)`` in the shape ``verify_gpg_signature`` expects."""
+    pubkey_hex = (
+        priv.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        .hex()
+    )
+    # Digest construction per RFC4880 Section 5.2.4 (EdDSA).
+    hasher = hashes.Hash(hashes.SHA256())
+    hasher.update(data)
+    hasher.update(other_headers_bytes)
+    hasher.update(b"\x04\xff")
+    hasher.update(struct.pack(">I", len(other_headers_bytes)))
+    digest = hasher.finalize()
+    return pubkey_hex, {
+        "other_headers": other_headers_bytes.hex(),
+        "signature": priv.sign(digest).hex(),
+    }
+
+
+def test_verify_gpg_signature_valid():
+    """A valid OpenPGP-style ed25519 signature verifies."""
+    priv = ed25519.Ed25519PrivateKey.generate()
+    data = b"conda-content-trust: verify_gpg_signature positive test"
+    pubkey_hex, signature = _build_gpg_signature(priv, data)
+
+    verify_gpg_signature(signature, pubkey_hex, data)
+
+
+def _corrupt_last_hex_char(hex_str: str) -> str:
+    return hex_str[:-1] + ("0" if hex_str[-1] != "0" else "1")
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        pytest.param(
+            lambda sig, pub, data: (sig, pub, data + b"!"),
+            id="tampered-data",
+        ),
+        pytest.param(
+            lambda sig, pub, data: (
+                {**sig, "signature": _corrupt_last_hex_char(sig["signature"])},
+                pub,
+                data,
+            ),
+            id="tampered-signature",
+        ),
+        pytest.param(
+            lambda sig, pub, data: (
+                sig,
+                _build_gpg_signature(ed25519.Ed25519PrivateKey.generate(), data)[0],
+                data,
+            ),
+            id="wrong-pubkey",
+        ),
+    ],
+)
+def test_verify_gpg_signature_invalid(mutate):
+    """Tampering with payload, signature, or public key raises ``InvalidSignature``."""
+    priv = ed25519.Ed25519PrivateKey.generate()
+    data = b"conda-content-trust: verify_gpg_signature negative test"
+    pubkey_hex, signature = _build_gpg_signature(priv, data)
+
+    bad_signature, bad_pubkey_hex, bad_data = mutate(signature, pubkey_hex, data)
+
+    with pytest.raises(cryptography.exceptions.InvalidSignature):
+        verify_gpg_signature(bad_signature, bad_pubkey_hex, bad_data)
+
+
+def test_verify_gpg_signature_does_not_rely_on_transitive_backends_import(
+    monkeypatch,
+):
+    """Regression: ``verify_gpg_signature`` must not depend on other code setting ``cryptography.hazmat.backends`` first (fails on cryptography >= 44)."""
+    import cryptography.hazmat
+
+    priv = ed25519.Ed25519PrivateKey.generate()
+    data = b"conda-content-trust: transitive-backends regression test"
+    pubkey_hex, signature = _build_gpg_signature(priv, data)
+
+    # Simulate a fresh interpreter on cryptography>=44: the ``backends``
+    # attribute is only set on ``cryptography.hazmat`` when something
+    # explicitly does ``import cryptography.hazmat.backends``, which
+    # conda-content-trust must not rely on.
+    monkeypatch.delattr(cryptography.hazmat, "backends", raising=False)
+
+    verify_gpg_signature(signature, pubkey_hex, data)
