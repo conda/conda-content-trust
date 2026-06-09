@@ -2,6 +2,11 @@ conda/governance:
   # [required] community files
   - CODE_OF_CONDUCT.md
 
+conda/conda:
+  # canary build workflow
+  - .github/workflows/build.yml
+  - .github/WORKFLOW_FAILURE_REPORT_TEMPLATE.md
+
 conda/infrastructure:
   # [required] general workflows
   - .github/workflows/cla.yml
