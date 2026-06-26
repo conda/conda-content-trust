@@ -81,17 +81,18 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-latest
-            subdir: linux-64
+            subdir: noarch
           - runs-on: ubuntu-24.04-arm
-            subdir: linux-aarch64
+            subdir: noarch
           - runs-on: macos-latest
-            subdir: osx-arm64
+            subdir: noarch
           - runs-on: windows-latest
-            subdir: win-64
+            subdir: noarch
     runs-on: ${{ matrix.runs-on }}
     steps:
       # Clean checkout of specific git ref needed for package metadata version
-      # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
+      # which needs env vars GIT_DESCRIBE_TAG, GIT_DESCRIBE_NUMBER, GIT_DESCRIBE_HASH,
+      # and optional VERSION_OVERRIDE:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ env.REF }}
