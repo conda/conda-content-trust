@@ -1,5 +1,30 @@
 [//]: # (current developments)
 
+## 0.3.2 (2026-04-30)
+
+### Bug fixes
+
+* Fix `AttributeError: module 'cryptography.hazmat' has no attribute 'backends'` in `verify_gpg_signature` (and therefore `verify_root` and `verify_signable(..., gpg=True)`) on `cryptography >= 44`. The function now imports `cryptography.hazmat.primitives.hashes` explicitly and drops the unused `backend=` argument to `Hash()`. (#264)
+
+### Contributors
+
+* @jezdez
+
+
+
+## 0.3.1 (2026-04-01)
+
+### Bug fixes
+
+* Fix `conda.plugins` import. (#260)
+
+### Contributors
+
+* @jezdez
+* @kenodegard
+
+
+
 ## 0.3.0 (2026-03-18)
 
 ### Enhancements
