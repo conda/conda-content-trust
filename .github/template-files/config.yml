@@ -2,10 +2,6 @@ conda/governance:
   # [required] community files
   - CODE_OF_CONDUCT.md
 
-conda/conda:
-  # canary build workflow
-  - .github/workflows/build.yml
-
 conda/infrastructure:
   # [required] general workflows
   - .github/workflows/cla.yml
@@ -19,6 +15,16 @@ conda/infrastructure:
   # [optional] stale bot workflows
   - .github/workflows/stale.yml
   - .github/workflows/lock.yml
+
+  # [optional] canary build workflow
+  - src: templates/workflows/build.yml
+    dst: .github/workflows/build.yml
+  # For noarch packages, add:
+    with:
+      noarch: true
+  # For repos whose test workflow is not named "Tests", add:
+  #   with:
+  #     tests_workflow: Test
 
   # [optional] general processes for the conda org
   - src: templates/HOW_WE_USE_GITHUB.md
